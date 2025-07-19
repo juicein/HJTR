@@ -1,43 +1,19 @@
-body {
-  font-family: sans-serif;
-  padding: 20px;
-  background-color: #f7f7f7;
-}
+fetch("News content.json")
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById("news-container");
+    data.forEach(item => {
+      const card = document.createElement("a");
+      card.className = "card";
+      card.href = item.link;
 
-#news-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.card {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  overflow: hidden;
-  display: flex;
-  cursor: pointer;
-  text-decoration: none;
-  color: inherit;
-}
-
-.card img {
-  width: 160px;
-  height: 100px;
-  object-fit: cover;
-}
-
-.card-content {
-  padding: 10px;
-}
-
-.card-title {
-  font-weight: bold;
-  font-size: 18px;
-  margin: 0 0 8px;
-}
-
-.card-meta {
-  font-size: 12px;
-  color: #777;
-}
+      card.innerHTML = `
+        < img src="${item.image}" alt="">
+        <div class="card-content">
+          <div class="card-title">${item.title}</div>
+          <div class="card-meta">${item.author} ｜ ${item.date}</div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  });
