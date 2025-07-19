@@ -1,0 +1,16 @@
+  {
+    "id": 1,
+    "title": "服管会：共同维护线路运营秩序",
+    "image": "https://example.com/image1.jpg",
+    "date": "2025-07-16",
+    "author": "〔通知公告〕",
+    "link": "news/1.html"
+  },
+  {
+    "id": 2,
+    "title": "校园广告发布规范须知",
+    "image": "https://example.com/image2.jpg",
+    "date": "2025-07-15",
+    "author": "〔广告〕",
+    "link": "news/2.html"
+  }
