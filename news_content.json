@@ -9,15 +9,14 @@
   "link": "sl",
   "location": "城建"
   }
-  
   {
     "title": "盛大举行",
     "content": "游客与市民共度传统佳节。",
     "image": "https://example.com/images/songkran.jpg",
     "date": "2025-04-13",
     "author": "风光记者团",
-    "location": "ad",
-    "link": ""  // 留空，系统会自动生成
+    "link": "sl",
+  "location": "城建"
   },
   {
     "title": "高铁合作新突破",
@@ -25,7 +24,7 @@
     "image": "https://example.com/images/train.jpg",
     "date": "2025-05-01",
     "author": "交通要闻",
-    "location": "开",
-    "link": ""
+    "link": "sl",
+  "location": "城建"
   }
 ]
