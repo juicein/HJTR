@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const newsData = JSON.parse(fs.readFileSync('news.json', 'utf-8'));
+const newsData = JSON.parse(fs.readFileSync('news_content.json', 'utf-8'));
 
 newsData.forEach((item, index) => {
   const html = `
