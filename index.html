@@ -74,6 +74,33 @@
   <script src="js/main.js"></script>
 </body>
 </html>
+
+
+<h1>📢 最新新闻</h1>
+<div id="container"></div>
+
+<script>
+fetch("news.json").then(r=>r.json()).then(news=>{
+  const c = document.getElementById("container")
+  news.sort((a,b)=>new Date(b.date)-new Date(a.date))
+  news.forEach((item, i) => {
+    const card = document.createElement("div")
+    card.className = "card"
+    card.onclick = ()=>location.href = "news.html?index=" + i
+    card.innerHTML = `
+      ${item.image ? `<img src="${item.image}">` : ''}
+      <h2>${item.title}</h2>
+      <small>${item.date} · ${item.author} · ${item.location || ""}</small>
+      <p>${item.content.slice(0, 60)}...</p>
+    `
+    c.appendChild(card)
+  })
+})
+</script>
+
+</body>
+</html>
+
   
 <section>
   <h2>📖 关于我</h2>
