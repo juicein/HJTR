@@ -1,30 +1,20 @@
- 
- [
- {
-  "title": "lal",
-  "content": "ql",
-  "image": "sk",
-  "date": "07-21 04:17",
-  "author": "sk",
-  "link": "sl",
-  "location": "城建"
-  }
+[
   {
-    "title": "盛大举行",
-    "content": "游客与市民共度传统佳节。",
-    "image": "https://example.com/images/songkran.jpg",
-    "date": "2025-04-13",
-    "author": "风光记者团",
-    "link": "sl",
-  "location": "城建"
+    "title": "服管会：共同维护线路运营秩序",
+    "content": "祝大家新年快乐，新年吉祥",
+    "image": "https://img.example.com/image1.jpg",
+    "date": "2025-07-13 11:46",
+    "author": "万方新闻",
+    "link": "https://www.mcwfmtr.cc",
+    "location": "万方"
   },
   {
-    "title": "高铁合作新突破",
-    "content": "铁路项目迈出新步伐，预计2026年投入运营。",
-    "image": "https://example.com/images/train.jpg",
-    "date": "2025-05-01",
-    "author": "交通要闻",
-    "link": "sl",
-  "location": "城建"
+    "title": "线路优化公告",
+    "content": "7月14日部分线路优化调整。",
+    "image": "https://img.example.com/line-update.jpg",
+    "date": "2025-07-14 08:00",
+    "author": "线路办",
+    "link": "https://example.com/update",
+    "location": "总站"
   }
 ]
