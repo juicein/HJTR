@@ -1,5 +1,5 @@
 async function loadNews() {
-  const res = await fetch('news.json');
+  const res = await fetch('news_content.json');
   if (!res.ok) { console.error('news.json 读取失败'); return; }
   const newsList = await res.json();
 
