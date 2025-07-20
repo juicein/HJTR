@@ -76,32 +76,64 @@
 </html>
 
 
-<h1>📢 最新新闻</h1>
-<div id="container"></div>
 
-<script>
-fetch("news.json").then(r=>r.json()).then(news=>{
-  const c = document.getElementById("container")
-  news.sort((a,b)=>new Date(b.date)-new Date(a.date))
-  news.forEach((item, i) => {
-    const card = document.createElement("div")
-    card.className = "card"
-    card.onclick = ()=>location.href = "news.html?index=" + i
-    card.innerHTML = `
-      ${item.image ? `<img src="${item.image}">` : ''}
-      <h2>${item.title}</h2>
-      <small>${item.date} · ${item.author} · ${item.location || ""}</small>
-      <p>${item.content.slice(0, 60)}...</p>
-    `
-    c.appendChild(card)
-  })
-})
-</script>
+<title>新闻主页</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <h1>新闻中心</h1>
+  <input type="text" id="search" placeholder="搜索新闻..." />
+  <div id="news-container"></div>
 
+  <script>
+    async function loadNews() {
+      const res = await fetch('news.json');
+      const newsList = await res.json();
+      const container = document.getElementById('news-container');
+      const searchInput = document.getElementById('search');
+
+      function render(newsData) {
+        container.innerHTML = '';
+        newsData.forEach((item, index) => {
+          const link = `news/${index}.html`;
+          item.link = link;
+
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <img src="${item.image}" alt="image">
+            <div class="text">
+              <h2>${item.title}</h2>
+              <p class="meta">${item.date} • ${item.location}</p>
+            </div>
+          `;
+          card.onclick = () => location.href = link;
+          container.appendChild(card);
+        });
+      }
+
+      render(newsList);
+
+      searchInput.addEventListener('input', () => {
+        const keyword = searchInput.value.toLowerCase();
+        const filtered = newsList.filter(n =>
+          n.title.toLowerCase().includes(keyword) ||
+          n.content.toLowerCase().includes(keyword) ||
+          n.location.toLowerCase().includes(keyword)
+        );
+        render(filtered);
+      });
+    }
+
+    loadNews();
+  </script>
 </body>
 </html>
 
-  
+
+
+
+
 <section>
   <h2>📖 关于我</h2>
   <p>你好！我是你的名字，一个热爱技术与创作的开发者。这个网站是我的个人主页，记录我做过的项目、写过的文章以及一些想法。</p >
