@@ -83,7 +83,17 @@
 </html>  
 
       
-  
+  news.forEach((item, index) => {
+  html += `
+    <a href="news-detail.html?id=${index}" class="card">
+      <img src="${item.image}" alt="${item.title}">
+      <div class="card-content">
+        <h3>${item.title}</h3>
+        <p>${item.date} · ${item.location}</p>
+      </div>
+    </a>
+  `;
+});
 
 
 <section>
