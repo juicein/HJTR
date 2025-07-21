@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>新闻详情</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .container { max-width: 800px; margin: auto; }
+    .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+    .meta { color: #666; margin-bottom: 20px; }
+    .content { font-size: 18px; line-height: 1.6; white-space: pre-wrap; }
+    .image { max-width: 100%; margin: 20px 0; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="title" id="news-title">加载中...</div>
+    <div class="meta" id="news-meta"></div>
+    <img class="image" id="news-image" style="display:none">
+    <div class="content" id="news-content"></div>
+  </div>
+
+  <script>
+    // 获取 URL 参数
+    function getParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    // 加载 JSON 并显示内容
+    fetch("news.json")
+      .then(res => res.json())
+      .then(data => {
+        const id = parseInt(getParam("id"));
+        const item = data[id];
+        if (!item) {
+          document.getElementById("news-title").innerText = "未找到该新闻";
+          return;
+        }
+
+        document.title = item.title;
+        document.getElementById("news-title").innerText = item.title;
+        document.getElementById("news-meta").innerText = `${item.date} · ${item.author} · ${item.location}`;
+        document.getElementById("news-content").innerText = item.content;
+        if (item.image) {
+          const img = document.getElementById("news-image");
+          img.src = item.image;
+          img.style.display = "block";
+        }
+      });
+  </script>
+</body>
+</html>
