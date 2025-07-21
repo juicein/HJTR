@@ -71,80 +71,19 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>新闻主页</title>
-  <link rel="stylesheet" href="assets/style.css" />
-</head>
-<body>
-  <h1>新闻中心</h1>
-  <input type="text" id="searchInput" placeholder="搜索新闻..." />
-  <div id="newsList"></div>
-
-  <script>
-    async function loadNews() {
-      const res = await fetch('news_content.json');
-      const news = await res.json();
-
-      // 按时间降序排列
-      news.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      const list = document.getElementById('newsList');
-      list.innerHTML = '';
-
-      news.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-          <img src="${item.image}" alt="封面图">
-          <div class="card-content">
-            <h2>${item.title}</h2>
-            <p class="meta">${item.date} · ${item.location}</p>
-            <p>${item.content.slice(0, 60)}...</p>
-          </div>
-        `;
-        card.onclick = () => {
-          window.location.href = `news-detail.html?id=${index}`;
-        };
-        list.appendChild(card);
-      });
-
-      // 搜索功能
-      document.getElementById('searchInput').addEventListener('input', function () {
-        const key = this.value.toLowerCase();
-        document.querySelectorAll('.card').forEach((el, i) => {
-          const item = news[i];
-          el.style.display = (
-            item.title.toLowerCase().includes(key) ||
-            item.content.toLowerCase().includes(key) ||
-            item.location.toLowerCase().includes(key)
-          ) ? 'block' : 'none';
-        });
-      });
-    }
-
-    loadNews();
-  </script>
-</body>
-</html>
-
-  
-
-
-  <title>新闻主页</title>
+  <meta charset="UTF-8">
+  <title>📰 新闻中心</title>
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
   <h1>📰 新闻中心</h1>
-  <input type="text" id="search" placeholder="搜索新闻..." />
-
+  <input type="text" id="search" placeholder="搜索新闻...">
   <div id="news-container"></div>
 
   <script src="assets/script.js"></script>
 </body>
-</html>  
-
-      
+</html>
   
 
 
