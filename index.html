@@ -68,116 +68,21 @@
 
 
 
-  
+  <title>新闻主页</title>
   <link rel="stylesheet" href="assets/style.css">
-  <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 1rem;
-      background: #f5f5f5;
-    }
-    .search {
-      margin-bottom: 1rem;
-      display: flex;
-    }
-    .search input {
-      flex: 1;
-      padding: 0.5rem;
-      font-size: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    .news-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1rem;
-    }
-    .card {
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.2s;
-    }
-    .card:hover {
-      transform: translateY(-3px);
-    }
-    .card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-    }
-    .card-content {
-      padding: 1rem;
-    }
-    .card-content h3 {
-      margin: 0 0 0.5rem;
-      font-size: 1.2rem;
-    }
-    .card-content p {
-      margin: 0;
-      color: #666;
-      font-size: 0.9rem;
-    }
-  </style>
 </head>
 <body>
 
-  <div class="search">
-    <input type="text" id="searchInput" placeholder="搜索新闻标题或地点...">
-  </div>
+  <h1>📰 新闻中心</h1>
+  <input type="text" id="search" placeholder="搜索新闻..." />
 
-  <div id="newsList" class="news-list"></div>
+  <div id="news-container"></div>
 
-  <script>
-    async function loadNews() {
-      const res = await fetch('news.json');
-      let news = await res.json();
-
-      // 按时间倒序排序
-      news.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-      const listEl = document.getElementById('newsList');
-      const input = document.getElementById('searchInput');
-
-      function render(newsArray) {
-        listEl.innerHTML = '';
-        newsArray.forEach((item, index) => {
-          const card = document.createElement('a');
-          card.href = `news-detail.html?id=${index}`;
-          card.className = 'card';
-          card.innerHTML = `
-            <img src="${item.image}" alt="${item.title}">
-            <div class="card-content">
-              <h3>${item.title}</h3>
-              <p>${item.date} · ${item.location}</p>
-            </div>
-          `;
-          listEl.appendChild(card);
-        });
-      }
-
-      input.addEventListener('input', () => {
-        const keyword = input.value.toLowerCase();
-        const filtered = news.filter(item =>
-          item.title.toLowerCase().includes(keyword) ||
-          item.location.toLowerCase().includes(keyword)
-        );
-        render(filtered);
-      });
-
-      render(news);
-    }
-
-    loadNews();
-  </script>
-
+  <script src="assets/script.js"></script>
 </body>
-</html>
+</html>  
 
+      
   
 
 
