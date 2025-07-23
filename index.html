@@ -10,6 +10,7 @@
 <head>
   <meta charset="UTF-8">
   <title>HAOJIN主页</title>
+  
   <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
@@ -124,7 +125,7 @@
   <div id="news-list"></div>
 
   <script>
-    fetch('news.json')
+    fetch('news_content.json')
       .then(response => response.json())
       .then(news => {
         const container = document.getElementById('news-list');
