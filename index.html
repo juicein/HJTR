@@ -1,25 +1,21 @@
 <!DOCTYPE html>
 <html lang="zh">
-
 <head>
   <meta charset="UTF-8">
   <title>HAOJIN主页</title>
-  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
-</head>
-  
-
-<head>
-  <meta charset="UTF-8">
-  <title>HAOJIN主页</title>
-  
-  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
+      padding: 0;
+    }
+    body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #f7f9fc;
       color: #333;
+      overflow-x: hidden;
     }
     header {
       background: linear-gradient(135deg, #4CAF50, #2196F3);
@@ -60,115 +56,92 @@
       margin-right: 15px;
     }
     footer {
+      background-color: #1a1a1a;
+      color: #ccc;
+      padding: 40px 20px;
+      font-size: 14px;
+    }
+    footer h3 {
+      color: #fff;
+    }
+    footer a {
+      color: #ccc;
+      text-decoration: none;
+    }
+    footer ul {
+      list-style: none;
+      padding: 0;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .footer-bottom {
       text-align: center;
-      padding: 20px;
-      font-size: 0.9em;
-      color: #888;
+      border-top: 1px solid #444;
+      padding-top: 20px;
+      font-size: 12px;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
 
-<header>
-  <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="我的头像">
-  <h1>HAOJIN</h1>
-  <p class="subtitle">前端开发者 | 技术写作者 | 开源爱好者</p >
-</header>
+  <header>
+    <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="我的头像">
+    <h1>HAOJIN</h1>
+    <p class="subtitle">前端开发者 | 技术写作者 | 开源爱好者</p>
+  </header>
 
+  <section>
+    <h2>📖 关于我</h2>
+    <p>你好！我是你的名字，一个热爱技术与创作的开发者。</p>
 
+    <h2>🧪 项目展示</h2>
+    <ul>
+      <li><strong>MyBlog：</strong> 基于 GitHub Pages 的静态博客系统</li>
+      <li><strong>TodoApp：</strong> 一个简洁的 JavaScript 待办事项应用</li>
+    </ul>
 
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-  <meta charset="UTF-8">
-  <title>📰 新闻中心</title>
-  <link rel="stylesheet" href="assets/style.css">
-</head>
-<body>
-
-  <h1>📰 新闻中心</h1>
-  <input type="text" id="search" placeholder="搜索新闻...">
-  <div id="news-container"></div>
-
-  <script src="assets/script.js"></script>
-</body>
-</html>
-  
-
-
-<section>
-  <h2>📖 关于我</h2>
-  <p>你好！我是你的名字，一个热爱技术与创作的开发者。这个网站是我的个人主页，记录我做过的项目、写过的文章以及一些想法。</p >
-
-  <h2>🧪 项目展示</h2>
-  <ul>
-    <li><strong>MyBlog：</strong> 基于 GitHub Pages 的静态博客系统</li>
-    <li><strong>TodoApp：</strong> 一个简洁的 JavaScript 待办事项应用</li>
-  </ul>
-
-  <h2>📫 联系方式</h2>
-  <div class="links">
-    <a href=" ">Email</a >
-    <a href="https://github.com/你的用户名" target="_blank">GitHub</a >
-    <a href="https://yourblog.com" target="_blank">Blog</a >
-  </div>
-</section>
-
-<footer>
-  上述地名、组织名、品牌名均为虚构，仅为在实现代码信息方面学术交流使用，为一个代码demo实现的平台
-  
-  © 2025 你的名字. All rights reserved.
-</footer>
-
-</body>
-</html>
-
-
-
-<footer style="background-color: #1a1a1a; color: #ccc; padding: 40px 20px; font-family: sans-serif;">
-  <div style="max-width: 1200px; margin: auto; display: flex; flex-wrap: wrap; justify-content: space-between;">
-
-    <!-- 网站信息 -->
-    <div style="flex: 1 1 200px; margin: 10px;">
-      <h3 style="color: #fff; font-size: 18px;">关于本站</h3>
-      <p style="font-size: 14px; line-height: 1.6;">
-        我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。
-      </p>
+    <h2>📫 联系方式</h2>
+    <div class="links">
+      <a href="#">Email</a>
+      <a href="https://github.com/你的用户名" target="_blank">GitHub</a>
+      <a href="https://yourblog.com" target="_blank">Blog</a>
     </div>
+  </section>
 
-    <!-- 快速链接 -->
-    <div style="flex: 1 1 150px; margin: 10px;">
-      <h3 style="color: #fff; font-size: 18px;">快速导航</h3>
-      <ul style="list-style: none; padding: 0; font-size: 14px;">
-        <li><a href="#" style="color: #ccc; text-decoration: none;">主页</a></li>
-        <li><a href="#" style="color: #ccc; text-decoration: none;">联系我们</a></li>
-        <li><a href="#" style="color: #ccc; text-decoration: none;">隐私政策</a></li>
-        <li><a href="#" style="color: #ccc; text-decoration: none;">服务条款</a></li>
-      </ul>
-    </div>
-
-    <!-- 社交媒体 -->
-    <div style="flex: 1 1 200px; margin: 10px;">
-      <h3 style="color: #fff; font-size: 18px;">关注我们</h3>
-      <div style="display: flex; gap: 10px; margin-top: 10px;">
-        <a href="#" style="color: #ccc; text-decoration: none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="24" alt="Facebook" />
-        </a>
-        <a href="#" style="color: #ccc; text-decoration: none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" width="24" alt="Twitter" />
-        </a>
-        <a href="#" style="color: #ccc; text-decoration: none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" width="24" alt="Instagram" />
-        </a>
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <h3>关于本站</h3>
+        <p>我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。</p>
+      </div>
+      <div>
+        <h3>快速导航</h3>
+        <ul>
+          <li><a href="#">主页</a></li>
+          <li><a href="#">联系我们</a></li>
+          <li><a href="#">隐私政策</a></li>
+          <li><a href="#">服务条款</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>关注我们</h3>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="24" alt="Facebook" /></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" width="24" alt="Twitter" /></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" width="24" alt="Instagram" /></a>
+        </div>
       </div>
     </div>
-  </div>
+    <div class="footer-bottom">
+      上述地名、品牌名为示例用途。© 2025 HAOJIN. All rights reserved.
+    </div>
+  </footer>
 
-  <div style="text-align: center; border-top: 1px solid #444; padding-top: 20px; font-size: 12px; margin-top: 20px;">
-    © 2025 新闻网站版权所有 | 使用即代表同意我们的条款与政策
-  </div>
-</footer>
-
-
-
-
+</body>
+</html>
