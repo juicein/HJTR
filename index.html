@@ -11,11 +11,18 @@
       margin: 0;
       padding: 0;
     }
+    html, body {
+      height: 100%;
+    }
     body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #f7f9fc;
       color: #333;
-      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex: 1; /* 填满剩余空间，推动 footer 底部 */
     }
     header {
       background: linear-gradient(135deg, #4CAF50, #2196F3);
@@ -55,6 +62,23 @@
     .links a {
       margin-right: 15px;
     }
+
+    /* 新闻区域 */
+    .news {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    .news input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    /* 底部样式 */
     footer {
       background-color: #1a1a1a;
       color: #ccc;
@@ -96,37 +120,32 @@
     <p class="subtitle">前端开发者 | 技术写作者 | 开源爱好者</p>
   </header>
 
-  <section>
-    <h2>📖 关于我</h2>
-    <p>你好！我是你的名字，一个热爱技术与创作的开发者。</p>
+  <main>
+    <section>
+      <h2>📖 关于我</h2>
+      <p>你好！我是你的名字，一个热爱技术与创作的开发者。</p>
 
-    <h2>🧪 项目展示</h2>
-    <ul>
-      <li><strong>MyBlog：</strong> 基于 GitHub Pages 的静态博客系统</li>
-      <li><strong>TodoApp：</strong> 一个简洁的 JavaScript 待办事项应用</li>
-    </ul>
+      <h2>🧪 项目展示</h2>
+      <ul>
+        <li><strong>MyBlog：</strong> 基于 GitHub Pages 的静态博客系统</li>
+        <li><strong>TodoApp：</strong> 一个简洁的 JavaScript 待办事项应用</li>
+      </ul>
 
-    <h2>📫 联系方式</h2>
-    <div class="links">
-      <a href="#">Email</a>
-      <a href="https://github.com/你的用户名" target="_blank">GitHub</a>
-      <a href="https://yourblog.com" target="_blank">Blog</a>
-    </div>
-  </section>
+      <h2>📫 联系方式</h2>
+      <div class="links">
+        <a href="#">Email</a>
+        <a href="https://github.com/你的用户名" target="_blank">GitHub</a>
+        <a href="https://yourblog.com" target="_blank">Blog</a>
+      </div>
+    </section>
 
+    <section class="news">
+      <h2>📰 新闻中心</h2>
+      <input type="text" id="search" placeholder="搜索新闻...">
+      <div id="news-container"></div>
+    </section>
+  </main>
 
-  <title>📰 新闻中心</title>
-  <link rel="stylesheet" href="assets/style.css">
-<body>
-
-  <h1>📰 新闻中心</h1>
-  <input type="text" id="search" placeholder="搜索新闻...">
-  <div id="news-container"></div>
-
-  <script src="assets/script.js"></script>
-</body>
-
-  
   <footer>
     <div class="footer-inner">
       <div>
@@ -156,5 +175,6 @@
     </div>
   </footer>
 
+  <script src="assets/script.js"></script>
 </body>
 </html>
