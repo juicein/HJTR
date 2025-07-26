@@ -146,6 +146,51 @@
     </section>
   </main>
 
+
+      <footer class="bg-primary text-white">
+    <div class="container mx-auto px-6 py-12">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+
+  <a-space wrap >
+       <div style="display:flex;">
+     <img style="    height: 18px;" src="./img/logo/官网图标.svg"></img>
+ </div>
+ 
+<div v-for="menu in NaiveList" :key="menu.id">
+  <a class="Naive-Link" :href="menu.url">{{menu.name}}</a></div>
+  
+   <a-popover title="友情链接">
+   <a class="Naive-Link" >友情链接</a>
+    <template #content>
+       <a-link href="https://imgnews.cn" icon target="_blank">IMG</a-link>
+       <a-link href="mailto:qyhn@my.naoh.ddns-ip.net" icon target="_blank">申请友链</a-link>
+    </template>
+  </a-popover>
+  
+   <a-popover title="穿越">
+   <a class="Naive-Link" >穿越</a>
+    <template #content>
+       <a-link href="./old" icon target="_blank">回到2024</a-link>
+    </template>
+  </a-popover>  
+  
+      <a href="https://space.bilibili.com/3461578250783429?spm_id_from=333.976.0.0" class="hover:text-gray-300">
+    <i class="fa-brands fa-bilibili"></i>@NaOH0
+    </a>
+    
+  <a href="https://livescope.tv/room/NaTV" class="hover:text-gray-300">
+    <img onerror="()=>this.$message.error('图片资源加载失败：LiveScope')" style="height:18px;margin-top: 2px;" src="https://livescope.tv/img/Logotype-Comfortaa-fix-no-background-spaceless.ad5fd01c.png"/>
+    </a>
+  </a-space>
+  
+    </div>
+    <div style="margin-top: 10px;
+    padding-top: 1rem;" class="border-t border-white/20 mt-8 pt-8 text-left">
+    <p>© 2023-2025 NaTV 版权所有 | 自豪地使用Vue构建。| 本站仅为建站练习用，电视台为虚构</p>
+  <a>备案号内容</a>
+  
+
+  
   <footer>
     <div class="footer-inner">
       <div>
