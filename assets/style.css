@@ -1,10 +1,5 @@
 
-/* 重置浏览器默认边距和填充 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+
 
 
 body {
