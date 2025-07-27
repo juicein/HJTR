@@ -3,57 +3,149 @@
 <head>
   <meta charset="UTF-8">
   <title>HAOJIN主页</title>
-  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
   <link rel="stylesheet" href="assets/style.css">
-    <link rel="stylesheet" href="assets/style.css">
 
+  <style>
+    /* 页面重置，去除四周空白 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #f7f9fc;
+      color: #333;
+    }
 
-  <footer style="background-color: #1a1a1a; color: #ccc; padding: 40px 20px; font-family: sans-serif;">
-  <div style="max-width: 1200px; margin: auto; display: flex; flex-wrap: wrap; justify-content: space-between;">
+    /* 高端导航栏 */
+    .topbar {
+      background: #111;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 40px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
 
-    <!-- 网站信息 -->
-    <div style="flex: 1 1 200px; margin: 10px;">
-      <h3 style="color: #fff; font-size: 18px;">关于本站</h3>
-      <p style="font-size: 14px; line-height: 1.6;">
-        我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。
-      </p>
+    .topbar .logo {
+      display: flex;
+      align-items: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      color: gold;
+    }
+
+    .topbar .logo img {
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    .topbar nav a {
+      margin-left: 20px;
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .topbar nav a:hover {
+      color: gold;
+    }
+
+    /* 页脚样式 */
+    footer {
+      background-color: #1a1a1a;
+      color: #ccc;
+      padding: 40px 20px;
+      font-family: sans-serif;
+    }
+
+    footer a {
+      color: #ccc;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: white;
+    }
+
+    /* 底栏 logo */
+    .footer-logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .footer-logo img {
+      height: 50px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 顶部导航栏 -->
+  <div class="topbar">
+    <div class="logo">
+      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo">
+      HAOJIN 新闻
+    </div>
+    <nav>
+      <a href="#">主页</a>
+      <a href="#">新闻中心</a>
+      <a href="#">关于我们</a>
+      <a href="#">联系我们</a>
+    </nav>
+  </div>
+
+  <!-- 页面主体内容可继续在这添加 -->
+  <!-- ... -->
+
+  <!-- 底部 -->
+  <footer>
+    <div class="footer-logo">
+      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo">
     </div>
 
-    <!-- 快速链接 -->
-    <div style="flex: 1 1 150px; margin: 10px;">
-      <h3 style="color: #fff; font-size: 18px;">快速导航</h3>
-      <ul style="list-style: none; padding: 0; font-size: 14px;">
-        <li><a href="#" style="color: #ccc; text-decoration: none;">主页</a></li>
-        <li><a href="#" style="color: #ccc; text-decoration: none;">联系我们</a></li>
-        <li><a href="#" style="color: #ccc; text-decoration: none;">隐私政策</a></li>
-        <li><a href="#" style="color: #ccc; text-decoration: none;">服务条款</a></li>
-      </ul>
-    </div>
+    <div style="max-width: 1200px; margin: auto; display: flex; flex-wrap: wrap; justify-content: space-between;">
 
-    <!-- 社交媒体 -->
-    <div style="flex: 1 1 200px; margin: 10px;">
-      <h3 style="color: #fff; font-size: 18px;">关注我们</h3>
-      <div style="display: flex; gap: 10px; margin-top: 10px;">
-        <a href="#" style="color: #ccc; text-decoration: none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="24" alt="Facebook" />
-        </a>
-        <a href="#" style="color: #ccc; text-decoration: none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" width="24" alt="Twitter" />
-        </a>
-        <a href="#" style="color: #ccc; text-decoration: none;">
-          <img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" width="24" alt="Instagram" />
-        </a>
+      <!-- 网站信息 -->
+      <div style="flex: 1 1 200px; margin: 10px;">
+        <h3 style="color: #fff; font-size: 18px;">关于本站</h3>
+        <p style="font-size: 14px; line-height: 1.6;">
+          我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。
+        </p>
+      </div>
+
+      <!-- 快速链接 -->
+      <div style="flex: 1 1 150px; margin: 10px;">
+        <h3 style="color: #fff; font-size: 18px;">快速导航</h3>
+        <ul style="list-style: none; padding: 0; font-size: 14px;">
+          <li><a href="#">主页</a></li>
+          <li><a href="#">联系我们</a></li>
+          <li><a href="#">隐私政策</a></li>
+          <li><a href="#">服务条款</a></li>
+        </ul>
+      </div>
+
+      <!-- 社交媒体 -->
+      <div style="flex: 1 1 200px; margin: 10px;">
+        <h3 style="color: #fff; font-size: 18px;">关注我们</h3>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="24" alt="Facebook" /></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" width="24" alt="Twitter" /></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" width="24" alt="Instagram" /></a>
+        </div>
       </div>
     </div>
-  </div>
 
-  <div style="text-align: center; border-top: 1px solid #444; padding-top: 20px; font-size: 12px; margin-top: 20px;">
-    © 2025 新闻网站版权所有 | 使用即代表同意我们的条款与政策
-  </div>
-</footer>
+    <div style="text-align: center; border-top: 1px solid #444; padding-top: 20px; font-size: 12px; margin-top: 20px;">
+      © 2025 新闻网站版权所有 | 使用即代表同意我们的条款与政策
+    </div>
+  </footer>
 
   <script src="assets/script.js"></script>
 </body>
