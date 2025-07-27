@@ -1,5 +1,8 @@
 
-
+a {
+  text-decoration: none; /* 去除下划线 */
+  color: inherit;         /* 使用父元素的字体颜色 */
+}
 
 
 body {
