@@ -1,169 +1,73 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>新闻中心 | KianYan</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="assets/style.css" />
+  <meta charset="UTF-8">
+  <title>HAOJIN主页</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-      background-color: #f5f5f5;
-    }
-
-    /* 顶栏 */
-    .topbar {
-      background-color: #b80000;
-      color: white;
-      padding: 12px 24px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 18px;
-      font-weight: bold;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    }
-
-    .topbar span {
-      font-size: 20px;
-    }
-
-    /* 搜索框 */
-    #searchBar {
-      margin: 20px auto;
-      max-width: 600px;
-      display: flex;
-      justify-content: center;
-    }
-
-    #searchInput {
-      width: 90%;
-      padding: 10px;
-      font-size: 16px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-
-    /* 卡片区域 */
-    #newsContainer {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 20px;
-      padding: 20px;
-    }
-
-    .news-card {
-      background-color: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-      width: 320px;
-      text-decoration: none;
-      color: inherit;
-      transition: transform 0.2s;
-    }
-
-    .news-card:hover {
-      transform: translateY(-4px);
-    }
-
-    .news-card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-    }
-
-    .news-content {
-      padding: 16px;
-    }
-
-    .news-title {
-      font-size: 18px;
-      font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .news-meta {
-      color: #888;
-      font-size: 14px;
-    }
-
-    /* 底栏 */
-    .footer {
-      background-color: #333;
-      color: #ccc;
-      text-align: center;
-      padding: 20px 10px;
-      font-size: 14px;
-      margin-top: 40px;
-    }
-  </style>
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 
 <body>
-  <!-- 顶栏 -->
-  <div class="topbar">
-    <span>新闻中心</span>
-    <span>KianYan</span>
-  </div>
 
-  <!-- 搜索框 -->
-  <div id="searchBar">
-    <input type="text" id="searchInput" placeholder="搜索新闻标题、作者、地点..." />
-  </div>
+  <!-- 顶部导航栏 -->
+  <header class="topbar">
+    <div class="topbar-container">
+      <div class="logo">
+        <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo">
+        <span>HAOJIN 新闻</span>
+      </div>
+      <nav class="nav-links">
+        <a href="#">主页</a>
+        <a href="#">新闻中心</a>
+        <a href="#">关于我们</a>
+        <a href="#">联系我们</a>
+      </nav>
+    </div>
+  </header>
 
-  <!-- 新闻卡片 -->
-  <div id="newsContainer"></div>
+  <!-- 新闻区域 -->
+  <main>
+    <h1>📰 新闻中心</h1>
+    <input type="text" id="search" placeholder="搜索新闻...">
+    <div id="news-container"></div>
+  </main>
 
-  <!-- 底栏 -->
-  <div class="footer">
-    © 2025 KianYan | 使用 GitHub Pages 构建 | 数据源：news.json
-  </div>
+  <!-- 底部 -->
+  <footer>
+    <div class="footer-logo">
+      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo">
+    </div>
 
-  <script>
-    const container = document.getElementById("newsContainer");
-    const searchInput = document.getElementById("searchInput");
+    <div class="footer-content">
+      <div>
+        <h3>关于本站</h3>
+        <p>我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。</p>
+      </div>
+      <div>
+        <h3>快速导航</h3>
+        <ul>
+          <li><a href="#">主页</a></li>
+          <li><a href="#">联系我们</a></li>
+          <li><a href="#">隐私政策</a></li>
+          <li><a href="#">服务条款</a></li>
+        </ul>
+      </div>
+      <div>
+        <h3>关注我们</h3>
+        <div class="social-icons">
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="24" alt="Facebook"></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" width="24" alt="Twitter"></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" width="24" alt="Instagram"></a>
+        </div>
+      </div>
+    </div>
 
-    async function loadNews() {
-      const res = await fetch("news.json");
-      const data = await res.json();
-      renderNews(data);
-    }
+    <div class="footer-bottom">
+      © 2025 新闻网站版权所有 | 使用即代表同意我们的条款与政策
+    </div>
+  </footer>
 
-    function renderNews(newsList) {
-      container.innerHTML = "";
-      const search = searchInput.value.toLowerCase();
-
-      newsList
-        .sort((a, b) => new Date(b.date) - new Date(a.date))
-        .filter(n => {
-          return (
-            n.title.toLowerCase().includes(search) ||
-            n.author?.toLowerCase().includes(search) ||
-            n.location?.toLowerCase().includes(search)
-          );
-        })
-        .forEach(news => {
-          const card = document.createElement("a");
-          card.className = "news-card";
-          card.href = news.link || `news/${encodeURIComponent(news.title)}.html`;
-          card.innerHTML = `
-            <img src="${news.image}" alt="图片加载失败" />
-            <div class="news-content">
-              <div class="news-title">${news.title}</div>
-              <div class="news-meta">${news.date} · ${news.location || "未知地点"}</div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-    }
-
-    searchInput.addEventListener("input", loadNews);
-
-    loadNews();
-  </script>
+  <script src="assets/script.js"></script>
 </body>
 </html>
