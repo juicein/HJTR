@@ -1,49 +1,98 @@
 
-a {
-  text-decoration: none; /* 去除下划线 */
-  color: inherit;         /* 使用父元素的字体颜色 */
+/* 全局通用 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-
 
 body {
   font-family: 'Helvetica Neue', sans-serif;
-  background: #f2f2f2;
-  margin: 0;
-  /* padding: 20px; 👈 删除它 */
+  background: #f4f6f8;
+  color: #333;
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 10px;
+/* 顶部导航栏 */
+.topbar {
+  background-color: #111;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  position: sticky;
+  top: 0;
+  z-index: 999;
 }
 
+.topbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 5vw;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: gold;
+}
+
+.logo img {
+  height: 36px;
+  margin-right: 10px;
+}
+
+.nav-links a {
+  color: white;
+  text-decoration: none;
+  margin-left: 20px;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.nav-links a:hover {
+  color: gold;
+}
+
+/* 主体 */
+main {
+  padding: 30px 5vw;
+}
+
+/* 搜索框 */
 #search {
   display: block;
-  margin: 0 auto 20px;
-  padding: 10px;
-  width: 80%;
+  margin: 0 auto 30px;
+  padding: 12px;
+  width: 90%;
+  max-width: 600px;
   font-size: 16px;
   border-radius: 8px;
   border: 1px solid #ccc;
 }
 
+/* 卡片布局 */
 #news-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 20px;
+  gap: 24px;
 }
 
+/* 卡片样式 */
 .card {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
   overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
 }
 
 .card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 10px 18px rgba(0,0,0,0.15);
 }
 
 .card img {
@@ -57,12 +106,102 @@ h1 {
 }
 
 .card .text h2 {
-  margin: 0 0 10px;
   font-size: 18px;
-  color: #333;
+  margin-bottom: 10px;
+  color: #222;
 }
 
 .card .text .meta {
   font-size: 14px;
-  color: #999;
+  color: #888;
+}
+
+/* 链接样式优化 */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* 页脚 */
+footer {
+  background-color: #1a1a1a;
+  color: #ccc;
+  padding: 40px 5vw;
+}
+
+.footer-logo {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.footer-logo img {
+  height: 48px;
+}
+
+.footer-content {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: auto;
+}
+
+.footer-content div {
+  flex: 1 1 200px;
+  margin: 10px;
+}
+
+.footer-content h3 {
+  color: white;
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.footer-content ul {
+  list-style: none;
+  padding: 0;
+  font-size: 14px;
+}
+
+.footer-content a:hover {
+  color: white;
+}
+
+.social-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.footer-bottom {
+  text-align: center;
+  border-top: 1px solid #444;
+  padding-top: 20px;
+  font-size: 12px;
+  margin-top: 20px;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .topbar-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav-links {
+    margin-top: 10px;
+  }
+
+  .nav-links a {
+    display: inline-block;
+    margin: 10px 10px 0 0;
+  }
+
+  .footer-content {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .footer-content div {
+    text-align: center;
+  }
 }
