@@ -1,148 +1,55 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <title>HAOJIN主页</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
-  <link rel="stylesheet" href="assets/style.css">
-
-
-  <style>
-    /* 页面重置，去除四周空白 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-
-    }
-
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #f7f9fc;
-      color: #333;
-    }
-
-    /* 高端导航栏 */
-    .topbar {
-      background: #111;
-      color: white;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 15px 40px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    }
-
-    .topbar .logo {
-      display: flex;
-      align-items: center;
-      font-size: 1.5em;
-      font-weight: bold;
-      color: gold;
-    }
-
-    .topbar .logo img {
-      height: 40px;
-      margin-right: 10px;
-    }
-
-    .topbar nav a {
-      margin-left: 20px;
-      color: white;
-      text-decoration: none;
-      font-weight: 500;
-    }
-
-    .topbar nav a:hover {
-      color: gold;
-    }
-
-
-
-
-
-
-
-    
-    /* 页脚样式 */
-    footer {
-      background-color: #1a1a1a;
-      color: #ccc;
-      padding: 40px 20px;
-      font-family: sans-serif;
-    }
-
-    footer a {
-      color: #ccc;
-      text-decoration: none;
-    }
-
-    footer a:hover {
-      color: white;
-    }
-
-    /* 底栏 logo */
-    .footer-logo {
-      text-align: center;
-      margin-bottom: 30px;
-    }
-
-    .footer-logo img {
-      height: 50px;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <title>HAOJIN 主页</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png" />
+  <link rel="stylesheet" href="assets/style.css" />
 </head>
 
 <body>
 
   <!-- 顶部导航栏 -->
-  <div class="topbar">
+  <header class="topbar">
     <div class="logo">
-      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo">
-      HAOJIN 新闻
+      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo" />
+      <span>HAOJIN 新闻</span>
     </div>
-    <nav>
+    <nav class="nav-links">
       <a href="#">主页</a>
       <a href="#">新闻中心</a>
       <a href="#">关于我们</a>
       <a href="#">联系我们</a>
     </nav>
-  </div>
+    <button class="nav-toggle" aria-label="菜单切换">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
 
-  <!-- 页面主体内容可继续在这添加 -->
-  
-<body>
+  <!-- 页面主体 -->
+  <main>
+    <h1>📰 新闻中心</h1>
+    <input type="text" id="search" placeholder="搜索新闻..." />
+    <div id="news-container"></div>
+  </main>
 
-  <h1>📰 新闻中心</h1>
-  <input type="text" id="search" placeholder="搜索新闻...">
-  <div id="news-container"></div>
-
-  <script src="assets/script.js"></script>
-</body>
-
-  <!-- ... -->
-
-  <!-- 底部 -->
+  <!-- 底部栏 -->
   <footer>
     <div class="footer-logo">
-      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo">
+      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo" />
     </div>
 
-    <div style="max-width: 1200px; margin: auto; display: flex; flex-wrap: wrap; justify-content: space-between;">
+    <div class="footer-columns">
 
-      <!-- 网站信息 -->
-      <div style="flex: 1 1 200px; margin: 10px;">
-        <h3 style="color: #fff; font-size: 18px;">关于本站</h3>
-        <p style="font-size: 14px; line-height: 1.6;">
-          我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。
-        </p>
+      <div class="footer-section">
+        <h3>关于本站</h3>
+        <p>我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。</p>
       </div>
 
-      <!-- 快速链接 -->
-      <div style="flex: 1 1 150px; margin: 10px;">
-        <h3 style="color: #fff; font-size: 18px;">快速导航</h3>
-        <ul style="list-style: none; padding: 0; font-size: 14px;">
+      <div class="footer-section">
+        <h3>快速导航</h3>
+        <ul>
           <li><a href="#">主页</a></li>
           <li><a href="#">联系我们</a></li>
           <li><a href="#">隐私政策</a></li>
@@ -150,22 +57,27 @@
         </ul>
       </div>
 
-      <!-- 社交媒体 -->
-      <div style="flex: 1 1 200px; margin: 10px;">
-        <h3 style="color: #fff; font-size: 18px;">关注我们</h3>
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" width="24" alt="Facebook" /></a>
-          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" width="24" alt="Twitter" /></a>
-          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" width="24" alt="Instagram" /></a>
+      <div class="footer-section">
+        <h3>关注我们</h3>
+        <div class="social-icons">
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733547.png" alt="Facebook" /></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733579.png" alt="Twitter" /></a>
+          <a href="#"><img src="https://cdn-icons-png.flaticon.com/512/733/733558.png" alt="Instagram" /></a>
         </div>
       </div>
     </div>
 
-    <div style="text-align: center; border-top: 1px solid #444; padding-top: 20px; font-size: 12px; margin-top: 20px;">
+    <div class="footer-bottom">
       © 2025 新闻网站版权所有 | 使用即代表同意我们的条款与政策
     </div>
   </footer>
 
+  <!-- 脚本部分 -->
   <script src="assets/script.js"></script>
+  <script>
+    document.querySelector('.nav-toggle').addEventListener('click', () => {
+      document.querySelector('.nav-links').classList.toggle('show');
+    });
+  </script>
 </body>
 </html>
