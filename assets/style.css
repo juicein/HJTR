@@ -1,98 +1,68 @@
 
-/* 全局通用 */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Helvetica Neue', sans-serif;
-  background: #f4f6f8;
-  color: #333;
-}
-
-/* 顶部导航栏 */
-.topbar {
-  background-color: #111;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  position: sticky;
-  top: 0;
-  z-index: 999;
-}
-
-.topbar-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 5vw;
-  max-width: 1200px;
-  margin: auto;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  font-size: 1.5em;
-  font-weight: bold;
-  color: gold;
-}
-
-.logo img {
-  height: 36px;
-  margin-right: 10px;
-}
-
-.nav-links a {
-  color: white;
+/* 超链接样式 */
+a {
   text-decoration: none;
-  margin-left: 20px;
-  font-weight: 500;
-  transition: color 0.3s;
+  color: inherit;
 }
 
-.nav-links a:hover {
-  color: gold;
+/* 全局基础样式 */
+body {
+  font-family: 'Helvetica Neue', 'Segoe UI', 'Roboto', sans-serif;
+  background: #f5f6f7;
+  color: #222;
+  margin: 0;
 }
 
-/* 主体 */
-main {
-  padding: 30px 5vw;
+/* 主标题样式 */
+h1 {
+  text-align: center;
+  font-weight: 600;
+  font-size: 28px;
+  color: #222;
+  margin: 30px 0 20px;
 }
 
-/* 搜索框 */
+/* 搜索框样式 */
 #search {
   display: block;
   margin: 0 auto 30px;
   padding: 12px;
-  width: 90%;
+  width: 80%;
   max-width: 600px;
   font-size: 16px;
   border-radius: 8px;
   border: 1px solid #ccc;
+  outline: none;
+  transition: border 0.3s;
 }
 
-/* 卡片布局 */
+#search:focus {
+  border-color: #888;
+}
+
+/* 卡片容器 */
 #news-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 24px;
+  padding: 0 5%;
 }
 
 /* 卡片样式 */
 .card {
-  background: white;
+  background: #fff;
   border-radius: 12px;
-  box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   overflow: hidden;
+  cursor: pointer;
   transition: transform 0.2s, box-shadow 0.3s;
   display: flex;
   flex-direction: column;
 }
 
 .card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 18px rgba(0,0,0,0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
 }
 
 .card img {
@@ -101,107 +71,47 @@ main {
   object-fit: cover;
 }
 
+/* 卡片文字部分 */
 .card .text {
-  padding: 15px;
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
 }
 
+/* 标题样式 */
 .card .text h2 {
   font-size: 18px;
+  font-weight: 600;
+  color: #1d1d1f;
   margin-bottom: 10px;
-  color: #222;
+  line-height: 1.4;
 }
 
+/* 元信息（日期、作者等） */
 .card .text .meta {
   font-size: 14px;
-  color: #888;
+  color: #777;
+  line-height: 1.5;
 }
 
-/* 链接样式优化 */
-a {
-  text-decoration: none;
-  color: inherit;
-}
-
-/* 页脚 */
-footer {
-  background-color: #1a1a1a;
-  color: #ccc;
-  padding: 40px 5vw;
-}
-
-.footer-logo {
-  text-align: center;
-  margin-bottom: 30px;
-}
-
-.footer-logo img {
-  height: 48px;
-}
-
-.footer-content {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  max-width: 1200px;
-  margin: auto;
-}
-
-.footer-content div {
-  flex: 1 1 200px;
-  margin: 10px;
-}
-
-.footer-content h3 {
-  color: white;
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.footer-content ul {
-  list-style: none;
-  padding: 0;
-  font-size: 14px;
-}
-
-.footer-content a:hover {
-  color: white;
-}
-
-.social-icons {
-  display: flex;
-  gap: 12px;
-}
-
-.footer-bottom {
-  text-align: center;
-  border-top: 1px solid #444;
-  padding-top: 20px;
-  font-size: 12px;
-  margin-top: 20px;
-}
-
-/* 响应式优化 */
-@media (max-width: 768px) {
-  .topbar-container {
-    flex-direction: column;
-    align-items: flex-start;
+/* 媒体查询：移动端适配 */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 24px;
   }
 
-  .nav-links {
-    margin-top: 10px;
+  #search {
+    width: 90%;
+    font-size: 15px;
   }
 
-  .nav-links a {
-    display: inline-block;
-    margin: 10px 10px 0 0;
+  .card .text h2 {
+    font-size: 17px;
   }
 
-  .footer-content {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .footer-content div {
-    text-align: center;
+  .card .text .meta {
+    font-size: 13px;
   }
 }
