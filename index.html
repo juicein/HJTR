@@ -1,3 +1,4 @@
+<!-- 开头保留一致 -->
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -6,22 +7,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png">
   <link rel="stylesheet" href="assets/style.css">
-
   <style>
-    /* 页面重置，去除四周空白 */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    /* 你写的内联样式不变 */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', sans-serif;
       background-color: #f7f9fc;
       color: #333;
     }
-
-    /* 高端导航栏 */
     .topbar {
       background: #111;
       color: white;
@@ -31,7 +24,6 @@
       padding: 15px 40px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
     }
-
     .topbar .logo {
       display: flex;
       align-items: center;
@@ -39,46 +31,34 @@
       font-weight: bold;
       color: gold;
     }
-
     .topbar .logo img {
       height: 40px;
       margin-right: 10px;
     }
-
     .topbar nav a {
       margin-left: 20px;
       color: white;
       text-decoration: none;
       font-weight: 500;
     }
-
-    .topbar nav a:hover {
-      color: gold;
-    }
-
-    /* 页脚样式 */
+    .topbar nav a:hover { color: gold; }
     footer {
       background-color: #1a1a1a;
       color: #ccc;
       padding: 40px 20px;
       font-family: sans-serif;
     }
-
     footer a {
       color: #ccc;
       text-decoration: none;
     }
-
     footer a:hover {
       color: white;
     }
-
-    /* 底栏 logo */
     .footer-logo {
       text-align: center;
       margin-bottom: 30px;
     }
-
     .footer-logo img {
       height: 50px;
     }
@@ -101,15 +81,12 @@
     </nav>
   </div>
 
-  <!-- 页面主体内容 -->
-  <body>
-
+  <!-- ❌ 删除了多余的 <body> -->
   <h1>📰 新闻中心</h1>
   <input type="text" id="search" placeholder="搜索新闻...">
   <div id="news-container"></div>
 
   <script src="assets/script.js"></script>
-</body>
 
   <!-- 底部 -->
   <footer>
@@ -118,8 +95,6 @@
     </div>
 
     <div style="max-width: 1200px; margin: auto; display: flex; flex-wrap: wrap; justify-content: space-between;">
-
-      <!-- 网站信息 -->
       <div style="flex: 1 1 200px; margin: 10px;">
         <h3 style="color: #fff; font-size: 18px;">关于本站</h3>
         <p style="font-size: 14px; line-height: 1.6;">
@@ -127,7 +102,6 @@
         </p>
       </div>
 
-      <!-- 快速链接 -->
       <div style="flex: 1 1 150px; margin: 10px;">
         <h3 style="color: #fff; font-size: 18px;">快速导航</h3>
         <ul style="list-style: none; padding: 0; font-size: 14px;">
@@ -138,7 +112,6 @@
         </ul>
       </div>
 
-      <!-- 社交媒体 -->
       <div style="flex: 1 1 200px; margin: 10px;">
         <h3 style="color: #fff; font-size: 18px;">关注我们</h3>
         <div style="display: flex; gap: 10px; margin-top: 10px;">
