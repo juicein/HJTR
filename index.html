@@ -4,13 +4,11 @@
   <meta charset="UTF-8" />
   <title>HAOJIN 主页</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" type="image/png" />
+  <link rel="icon" href="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" />
   <link rel="stylesheet" href="assets/style.css" />
 </head>
-
 <body>
-
-  <!-- 顶部导航栏 -->
+  <!-- 顶部导航 -->
   <header class="topbar">
     <div class="logo">
       <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo" />
@@ -22,31 +20,23 @@
       <a href="#">关于我们</a>
       <a href="#">联系我们</a>
     </nav>
-    <button class="nav-toggle" aria-label="菜单切换">
-      <span></span><span></span><span></span>
-    </button>
   </header>
 
-  <!-- 页面主体 -->
   <main>
     <h1>📰 新闻中心</h1>
     <input type="text" id="search" placeholder="搜索新闻..." />
     <div id="news-container"></div>
   </main>
 
-  <!-- 底部栏 -->
   <footer>
     <div class="footer-logo">
       <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="Logo" />
     </div>
-
     <div class="footer-columns">
-
       <div class="footer-section">
         <h3>关于本站</h3>
         <p>我们致力于提供最权威、最及时的新闻内容，涵盖社会、国际、科技等多个领域。</p>
       </div>
-
       <div class="footer-section">
         <h3>快速导航</h3>
         <ul>
@@ -56,7 +46,6 @@
           <li><a href="#">服务条款</a></li>
         </ul>
       </div>
-
       <div class="footer-section">
         <h3>关注我们</h3>
         <div class="social-icons">
@@ -66,18 +55,11 @@
         </div>
       </div>
     </div>
-
     <div class="footer-bottom">
       © 2025 新闻网站版权所有 | 使用即代表同意我们的条款与政策
     </div>
   </footer>
 
-  <!-- 脚本部分 -->
   <script src="assets/script.js"></script>
-  <script>
-    document.querySelector('.nav-toggle').addEventListener('click', () => {
-      document.querySelector('.nav-links').classList.toggle('show');
-    });
-  </script>
 </body>
 </html>
