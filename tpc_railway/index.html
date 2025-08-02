@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>临东地铁线网图</title>
+    <link rel="icon" href="../UI/res/雨城通logo绿.png" type="image/png">
+    <link rel="stylesheet" type="text/css" href="../mainpage.css">   
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+    <div class="search-controls">
+        <input type="text" id="start-search" placeholder="起点" onkeyup="filterStations(this.value, 'start')" />
+        <span class="arrow">→</span>
+        <input type="text" id="end-search" placeholder="终点" onkeyup="filterStations(this.value, 'end')" />
+        <button onclick="setRouteFromSearch()">查询</button>
+    </div>
+    <div id="route-result" class="route-result">
+        <span onclick="clearRoute()" class="close-button" alt="关闭"><img src="../UI/res/close_black.png" style="width:16px;height:16px" /></span>
+        <h3>查询结果</h3>
+        <div id="route-list-container" style="margin-bottom:12px">
+            <ul id="route-list" style="display: none; opacity: 0.0001;"></ul>
+            <div id="line-summary"></div>
+            <div id="fare-zone-summary"></div>
+        </div>
+        <div class="share-buttons" style="margin-bottom: 12px;">
+            <button onclick="copyToClipboard()" class="share-button">复制文本</button>
+            <button onclick="saveAsImage()" class="share-button">保存图片</button>
+            <button onclick="showAddTripDialog()" class="share-button">添加行程提醒</button>
+        </div>
+        <div id="image-footer" style="display: none;">
+            <div class="footer-content">
+                <div class="footer-left">
+                    <img src="../UI/res/雨城通logo带文字浅色.png" alt="雨城通" class="footer-logo">
+                    <p class="footer-caption">时间和路线仅供参考,“临东”及相关组织品牌等均为虚构</p>
+                </div>
+                <div class="footer-right">
+                    <img src="../UI/res/qrcode.png" alt="二维码" class="footer-qr">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="add-trip-dialog" class="dialog" style="display: none;">
+        <div class="dialog-content">
+            <h3>添加行程提醒</h3>
+            <div class="dialog-body">
+                <div class="time-type-selector">
+                    <label>
+                        <input type="radio" name="timeType" value="departure" checked> 出发时间
+                    </label>
+                    <label>
+                        <input type="radio" name="timeType" value="arrival"> 到达时间
+                    </label>
+                </div>
+                <div class="time-input">
+                    <label>选择时间：</label>
+                    <input type="datetime-local" id="trip-time">
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button onclick="hideAddTripDialog()" class="dialog-button">取消</button>
+                <button onclick="addTripReminder()" class="dialog-button primary">确定</button>
+            </div>
+        </div>
+    </div>
+    <div id="legend-container" class="legend-container" style="display: none;">
+        <h3>图例</h3>
+        <div id="line-legend"></div>
+        <div id="transfer-legend">
+            <div style="width:12px;height:12px;background-color:white;border-radius:6px;border:3px solid #ccc; margin: 0 6px"></div>
+            <p>换乘站</p>
+        </div>
+        <p class="caption">
+            <p class="caption">"临东"及其相关组织均为虚构，网站部分代码使用AI生成，部分图标来自<a href="https://www.icons8.com/">Icons8</a>。</p>
+            <p class="caption" style="font-size:12px;font-weight:500"><a href="../">雨城通首页</a> | <a href="https://wiki.shangxiaoguan.top">服务器Wiki</a></p>
+        </p>
+    </div>
+    <div class="controls">
+        <button onclick="zoomIn()"><img src="../UI/res/plus_black.png" /></button>
+        <button onclick="zoomOut()"><img src="../UI/res/minus_black.png" /></button>
+    </div>
+    <div class="controls" style="top:144px">
+        <button onclick="showLegend()"><img src="../UI/res/info_black.png" style="width:16px;height:16px" /></button>
+    </div>
+    <div id="toast" class="toast-overlay">
+        <p class="toast-text" id="toastText"></p>
+    </div>
+    <div id="background" style="width:100%;height:100%;background-color:black;opacity:0.1;z-index:5;display:none;top:0;left:0;position:absolute" onclick="hideTooltip()"></div>
+    <div id="tooltip" class="tooltip">
+        <span onclick="hideTooltip()" class="close-button" alt="关闭"><img src="../UI/res/close_black.png" style="width:16px;height:16px" /></span>
+        <span onclick="openWikiPage(currentStation)" class="close-button" alt="详情"><img src="../UI/res/info_black.png" style="width:18px;height:18px" /></span>
+        <h3 id="station-name"></h3>
+        <p id="fare-zone-info" class="caption"></p>
+        <p id="lines-info"></p>
+        <div style="display:flex; align-items:center; justify-content:center;">
+            <button onclick="setStartPoint(currentStation)" style="background-color: #008000; margin-right:3px">设为起点</button>
+            <button onclick="setEndPoint(currentStation)" style="background-color: #ffa500; margin-left:3px">设为终点</button>
+        </div>
+    </div>
+    <svg id="metro-map"></svg>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="../data/metro_data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
