@@ -31,8 +31,8 @@ const lines = [
         color: "#ec6981",
         stations: [
             { name: "豪金中央", nameEN: "JINYANGDAJIE", coordinates: { x: 300, y: 100 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
-            { name: "空港经济区", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 400, y: 400 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", }
-         //   { name: "江滨大学", nameEN: "BEITAILU", coordinates: { x: 300, y: 300 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", }
+            { name: "空港经济区", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 300, y: 400 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
+          { name: "长安西", nameEN: "BEITAILU", coordinates: { x: 300, y: 500 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", }
            // { name: "草仓路", nameEN: "CAOCANGLU", coordinates: { x: 300, y: 400 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.4, platformSide: "left", },
          //   { name: "宣庆文化宫", nameEN: "XUANQINGWENHUAGONG", coordinates: { x: 300, y: 500 }, fareZone: "市区", labelOffset: { x: -90, y: -8 }, travelTime: 2, platformSide: "left", },
           //  { name: "青年大街", nameEN: "QINGNIANDAJIE", coordinates: { x: 300, y: 600 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
