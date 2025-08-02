@@ -1,0 +1,756 @@
+svg {
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: move;
+}
+
+.station {
+    cursor: pointer;
+    fill: #fff;
+    stroke-width: 2;
+    transition: opacity 0.3s ease;
+}
+
+.line {
+    stroke-width: 4;
+    transition: opacity 0.3s ease;
+}
+
+.map-dimmed {
+    opacity: 0.3;
+}
+
+.highlighted-line {
+    stroke-width: 6;
+    pointer-events: none;
+}
+
+.highlighted-group {
+    pointer-events: none;
+}
+
+.start-point {
+    stroke: green;
+    stroke-width: 3;
+}
+
+.end-point {
+    stroke: red;
+    stroke-width: 3;
+}
+
+.search-controls .arrow {
+    font-weight: bold;
+    color: #888;
+}
+
+.tooltip {
+    position: fixed;
+    border: 1px solid var(--border-color);
+    z-index: 1001;
+    background-color: var(--card-background);
+    padding: 12px;
+    border-radius: 18px;
+    display: none;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    min-width: 200px;
+    max-width: 300px;
+}
+
+    .tooltip h3 {
+        text-wrap-mode: nowrap;
+        margin-right: 50px;
+    }
+
+    .tooltip p {
+        margin: 5px 0;
+        line-height: 1.2;
+    }
+
+    .tooltip caption {
+        margin-bottom: 0;
+        text-align: left;
+    }
+
+    .tooltip #fare-zone-info {
+        text-align: left;
+    }
+
+.tooltip button {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 30px;
+    color: #fff;
+    cursor: pointer;
+}
+
+.wiki-button {
+    float: right;
+    width: auto;
+    font-size: 14px;
+    border: none;
+    border-radius: 30px;
+    background-color: var(--hover-background);
+    color: var(--text-color);
+    cursor: pointer;
+    margin: 0 2px;
+    text-align: center;
+}
+
+.wiki-button:hover {
+    background-color: #ccc;
+}
+
+.route-result {
+    position: absolute;
+    top: 76px;
+    right: 60px;
+    z-index: 10;
+    background-color: var(--header-background);
+    padding: 12px 18px;
+    padding-bottom: 18px;
+    border-radius: 12px;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    display: none;
+    max-width: 240px;
+    max-height: 720px;
+    line-height: 1.8;
+}
+
+.route-result ul {
+    list-style-type: none;
+    padding: 0px;
+    margin-bottom: 6px;
+    opacity: 0;
+}
+
+.route-result li {
+    padding: 0px;
+    margin-bottom: 12px;
+}
+
+.route-result button {
+    float: right;
+    color: #333;
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 30px;
+    background-color: #fff;
+    color: #888;
+    cursor: pointer;
+    text-align: center;
+    text-anchor: middle;
+    padding: 0;
+}
+
+.route-result button:hover {
+    background-color: #dbe0e1;
+}
+
+.start::before {
+    content: ' ';
+    width: 12px;
+    height: 12px;
+    background-color: green;
+    border-radius: 50%;
+    margin-right: 10px;
+    position: relative;
+    display: inline-block;
+}
+
+.transfer::before {
+    content: ' ';
+    width: 8px;
+    height: 8px;
+    border: 3px solid #7b8a8f;
+    border-radius: 50%;
+    margin-right: 10px;
+    position: relative;
+    display: inline-block;
+}
+
+.end::before {
+    content: ' ';
+    width: 12px;
+    height: 12px;
+    background-color: orange;
+    border-radius: 50%;
+    margin-right: 10px;
+    position: relative;
+    display: inline-block;
+}
+
+.line-stations {
+    color: var(--secondary-text);
+    font-size: 14px;
+    line-height: 1.2;
+    white-space: pre-line;
+    padding-left: 22px;
+    text-align: left;
+}
+
+.line-stations::before {
+    font-size: 16px;
+    font-weight: bold;
+    content: '↓';
+    width: 3px;
+    height: 100%;
+    color: var(--line-color);
+    margin-right: 20px;
+    margin-left: -24px;
+    position: relative;
+    display: inline-block;
+    vertical-align: top;
+}
+
+::marker {
+    display: none;
+    font-size: 0px;
+    height: 0px;
+}
+
+#metro-map {
+    touch-action: manipulation;
+}
+
+.search-controls input {
+    border: none;
+    width: 72px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 30px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+}
+
+.search-controls input:focus {
+    outline: none;
+}
+
+.search-controls input::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+/* 通用控制面板样式 */
+.controls {
+    position: absolute;
+    top: 72px;
+    right: 12px;
+    z-index: 10;
+    background-color: var(--header-background);
+    padding: 6px;
+    border-radius: 50px;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    display: flex;
+    flex-flow: column;
+}
+
+    .controls button {
+        width: 24px;
+        height: 24px;
+        border: none;
+        border-radius: 30px;
+        background-color: var(--card-background);
+        color: var(--secondary-text);
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+    }
+
+    .controls button img{
+        width:14px;
+        height:14px;
+    }
+
+        .controls button:hover {
+            background-color: var(--hover-background);
+        }
+
+.back-button {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1000;
+    background-color: var(--header-background);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px var(--shadow-color);
+    transition: background-color 0.2s;
+}
+
+.back-button:hover {
+    background-color: var(--card-background);
+}
+
+.back-button img {
+    width: 24px;
+    height: 24px;
+    opacity: 0.7;
+}
+
+#background {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+    top: 0;
+    left: 0;
+}
+
+.legend-container {
+    position: fixed;
+    top: 76px;
+    right: 60px;
+    background: var(--card-background);
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    z-index: 5;
+    width: 160px;
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+.legend-container h3 {
+    margin-top: 0;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+#line-legend .line-item {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+}
+
+#line-legend .line-color {
+    width: 24px;
+    height: 3px;
+    margin-right: 8px;
+    border-radius: 2px;
+}
+
+#transfer-legend {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+#transfer-legend p {
+    font-size: 13px;
+}
+
+#transfer-legend svg {
+    width: 24px;
+    height: 24px;
+    position: relative;
+    border: none;
+}
+
+.legend-container .caption {
+    color: var(--secondary-text);
+    font-size: 11px;
+    margin: 0;
+    text-align: left;
+}
+
+.route-selector {
+    display: flex;
+    gap: 4px;
+    margin: 8px 0;
+}
+
+.route-selector button {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    background-color: #f5f5f5;
+    color: #333;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-width: 0;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.route-selector button:hover {
+    background-color: #e8e8e8;
+}
+
+.route-selector button.selected {
+    background-color: #e6f3f0;
+    color: #2c9678;
+    border-color: #2c9678;
+}
+
+#fare-zone-summary {
+    border-top: 1px solid #eee;
+    margin-top: 6px;
+    padding-top: 6px;
+}
+
+#fare-zone-summary p {
+    margin: 6px 0;
+    color: #333;
+    font-size: 14px;
+    line-height: 1;
+}
+
+#fare-zone-summary p:first-child {
+    color: #2c9678;
+    font-weight: 500;
+}
+
+.share-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.share-button {
+    flex: 1;
+    min-width: 80px;
+    white-space: nowrap;
+}
+
+#image-footer {
+    border-top: 1px solid #eee;
+    margin-top: 12px;
+    padding-top: 12px;
+}
+
+.footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-left {
+    flex: 1;
+    padding-right: 4px;
+    display: flex;
+    gap: 2px;
+    flex-direction: column;
+}
+
+.footer-logo {
+    height: 24px;
+    width: 96px;
+    margin-bottom: 0px;
+    margin-top: -4px;
+}
+
+.footer-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.4;
+}
+
+.footer-caption {
+    font-size: 12px;
+    color: #666;
+    line-height: 1.2;
+    height: 54px;
+    align-content: flex-end;
+}
+
+.footer-right {
+    width: 88px;
+    height: 88px;
+}
+
+.footer-qr {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* 对话框样式 */
+.dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    min-width: 300px;
+    max-width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dialog h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+}
+
+.dialog-body {
+    margin-bottom: 20px;
+}
+
+.time-type-selector {
+    margin-bottom: 16px;
+}
+
+.time-type-selector label {
+    margin-right: 16px;
+    cursor: pointer;
+}
+
+.time-input {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.time-input input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.dialog-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    background: #f5f5f5;
+    color: #333;
+    transition: background-color 0.2s;
+}
+
+.dialog-button:hover {
+    background: #e0e0e0;
+}
+
+.dialog-button.primary {
+    background: #00796b;
+    color: white;
+}
+
+.dialog-button.primary:hover {
+    background: #00695c;
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .station {
+        fill: #333;
+    }
+    
+    .line-stations::before {
+        color: var(--line-color);
+    }
+    
+    .search-controls input::placeholder {
+        color: #888;
+    }
+    
+    .controls button img,
+    .close-button img {
+        filter: invert(1);
+    }
+    
+    .controls button:hover img,
+    .close-button:hover img {
+        filter: invert(0.8);
+    }
+
+    .tooltip {
+        background-color: #333;
+        border-color: #555;
+    }
+
+    .tooltip button {
+        background-color: #444;
+        color: #fff;
+    }
+
+    .tooltip button:hover {
+        background-color: #555;
+    }
+
+    .route-result {
+        background-color: #333;
+    }
+
+    .route-result button {
+        background-color: #444;
+        color: #fff;
+    }
+
+    .route-result button:hover {
+        background-color: #555;
+    }
+
+    .legend-container {
+        background-color: #333;
+        border-color: #555;
+    }
+
+    #line-legend .line-item {
+        color: #fff;
+    }
+
+    #transfer-legend {
+        color: #fff;
+    }
+
+    .share-button {
+        background-color: #444;
+        color: #fff;
+        border: 1px solid #555;
+    }
+
+    .share-button:hover {
+        background-color: #555;
+    }
+
+    #image-footer {
+        background-color: #333;
+    }
+
+    .footer-caption {
+        color: #ccc;
+    }
+
+    .dialog-content {
+        background-color: #333;
+        color: #fff;
+    }
+
+    .dialog-button {
+        background-color: #444;
+        color: #fff;
+        border: 1px solid #555;
+    }
+
+    .dialog-button:hover {
+        background-color: #555;
+    }
+
+    .dialog-button.primary {
+        background-color: #0066cc;
+        color: #fff;
+    }
+
+    .dialog-button.primary:hover {
+        background-color: #0077ee;
+    }
+
+    /* 站名文本颜色 */
+    .station-label {
+        fill: #fff;
+    }
+    
+    /* 车站详情模块的按钮 */
+    .close-button, 
+    .tooltip .close-button {
+        background-color: #444;
+    }
+    
+    .close-button:hover, 
+    .tooltip .close-button:hover {
+        background-color: #555;
+    }
+    
+    /* 查询结果模块的关闭按钮 */
+    .route-result .close-button {
+        background-color: #444;
+    }
+    
+    .route-result .close-button:hover {
+        background-color: #555;
+    }
+    
+    /* 方案选择按钮 */
+    .route-selector button {
+        background-color: #444;
+        border-color: #555;
+        color: #fff;
+    }
+    
+    .route-selector button:hover {
+        background-color: #555;
+    }
+    
+    .route-selector button.selected {
+        background-color: #1a4d3d;
+        color: #4cd3a5;
+        border-color: #2c9678;
+    }
+    
+    /* 运营时间和票价信息 */
+    #fare-zone-summary {
+        border-top-color: #555;
+    }
+    
+    #fare-zone-summary p {
+        color: #ccc;
+    }
+    
+    #fare-zone-summary p:first-child {
+        color: #4cd3a5;
+    }
+    
+    /* 图例分隔线 */
+    #image-footer {
+        border-top-color: #555;
+    }
+    
+    /* 对话框分隔线 */
+    .dialog hr {
+        border-color: #555;
+    }
+
+    /* SVG 文本颜色 */
+    #metro-map text {
+        fill: #fff;
+    }
+    
+    .station-label {
+        fill: #fff;
+    }
+}
