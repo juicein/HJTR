@@ -1,4 +1,4 @@
-const metro_name = "临东地铁";
+const metro_name = "地铁";
 const metro_name_en = "Lindong Metro";
 
 const metro_logo = "https://wiki.shangxiaoguan.top/images/1/10/%E4%B8%B4%E4%B8%9C%E5%9C%B0%E9%93%81%E6%A0%87%E8%AF%86%E5%89%AA%E6%8E%89%E7%A9%BA%E7%99%BD.png";
@@ -8,7 +8,7 @@ const metro_logo = "https://wiki.shangxiaoguan.top/images/1/10/%E4%B8%B4%E4%B8%9
 // 例如：如果 A站的travelTime为3，表示从A站到B站需要3分钟
 
 const lines = [
-    {
+  /*  {
         name: "1号线",
         nameEN: "Line 1",
         color: "#e60012",
@@ -24,7 +24,7 @@ const lines = [
             { name: "忌城路", nameEN: "JICHENGLU", coordinates: { x: 520, y: 820 }, fareZone: "出生点", labelOffset: { x: 28, y: -8 }, travelTime: 3, platformSide: "left", },
             { name: "冰岭西路", nameEN: "BINGLINGXILU", coordinates: { x: 640, y: 820 }, fareZone: "出生点", labelOffset: { x: 8, y: -8 }, travelTime: 2, platformSide: "right", }
         ]
-    },
+    },*/
     /*{
         name: "2号线",
         nameEN: "Line 2",
@@ -41,7 +41,7 @@ const lines = [
             { name: "临南中路", nameEN: "LINANZHONGLU", coordinates: { x: 530, y: 1300 }, fareZone: "机场", labelOffset: { x: 8, y: -8 }, travelTime: 2, platformSide: "left", trainPosition: 0.5  }
         ]
     },*/
-    {
+   /* {
         name: "3号线",
         nameEN: "Line 3",
         color: "#f5d000",
@@ -57,20 +57,20 @@ const lines = [
             { name: "双E港", nameEN: "SHUANGEGANG", coordinates: { x: 900, y: 600 }, fareZone: "碧湖", labelOffset: { x: 8, y: -8 }, travelTime: 2 },
             { name: "碧湖中心", nameEN: "BIHUZHONGXIN", coordinates: { x: 1000, y: 600 }, fareZone: "碧湖", labelOffset: { x: 8, y: -8 }, travelTime: 2 }*/
         ]
-    },
-    {
-        name: "6号线",
+    },*/
+   {
+        name: "会展线",
         nameEN: "Line 6",
         color: "#ec6941",
         stations: [
-            { name: "金阳大街", nameEN: "JINYANGDAJIE", coordinates: { x: 300, y: 100 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
-            { name: "人杰湖公园", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 300, y: 200 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
-            { name: "北台路", nameEN: "BEITAILU", coordinates: { x: 300, y: 300 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
-            { name: "草仓路", nameEN: "CAOCANGLU", coordinates: { x: 300, y: 400 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.4, platformSide: "left", },
-            { name: "宣庆文化宫", nameEN: "XUANQINGWENHUAGONG", coordinates: { x: 300, y: 500 }, fareZone: "市区", labelOffset: { x: -90, y: -8 }, travelTime: 2, platformSide: "left", },
-            { name: "青年大街", nameEN: "QINGNIANDAJIE", coordinates: { x: 300, y: 600 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
-            { name: "新阳路", nameEN: "XINYANGLU", coordinates: { x: 300, y: 750 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.6, platformSide: "left", },
-            { name: "仁德路", nameEN: "RENDELU", coordinates: { x: 300, y: 900 }, fareZone: "仁德", labelOffset: { x: 8, y: -8 }, travelTime: 2, platformSide: "left", }
+            { name: "豪金中央", nameEN: "JINYANGDAJIE", coordinates: { x: 300, y: 100 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
+            { name: " 千里马T3航站楼", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 300, y: 300 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
+           // { name: "北台路", nameEN: "BEITAILU", coordinates: { x: 300, y: 300 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
+           // { name: "草仓路", nameEN: "CAOCANGLU", coordinates: { x: 300, y: 400 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.4, platformSide: "left", },
+         //   { name: "宣庆文化宫", nameEN: "XUANQINGWENHUAGONG", coordinates: { x: 300, y: 500 }, fareZone: "市区", labelOffset: { x: -90, y: -8 }, travelTime: 2, platformSide: "left", },
+          //  { name: "青年大街", nameEN: "QINGNIANDAJIE", coordinates: { x: 300, y: 600 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
+           // { name: "新阳路", nameEN: "XINYANGLU", coordinates: { x: 300, y: 750 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.6, platformSide: "left", },
+          //  { name: "仁德路", nameEN: "RENDELU", coordinates: { x: 300, y: 900 }, fareZone: "仁德", labelOffset: { x: 8, y: -8 }, travelTime: 2, platformSide: "left", }
         ]
     },
     /*{
@@ -87,12 +87,12 @@ const lines = [
             { name: "红山公园", nameEN: "HONGSHANGONGYUAN", coordinates: { x: 640, y: 900 }, fareZone: "出生点", labelOffset: { x: 8, y: -8 }, travelTime: 2 }
         ]
     },*/
-    {
-        name: "10号线",
+   /* {
+        name: "会展线",
         nameEN: "Line 10",
         color: "#57d33e",
         stations: [
-            { name: "坂田客运港", nameEN: "BANTIANKEYUNGANG", coordinates: { x: 530, y: 360 }, fareZone: "坂田", labelOffset: { x: 18, y: -8 }, travelTime: 2.5, platformSide: "right", },
+           // { name: "坂田客运港", nameEN: "BANTIANKEYUNGANG", coordinates: { x: 530, y: 360 }, fareZone: "坂田", labelOffset: { x: 18, y: -8 }, travelTime: 2.5, platformSide: "right", },
             { name: "方形广场", nameEN: "FANGXINGGUANGCHANG", coordinates: { x: 530, y: 450 }, fareZone: "坂田", labelOffset: { x: 18, y: -8 }, travelTime: 3.6, platformSide: "left", },
             { name: "工农桥", nameEN: "GONGNONGQIAO", coordinates: { x: 480, y: 500 }, fareZone: "坂田", labelOffset: { x: -48, y: -8 }, travelTime: 2, platformSide: "left", },
             { name: "建业街临医二院", nameEN: "JIANYEJIELINYIERYUAN", coordinates: { x: 400, y: 500 }, fareZone: "坂田", labelOffset: { x: 8, y: 24 }, travelTime: 2.4, platformSide: "left", },
@@ -102,7 +102,7 @@ const lines = [
             { name: "南市场", nameEN: "NANSHICHANG", coordinates: { x: 200, y: 800 }, fareZone: "仁德", labelOffset: { x: 8, y: -8 }, travelTime: 2, platformSide: "right", },
             { name: "和平门", nameEN: "HEPINGMEN", coordinates: { x: 200, y: 900 }, fareZone: "仁德", labelOffset: { x: 8, y: -8 }, travelTime: 2, platformSide: "right", }
         ]
-    },
+    },*/
     /*{
         name: "机场线",
         nameEN: "Aero Express",
