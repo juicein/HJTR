@@ -56,8 +56,8 @@ const lines = [
             { name: "保税区", nameEN: "BAOSHUIQU", coordinates: { x: 800, y: 600 }, fareZone: "碧湖", labelOffset: { x: 8, y: -8 }, travelTime: 2 },
             { name: "双E港", nameEN: "SHUANGEGANG", coordinates: { x: 900, y: 600 }, fareZone: "碧湖", labelOffset: { x: 8, y: -8 }, travelTime: 2 },
             { name: "碧湖中心", nameEN: "BIHUZHONGXIN", coordinates: { x: 1000, y: 600 }, fareZone: "碧湖", labelOffset: { x: 8, y: -8 }, travelTime: 2 }*/
-        ]
-    },*/
+//        ]
+//    },
    {
         name: "会展线",
         nameEN: "Line 6",
