@@ -1,7 +1,7 @@
 let visibleCount = 6; // 默认显示 6 条
 let newsData = [];
 
-fetch('news.json')
+fetch('news_content.json')
   .then(res => res.json())
   .then(news => {
     news.sort((a, b) => new Date(b.date) - new Date(a.date));
