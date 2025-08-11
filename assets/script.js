@@ -1,40 +1,63 @@
-fetch('news_content.json')
+let visibleCount = 6; // 默认显示 6 条
+let newsData = [];
+
+fetch('news.json')
   .then(res => res.json())
   .then(news => {
-    const container = document.getElementById('news-container');
     news.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    container.innerHTML = '';
-    news.forEach((item, index) => {
-      const html = `
-        <a href="news-detail.html?id=${index}" class="card">
-          <img src="${item.image}" alt="${item.title}">
-          <div class="card-content">
-            <h3>${item.title}</h3>
-            <p class="meta">${item.date} · ${item.location}</p>
-            <p class="summary">${item.content.slice(0, 60)}...</p>
-          </div>
-        </a>
-      `;
-      container.innerHTML += html;
-    });
-
-    // 搜索功能
-    document.getElementById('search').addEventListener('input', function () {
-      const key = this.value.toLowerCase();
-      const cards = document.querySelectorAll('.card');
-      news.forEach((item, i) => {
-        const match =
-          item.title.toLowerCase().includes(key) ||
-          item.content.toLowerCase().includes(key) ||
-          item.location.toLowerCase().includes(key);
-        cards[i].style.display = match ? 'block' : 'none';
-      });
-    });
+    newsData = news;
+    renderNews();
   });
 
+function renderNews() {
+  const container = document.getElementById('news-container');
+  container.innerHTML = '';
+  newsData.slice(0, visibleCount).forEach((item, index) => {
+    const card = document.createElement('a');
+    card.className = 'card';
+    card.href = `news/${index}.html`; // 跳转到详情页
+    card.innerHTML = `
+      < img src="${item.image}" alt="${item.title}">
+      <div class="card-content">
+        <h3>${item.title}</h3>
+        <p>${item.date} · ${item.location}</p >
+      </div>
+    `;
+    container.appendChild(card);
+  });
 
+  // 控制“查看更多”按钮
+  document.getElementById('load-more').style.display =
+    visibleCount >= newsData.length ? 'none' : 'inline-block';
+}
 
+// 点击查看更多
+document.getElementById('load-more').addEventListener('click', () => {
+  visibleCount += 6;
+  renderNews();
+});
 
-
-
+// 搜索功能
+document.getElementById('search').addEventListener('input', function () {
+  const keyword = this.value.toLowerCase();
+  const filtered = newsData.filter(item =>
+    item.title.toLowerCase().includes(keyword) ||
+    item.content.toLowerCase().includes(keyword) ||
+    item.location.toLowerCase().includes(keyword)
+  );
+  const container = document.getElementById('news-container');
+  container.innerHTML = '';
+  filtered.slice(0, visibleCount).forEach((item, index) => {
+    const card = document.createElement('a');
+    card.className = 'card';
+    card.href = `news/${index}.html`;
+    card.innerHTML = `
+      < img src="${item.image}" alt="${item.title}">
+      <div class="card-content">
+        <h3>${item.title}</h3>
+        <p>${item.date} · ${item.location}</p >
+      </div>
+    `;
+    container.appendChild(card);
+  });
+});
