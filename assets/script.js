@@ -1,7 +1,9 @@
-let visibleCount = 6; // 默认显示 6 条
+let defaultCount = 6; // 初始显示条数
+let visibleCount = defaultCount;
 let newsData = [];
+let isExpanded = false; // 是否已展开
 
-fetch('news_content.json')
+fetch('news.json')
   .then(res => res.json())
   .then(news => {
     news.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -15,7 +17,7 @@ function renderNews() {
   newsData.slice(0, visibleCount).forEach((item, index) => {
     const card = document.createElement('a');
     card.className = 'card';
-    card.href = `news/${index}.html`; // 跳转到详情页
+    card.href = `news/${index}.html`; // 跳转到对应详情页
     card.innerHTML = `
       < img src="${item.image}" alt="${item.title}">
       <div class="card-content">
@@ -26,14 +28,28 @@ function renderNews() {
     container.appendChild(card);
   });
 
-  // 控制“查看更多”按钮
-  document.getElementById('load-more').style.display =
-    visibleCount >= newsData.length ? 'none' : 'inline-block';
+  // 按钮文字切换
+  const btn = document.getElementById('load-more');
+  if (!isExpanded && visibleCount >= newsData.length) {
+    btn.textContent = '收起';
+    isExpanded = true;
+  } else if (isExpanded && visibleCount >= newsData.length) {
+    btn.textContent = '收起';
+  } else {
+    btn.textContent = '查看更多';
+  }
 }
 
-// 点击查看更多
 document.getElementById('load-more').addEventListener('click', () => {
-  visibleCount += 6;
+  if (isExpanded) {
+    // 收起
+    visibleCount = defaultCount;
+    isExpanded = false;
+  } else {
+    // 展开
+    visibleCount = newsData.length;
+    isExpanded = true;
+  }
   renderNews();
 });
 
