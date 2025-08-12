@@ -1,89 +1,92 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>新闻详情</title>
-  <link rel="stylesheet" href="../assets/style.css">
+  <link rel="stylesheet" href="assets/style.css">
   <style>
+    /* 详情页局部样式，与你的全局 style 兼容 */
     .detail-container {
       max-width: 900px;
-      margin: 50px auto;
-      padding: 20px;
+      margin: 40px auto;
+      padding: 24px;
       background: #fff;
       border-radius: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
     }
     .detail-container img {
       width: 100%;
       border-radius: 8px;
-      margin-bottom: 20px;
+      margin: 18px 0;
+      object-fit: cover;
     }
-    .detail-container h1 {
-      font-size: 26px;
-      margin-bottom: 10px;
-    }
-    .meta {
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 20px;
-    }
-    .content {
-      line-height: 1.8;
-      font-size: 16px;
-    }
-    a.back-link {
-      display: inline-block;
-      margin-top: 20px;
-      color: #007bff;
-      text-decoration: none;
-    }
-    a.back-link:hover {
-      text-decoration: underline;
-    }
+    .detail-container h1 { margin: 0 0 8px; font-size: 26px; }
+    .meta { color: #888; margin-bottom: 16px; }
+    .content { line-height: 1.8; font-size: 16px; white-space: pre-wrap; }
+    .back { display:inline-block; margin-top:18px; color:#007bff; text-decoration:none; }
+    .back:hover { text-decoration:underline; }
   </style>
 </head>
 <body>
 
-  <div class="detail-container">
-    <h1 id="title">加载中...</h1>
-    <p class="meta" id="meta"></p >
-    < img id="image" src="" alt="">
+  <div class="detail-container" id="detail-container">
+    <h1 id="title">加载中…</h1>
+    <div class="meta" id="meta"></div>
+    < img id="detail-image" src="" alt="" style="display:none;">
     <div class="content" id="content"></div>
-    <a href=" " class="back-link">← 返回新闻列表</a >
+    <a id="back-link" class="back" href=" ">← 返回新闻列表</a >
   </div>
 
   <script>
-    // 获取 URL 参数中的 id
-    const params = new URLSearchParams(window.location.search);
-    const id = parseInt(params.get('id'), 10);
+    function getIdFromQuery() {
+      const p = new URLSearchParams(window.location.search);
+      const v = p.get('id');
+      if (v === null) return null;
+      const n = parseInt(v, 10);
+      return Number.isNaN(n) ? null : n;
+    }
 
-    // 加载 JSON 数据
-    fetch('../news_content.json')
-      .then(res => res.json())
-      .then(news => {
-        if (news[id]) {
+    const id = getIdFromQuery();
+    const container = document.getElementById('detail-container');
+
+    if (id === null) {
+      container.innerHTML = '<p>未提供新闻 ID。<br><a href="index.html">返回新闻列表</a ></p >';
+    } else {
+      fetch('news_content.json')
+        .then(r => {
+          if (!r.ok) throw new Error('加载 news.json 失败');
+          return r.json();
+        })
+        .then(news => {
           const item = news[id];
-          document.getElementById('title').textContent = item.title;
-          document.getElementById('meta').textContent = `${item.date} · ${item.location} · 作者：${item.author}`;
-          if (item.image) {
-            document.getElementById('image').src = item.image;
-            document.getElementById('image').alt = item.title;
-          } else {
-            document.getElementById('image').style.display = 'none';
+          if (!item) {
+            container.innerHTML = '<p>未找到该新闻。<br><a href="index.html">返回新闻列表</a ></p >';
+            return;
           }
-          document.getElementById('content').innerHTML = item.content.replace(/\n/g, '<br>');
-        } else {
-          document.getElementById('title').textContent = '未找到该新闻';
-          document.getElementById('meta').textContent = '';
-          document.getElementById('image').style.display = 'none';
-          document.getElementById('content').textContent = '';
-        }
-      })
-      .catch(err => {
-        console.error('加载新闻数据失败:', err);
-      });
-  </script>
 
+          document.title = item.title || '新闻详情';
+          document.getElementById('title').textContent = item.title || '';
+          document.getElementById('meta').textContent = `${item.date || ''} · ${item.location || ''} · ${item.author || ''}`;
+
+          if (item.image) {
+            const img = document.getElementById('detail-image');
+            img.src = item.image;
+            img.alt = item.title || '图片';
+            img.style.display = 'block';
+            img.addEventListener('error', () => img.style.display = 'none');
+          }
+
+          // 支持换行显示
+          document.getElementById('content').innerHTML = (item.content || '').replace(/\n/g, '<br>');
+          // back link 指向首页
+          document.getElementById('back-link').href = 'index.html';
+        })
+        .catch(err => {
+          console.error(err);
+          container.innerHTML = '<p>加载失败，请稍后重试。<br><a href="index.html">返回新闻列表</a ></p >';
+        });
+    }
+  </script>
 </body>
 </html>
