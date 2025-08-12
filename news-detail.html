@@ -59,7 +59,7 @@
     const id = parseInt(params.get('id'), 10);
 
     // 加载 JSON 数据
-    fetch('../news.json')
+    fetch('../news_content.json')
       .then(res => res.json())
       .then(news => {
         if (news[id]) {
