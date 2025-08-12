@@ -27,7 +27,7 @@
     const id = parseInt(params.get('id'), 10);
 
     // 加载同一层级的 news.json（因为 news-detail.html 在根目录）
-    fetch('news.json')
+    fetch('news_content.json')
       .then(r => r.json())
       .then(news => {
         if (Number.isNaN(id) || id < 0 || id >= news.length) {
