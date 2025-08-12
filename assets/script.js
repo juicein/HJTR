@@ -6,7 +6,7 @@ let currentList = [];   // 当前用于渲染的列表（受搜索影响）
 let isExpanded = false; // 是否已展开（针对 currentList）
 
 // 载入并初始化（给每条数据标记原始索引 _idx）
-fetch('news.json')
+fetch('news_content.json')
   .then(res => {
     if (!res.ok) throw new Error('无法读取 news.json: ' + res.status);
     return res.json();
