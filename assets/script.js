@@ -19,7 +19,7 @@ function renderNews() {
     card.className = 'card';
     card.href = `news-detail/${index}.html`; // 跳转到对应详情页
     card.innerHTML = `
-      < img src="${item.image}" alt="${item.title}">
+      <img src="${item.image}" alt="${item.title}">
       <div class="card-content">
         <h3>${item.title}</h3>
         <p>${item.date} · ${item.location}</p >
