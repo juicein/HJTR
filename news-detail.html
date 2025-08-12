@@ -1,59 +1,98 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>新闻详情</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="assets/style.css" />
   <style>
-    .detail-container { max-width:900px; margin:40px auto; padding:20px; background:#fff; border-radius:10px; box-shadow:0 6px 18px rgba(0,0,0,0.08); }
-    .detail-container img { width:100%; border-radius:8px; margin:16px 0; object-fit:cover; }
-    .back-link { display:inline-block; margin-top:18px; color:#007bff; text-decoration:none; }
+    body {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 15px;
+      font-family: "微软雅黑", sans-serif;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #0077cc;
+      text-decoration: none;
+    }
+    .news-title {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+    .news-meta {
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .news-image {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: block;
+    }
+    .news-content {
+      white-space: pre-wrap;
+      line-height: 1.6;
+      font-size: 1.1em;
+    }
   </style>
 </head>
 <body>
-  <div class="detail-container" id="detail">
-    <h1 id="title">加载中...</h1>
-    <p id="meta" style="color:#888"></p >
-    < img id="image" src="" alt="" style="display:none">
-    <div id="content" class="content"></div>
-    <!-- 推荐使用回到首页的固定链接，保证能返回 -->
-    <p><a class="back-link" href=" ">← 返回新闻列表</a ></p >
-  </div>
+  <a href=" " class="back-link">← 返回新闻列表</a >
+
+  <h1 id="title" class="news-title">加载中...</h1>
+  <div id="meta" class="news-meta"></div>
+  < img id="image" class="news-image" src="" alt="" style="display:none" />
+  <div id="content" class="news-content"></div>
 
   <script>
-    // 解析 ?id= 参数
-    const params = new URLSearchParams(window.location.search);
-    const id = parseInt(params.get('id'), 10);
+    function getQueryId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
+    }
 
-    // 加载同一层级的 news.json（因为 news-detail.html 在根目录）
-    fetch('news_content.json')
-      .then(r => r.json())
-      .then(news => {
-        if (Number.isNaN(id) || id < 0 || id >= news.length) {
-          document.getElementById('title').textContent = '未找到该新闻';
-          document.getElementById('meta').textContent = '';
-          document.getElementById('content').textContent = '';
-          document.getElementById('image').style.display = 'none';
-          return;
-        }
-        const item = news[id];
-        document.title = item.title || '新闻详情';
-        document.getElementById('title').textContent = item.title || '';
-        document.getElementById('meta').textContent = `${item.date || ''} · ${item.location || ''} · ${item.author || ''}`;
-        if (item.image) {
-          const img = document.getElementById('image');
-          img.src = item.image;
-          img.alt = item.title || '';
-          img.style.display = 'block';
-        }
-        // 保持换行
-        document.getElementById('content').innerHTML = (item.content || '').replace(/\n/g, '<br>');
-      })
-      .catch(err => {
-        console.error('加载 news.json 失败', err);
-        document.getElementById('title').textContent = '加载失败';
-      });
+    const newsId = getQueryId();
+
+    if (newsId === null) {
+      document.getElementById('title').textContent = '错误：未指定新闻ID';
+    } else {
+      fetch('news_content.json')
+        .then(res => res.json())
+        .then(news => {
+          if (newsId < 0 || newsId >= news.length) {
+            document.getElementById('title').textContent = '新闻不存在';
+            return;
+          }
+          const item = news[newsId];
+
+          document.getElementById('title').textContent = item.title;
+          document.getElementById('meta').textContent = `${item.date} · ${item.location} · 作者：${item.author}`;
+
+          if (item.image && item.image.trim() !== '') {
+            const img = document.getElementById('image');
+            if (item.image.startsWith('#')) {
+              img.style.display = 'none';
+              const colorDiv = document.createElement('div');
+              colorDiv.style.width = '100%';
+              colorDiv.style.height = '200px';
+              colorDiv.style.backgroundColor = item.image;
+              colorDiv.style.borderRadius = '8px';
+              colorDiv.style.marginBottom = '20px';
+              img.parentNode.insertBefore(colorDiv, img);
+            } else {
+              img.src = item.image;
+              img.style.display = 'block';
+            }
+          }
+
+          document.getElementById('content').textContent = item.content;
+        })
+        .catch(() => {
+          document.getElementById('title').textContent = '加载失败，请稍后重试';
+        });
+    }
   </script>
 </body>
 </html>
