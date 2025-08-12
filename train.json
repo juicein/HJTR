@@ -1,4 +1,77 @@
-【TSR-S35 市區綫願景列車】〖都城铁路S35型愿景列车是由都城铁路公司所购置的直流电自动驾驶通勤列车。设计利用视觉效果将车窗和车门融为一体，车顶饰有路线颜色条带，车身配上「都城铁路远景」标准涂装。客用车门上方设有动态路线图。设有多用途空间、扶手杆、车厢电视、吊环和座椅旁更宽的站立空间。生产年份为2024-2027年，行驶都城铁路各主要市区路线，实现跨线调车恒常化，特别适合都城极高且频繁变化的市区内通勤需求。列车编组可按需求扩展为5卡、6卡、7卡、8卡、10卡、12卡。轨距1435mm。
+【嘎嘎铁路201系电力动车组】〖规格与构造
+车身
+嘎铁201系列车设计上与现有列车接近，采用了轻量化不锈钢制车身，车身强度较老旧车型有所增加，并降低了自重，车内采用了与现有车型相同的车窗，全部均为可开闭的车窗。
+车门配置为每边4对，全部车厢均设有每边只开一对车门的设计，以在冬季与夏季保持车辆温度。
+驾驶室设置有前后两面逃生门，万一驾驶室两侧的门无法开启时，驾驶员也可经过逃生门离开驾驶室。
+机器配置
+控制系统方面，0番台采用了日立制SiC－VVVF控制器，900番台采用了时代SiC－VVVF控制器，后因稳定性问题改装为三菱SiC-VVVF控制器。1000番台与1200番台采用三菱电机制SiC-VVVF控制器。
+为了降低行车时间，嘎铁201系增加了动车的比例，使得列车性能有提升。
+列车资讯系统
+车辆电子水牌采用了全彩LED显示屏，可方便乘客辨别，该显示器可以显示两行文字，显示车辆目的地、行驶方向与停靠站点。
+车门上方安装了液晶显示屏，提供列车运行资讯（行驶时交替显示路线图、所需时间、换乘路线资料及列车延误资讯，停靠车站时显示站台平面图及当地电视台的移动电视），为了方便海外游客，所有的列车运行资讯均有英语版本（路线图为交替显示）。
+降低故障率
+为降低故障率，嘎铁201系的重要机器（如受电弓、空调压缩机、牵引电源控制系统）均安装两套。当其中一套机器失灵的时候，备用的机器会被立即启动，以维持列车的正常运作
+提高乘车舒适度
+嘎铁201系采用了降低扶手和行李架高度的设计，方便身材矮小者和女性乘客。取消了车门区域的立柱，避免乘客聚集堵塞车门通道。爱心座采用了不同颜色的椅套，扶手区域则加上了黄色部分，使得爱心专座区域非常明显。为解决繁忙时刻可能产生的臭味，车内安装了空气清洁器。
+番台区分
+0番台
+0番台为服务嘎铁东区线系统。全部服役于东区线。
+概览：
+车辆总数 12
+投入服务 2025年3月
+列车编组 4M2T
+营运速度 100Km/h
+启动加速度 3.5km/h/s
+常用减速度 4.5km/h/s
+紧急制动减速度 5.2km/h/s
+控制装置 日立SiC－VVVF
+
+900番台
+900番台为临东地铁9号线系统样车。
+概览：
+车辆总数 6
+投入服务 2025年4月
+列车编组 4M2T
+营运速度 100Km/h
+启动加速度 3.5km/h/s
+常用减速度 4.2km/h/s
+紧急制动减速度 5.5km/h/s
+控制装置 时代SiC－VVVF
+
+编组表
+临东编号：LDM09011 -LDM09012-LDM09013 -LDM09014- LDM09015- LDM09016
+厂内编号：TD201-901-MD201-901-MD200-901-MD201-902-MD200-902-TD200-901
+
+1000番台
+1000番台为临东地铁9号线系统量产车。
+概览：
+车辆总数 66
+投入服务 2025年4月
+列车编组 4M2T
+营运速度 100Km/h
+启动加速度 3.5km/h/s
+常用减速度 4.2km/h/s
+紧急制动减速度 5.5km/h/s
+控制装置 三菱SiC－VVVF
+
+1200番台
+1200番台为适用于MTC模组的量产车。
+概览：
+车辆总数 4
+投入服务 2025年6月
+列车编组 2M2T
+营运速度 100Km/h
+启动加速度 3.5km/h/s
+常用减速度 4.2km/h/s
+紧急制动减速度 5.5km/h/s
+控制装置 三菱SiC－VVVF
+
+
+〗
+«https://cdn-fusion.imgcdn.store/i/2025/6340582109084d6e.png,https://cdn-fusion.imgcdn.store/i/2025/7d373f1f438419a2.png»§08-12 18:28§〔嘎联综合车辆制造嘎嘎总制造所〕∮∮ ∥BE∥   
+ ------------------分割线--------------------- 
+
+  【TSR-S35 市區綫願景列車】〖都城铁路S35型愿景列车是由都城铁路公司所购置的直流电自动驾驶通勤列车。设计利用视觉效果将车窗和车门融为一体，车顶饰有路线颜色条带，车身配上「都城铁路远景」标准涂装。客用车门上方设有动态路线图。设有多用途空间、扶手杆、车厢电视、吊环和座椅旁更宽的站立空间。生产年份为2024-2027年，行驶都城铁路各主要市区路线，实现跨线调车恒常化，特别适合都城极高且频繁变化的市区内通勤需求。列车编组可按需求扩展为5卡、6卡、7卡、8卡、10卡、12卡。轨距1435mm。
 
 The TSR S35 Vision Train is an automated DC commuter train purchased by TSR. Its design visually integrates the windows and doors, with the roof adorned with route-colored stripes and the bodywork finished in the standard TSR Vision livery. Dynamic route maps are displayed above the passenger doors. The trains are equipped with multi-purpose spaces, handrails, in-car TVs, hanging rings, and increased standing room beside the seats. Production runs from 2024 to 2027, and the trains will operate on TSR's major urban routes, enabling regular cross-line shunting. They are well-suited to the city's high and frequently changing commuting needs. The train formation can be expanded to 5, 6, 7, 8, 10, or 12 cars as needed. The track gauge is 1435mm.〗
 «https://s2.loli.net/2025/08/12/rcY8yFoumI6L3nd.png»§08-12 15:40§〔258 Railway Technologies〕∮∮ ∥MTR∥   
