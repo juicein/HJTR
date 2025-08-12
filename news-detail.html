@@ -55,7 +55,7 @@
     // 从 URL 获取 ID
     const id = parseInt(window.location.pathname.split('/').pop().split('.')[0], 10);
 
-    fetch('../news.json')
+    fetch('../news_content.json')
       .then(res => res.json())
       .then(news => {
         const item = news[id];
