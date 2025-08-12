@@ -3,52 +3,72 @@
 <head>
   <meta charset="UTF-8">
   <title>新闻详情</title>
-  <link rel="stylesheet" href="assets/style.css">
+  <link rel="stylesheet" href="../assets/style.css">
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    .container { max-width: 800px; margin: auto; }
-    .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-    .meta { color: #666; margin-bottom: 20px; }
-    .content { font-size: 18px; line-height: 1.6; white-space: pre-wrap; }
-    .image { max-width: 100%; margin: 20px 0; border-radius: 8px; }
+    .news-detail {
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .news-detail img {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    .news-detail h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    .meta {
+      color: #666;
+      margin-bottom: 20px;
+    }
+    .content {
+      line-height: 1.8;
+      font-size: 16px;
+    }
+    a.back {
+      display: inline-block;
+      margin-top: 30px;
+      color: #0077cc;
+      text-decoration: none;
+    }
+    a.back:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="title" id="news-title">加载中...</div>
-    <div class="meta" id="news-meta"></div>
-    <img class="image" id="news-image" style="display:none">
+
+  <div class="news-detail">
+    < img id="news-image" src="" alt="">
+    <h1 id="news-title"></h1>
+    <p class="meta" id="news-meta"></p >
     <div class="content" id="news-content"></div>
+    <a class="back" href=" ">← 返回新闻列表</a >
   </div>
 
   <script>
-    // 获取 URL 参数
-    function getParam(name) {
-      const url = new URL(window.location.href);
-      return url.searchParams.get(name);
-    }
+    // 从 URL 获取 ID
+    const id = parseInt(window.location.pathname.split('/').pop().split('.')[0], 10);
 
-    // 加载 JSON 并显示内容
-    fetch("news_content.json")
+    fetch('../news.json')
       .then(res => res.json())
-      .then(data => {
-        const id = parseInt(getParam("id"));
-        const item = data[id];
+      .then(news => {
+        const item = news[id];
         if (!item) {
-          document.getElementById("news-title").innerText = "未找到该新闻";
+          document.querySelector('.news-detail').innerHTML = '<p>未找到新闻内容。</p >';
           return;
         }
-
-        document.title = item.title;
-        document.getElementById("news-title").innerText = item.title;
-        document.getElementById("news-meta").innerText = `${item.date} · ${item.author} · ${item.location}`;
-        document.getElementById("news-content").innerText = item.content;
-        if (item.image) {
-          const img = document.getElementById("news-image");
-          img.src = item.image;
-          img.style.display = "block";
-        }
+        document.getElementById('news-image').src = item.image;
+        document.getElementById('news-title').textContent = item.title;
+        document.getElementById('news-meta').textContent = `${item.date} · ${item.location} · ${item.author}`;
+        document.getElementById('news-content').textContent = item.content;
       });
   </script>
+
 </body>
 </html>
