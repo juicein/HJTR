@@ -3,7 +3,7 @@ let visibleCount = defaultCount;
 let newsData = [];
 let isExpanded = false; // 是否已展开
 
-fetch('news.json')
+fetch('news_content.json')
   .then(res => res.json())
   .then(news => {
     news.sort((a, b) => new Date(b.date) - new Date(a.date));
