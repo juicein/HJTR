@@ -17,7 +17,7 @@ function renderNews() {
   newsData.slice(0, visibleCount).forEach((item, index) => {
     const card = document.createElement('a');
     card.className = 'card';
-    card.href = `news-detail.html?id={index}`; // 跳转到对应详情页
+    card.href = `news/${index}.html`; // 跳转到对应详情页
     card.innerHTML = `
       < img src="${item.image}" alt="${item.title}">
       <div class="card-content">
