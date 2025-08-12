@@ -41,7 +41,7 @@ function renderNews() {
     // 关键：跳转到统一详情页，通过 id=原始索引 _idx
     a.href = `news-detail.html?id=${item._idx}`;
     a.innerHTML = `
-      <img src="${item.image || 'https://via.placeholder.com/600x320?text=No+Image'}"alt="${escapeHtml(item.title || '')}">
+      <img src="${item.image || 'https://via.placeholder.com/600x320?text=No+Image'}" alt="${escapeHtml(item.title || '')}">
       <div class="card-content">
         <h3>${escapeHtml(item.title || '')}</h3>
         <p class="meta">${escapeHtml(item.date || '')} · ${escapeHtml(item.location || '')}</p >
