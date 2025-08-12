@@ -68,7 +68,7 @@ document.getElementById('search').addEventListener('input', function () {
     card.className = 'card';
     card.href = `news/${index}.html`;
     card.innerHTML = `
-      < img src="${item.image}" alt="${item.title}">
+      <img src="${item.image}" alt="${item.title}">
       <div class="card-content">
         <h3>${item.title}</h3>
         <p>${item.date} · ${item.location}</p >
