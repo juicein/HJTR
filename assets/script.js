@@ -1,4 +1,4 @@
-let defaultCount = 6; // 初始显示条数
+let defaultCount = 4; // 初始显示条数
 let visibleCount = defaultCount;
 let newsData = [];
 let isExpanded = false; // 是否已展开
