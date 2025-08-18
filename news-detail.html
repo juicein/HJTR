@@ -1,9 +1,20 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
+  <!DOCTYPE html>
+<html lang="zh">
+<head>
   <meta charset="UTF-8" />
-  
-  <link rel="stylesheet" href="assets/style.css" />
+  <title>加载中...</title>
+
+  <!-- 默认 OG 标签（JS 加载后会替换） -->
+  <meta property="og:title" content="加载中..." />
+  <meta property="og:description" content="正在加载新闻..." />
+  <meta property="og:image" content="" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="" />
+
+  <link rel="stylesheet" href="../assets/style.css" />
   <style>
     body {
       max-width: 900px;
@@ -40,7 +51,7 @@
   </style>
 </head>
 <body>
-  <a href=" " class="back-link">← 返回新闻列表</a >
+  <a href="../index.html" class="back-link">← 返回新闻列表</a>
 
   <h1 id="title" class="news-title">加载中...</h1>
   <div id="meta" class="news-meta"></div>
@@ -58,7 +69,7 @@
     if (newsId === null) {
       document.getElementById('title').textContent = '错误：未指定新闻ID';
     } else {
-      fetch('news_content.json')
+      fetch('../news_content.json')
         .then(res => res.json())
         .then(news => {
           if (newsId < 0 || newsId >= news.length) {
@@ -67,6 +78,18 @@
           }
           const item = news[newsId];
 
+          // 设置页面标题
+          document.title = item.title;
+
+          // 设置 OG 标签（QQ/微信抓取）
+          document.querySelector('meta[property="og:title"]').setAttribute('content', item.title);
+          document.querySelector('meta[property="og:description"]').setAttribute('content', item.content.substring(0, 80) + "...");
+          if (item.image && item.image.trim() !== '') {
+            document.querySelector('meta[property="og:image"]').setAttribute('content', item.image);
+          }
+          document.querySelector('meta[property="og:url"]').setAttribute('content', window.location.href);
+
+          // 填充正文
           document.getElementById('title').textContent = item.title;
           document.getElementById('meta').textContent = `${item.date} · ${item.location} · 作者：${item.author}`;
 
