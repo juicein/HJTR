@@ -14,10 +14,8 @@
 
   <!-- 筛选栏 -->
   <div class="filters">
-    <input type="text" id="fromAirport" placeholder="出发机场" list="airportList">
-    <input type="text" id="toAirport" placeholder="到达机场" list="airportList">
-    <datalist id="airportList"></datalist>
-
+    <input type="text" id="fromAirport" placeholder="出发机场" oninput="suggestAirport(this.value)">
+    <input type="text" id="toAirport" placeholder="到达机场" oninput="suggestAirport(this.value)">
     <button onclick="searchFlights()">搜索</button>
     <button onclick="showSingleAirport()">只看某机场</button>
 
@@ -30,14 +28,12 @@
       <option value="18-24">晚上 (18-24)</option>
     </select>
 
-    <select id="airlineFilter">
-      <option value="">航空公司</option>
-    </select>
+    <select id="airlineFilter"><option value="">航空公司</option></select>
 
     <select id="priceSort">
-      <option value="">排序方式</option>
+      <option value="">排序：默认</option>
       <option value="eco">经济舱 ↑</option>
-      <option value="biz">商务舱 ↑</option>
+      <option value="bus">商务舱 ↑</option>
     </select>
 
     <input type="date" id="datePicker" onchange="searchFlights()">
@@ -46,130 +42,15 @@
   <!-- 航班展示区 -->
   <div id="flightsContainer" class="cards"></div>
 
-  <script>
-    const weekMap = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  <!-- 机场选择弹窗 -->
+  <div id="airportModal" class="modal">
+    <div class="modal-content">
+      <h3>选择机场</h3>
+      <ul id="airportList"></ul>
+      <button onclick="closeModal()">关闭</button>
+    </div>
+  </div>
 
-    // 限制日期：今天 ~ 90天
-    const today = new Date();
-    const minDate = today.toISOString().split("T")[0];
-    const maxDate = new Date(today.getTime() + 90*24*60*60*1000).toISOString().split("T")[0];
-    const datePicker = document.getElementById("datePicker");
-    datePicker.min = minDate;
-    datePicker.max = maxDate;
-    datePicker.value = minDate;
-
-    // 用正则解析航班
-    function parseFlight(str){
-      return {
-        id: (str.match(/【(.*?)】/)||[])[1],
-        week: (str.match(/«(.*?)»/)||[])[1]?.split(","),
-        plane: (str.match(/〔(.*?)〕/)||[])[1],
-        airline: (str.match(/『(.*?)』/)||[])[1],
-        from: (str.match(/《(.*?)出发》/)||[])[1],
-        to: (str.match(/《(.*?)到达》/)||[])[1],
-        dep: (str.match(/出发》{(.*?)}/)||[])[1],
-        depDay: +(str.match(/出发》.*#\+(\d+)#/)||[])[1] || 0,
-        depTerminal: (str.match(/出发》.*@(.*?)@/)||[])[1],
-        arr: (str.match(/到达》{(.*?)}/)||[])[1],
-        arrDay: +(str.match(/到达》.*#\+(\d+)#/)||[])[1] || 0,
-        arrTerminal: (str.match(/到达》.*@(.*?)@/)||[])[1],
-        eco: (str.match(/§(.*?)元§/)||[])[1],
-        biz: (str.match(/θ(.*?)元θ/)||[])[1]
-      };
-    }
-
-    const flightData = flights.map(parseFlight);
-
-    // 自动生成机场列表
-    const airports = [...new Set(flightData.flatMap(f=>[f.from,f.to]))];
-    const airportList = document.getElementById("airportList");
-    airports.forEach(a=>{
-      let opt=document.createElement("option");
-      opt.value=a; airportList.appendChild(opt);
-    });
-
-    // 初始化航空公司
-    const airlines = [...new Set(flightData.map(f=>f.airline))];
-    const airlineFilter = document.getElementById("airlineFilter");
-    airlines.forEach(a=>{
-      let opt=document.createElement("option");
-      opt.value=a; opt.innerText=a;
-      airlineFilter.appendChild(opt);
-    });
-
-    function searchFlights(){
-      const from = document.getElementById("fromAirport").value.trim();
-      const to = document.getElementById("toAirport").value.trim();
-      const timeRange = document.getElementById("timeFilter").value;
-      const airline = document.getElementById("airlineFilter").value;
-      const sort = document.getElementById("priceSort").value;
-      const date = document.getElementById("datePicker").value;
-      const week = weekMap[new Date(date).getDay()];
-
-      let result = flightData.filter(f=>{
-        if(!f.week?.includes(week)) return false;
-        if(from && !f.from.includes(from)) return false;
-        if(to && !f.to.includes(to)) return false;
-        if(airline && f.airline!==airline) return false;
-        if(timeRange){
-          const [s,e]=timeRange.split("-").map(Number);
-          const h=parseInt(f.dep.split(":")[0]);
-          if(h<s || h>=e) return false;
-        }
-        return true;
-      });
-
-      // 价格排序
-      if(sort==="eco") result.sort((a,b)=>parseInt(a.eco)-parseInt(b.eco));
-      if(sort==="biz") result.sort((a,b)=>(parseInt(a.biz)||99999)-(parseInt(b.biz)||99999));
-
-      renderFlights(result);
-    }
-
-    function showSingleAirport(){
-      const from = document.getElementById("fromAirport").value.trim();
-      if(!from) return alert("请输入一个机场名称");
-      let result = flightData.filter(f=>(f.from.includes(from)||f.to.includes(from)));
-      renderFlights(result);
-    }
-
-    function renderFlights(list){
-      const container=document.getElementById("flightsContainer");
-      container.innerHTML="";
-      if(list.length===0){
-        container.innerHTML="<p>没有符合条件的航班</p>";
-        return;
-      }
-      list.forEach(f=>{
-        let card=document.createElement("div");
-        card.className="card";
-        card.innerHTML=`
-          <div class="card-header">
-            <span class="flight-id">${f.id}</span> <span class="airline">${f.airline}</span>
-          </div>
-          <div class="card-body">
-            <div class="airport">
-              <strong>${f.from}</strong><br>
-              <span>${f.dep} (Day+${f.depDay})</span><br>
-              <small>${f.depTerminal}</small>
-            </div>
-            <div class="arrow">✈️</div>
-            <div class="airport">
-              <strong>${f.to}</strong><br>
-              <span>${f.arr} (Day+${f.arrDay})</span><br>
-              <small>${f.arrTerminal}</small>
-            </div>
-          </div>
-          <div class="card-footer">
-            <span>机型：${f.plane}</span><br>
-            <span>经济舱：${f.eco||"—"} 元 | 商务舱：${f.biz||"—"} 元</span>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    searchFlights();
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
