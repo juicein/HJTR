@@ -2,55 +2,33 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <title>航班时刻表</title>
+  <title>航班查询系统</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="flights.js"></script>
 </head>
 <body>
-  <header>
-    <h1>航班时刻表</h1>
+  <!-- 顶部栏 -->
+  <header class="topbar">
+    <h1>航班查询</h1>
   </header>
 
-  <!-- 筛选栏 -->
-  <div class="filters">
-    <input type="text" id="fromAirport" placeholder="出发机场" oninput="suggestAirport(this.value)">
-    <input type="text" id="toAirport" placeholder="到达机场" oninput="suggestAirport(this.value)">
-    <button onclick="searchFlights()">搜索</button>
-    <button onclick="showSingleAirport()">只看某机场</button>
+  <!-- 搜索与筛选区 -->
+  <section class="controls">
+    <input type="text" id="airportInput" placeholder="输入机场..." list="airportList">
+    <datalist id="airportList"></datalist>
 
-    <select id="timeFilter">
-      <option value="">时间段</option>
-      <option value="0-6">凌晨 (0-6)</option>
-      <option value="6-12">上午 (6-12)</option>
-      <option value="12-14">中午 (12-14)</option>
-      <option value="14-18">下午 (14-18)</option>
-      <option value="18-24">晚上 (18-24)</option>
+    <input type="date" id="datePicker" />
+    <select id="sortSelect">
+      <option value="time">按时间排序</option>
+      <option value="price">按价格排序</option>
     </select>
+    <button id="searchBtn">查询</button>
+  </section>
 
-    <select id="airlineFilter"><option value="">航空公司</option></select>
+  <!-- 航班结果 -->
+  <main id="flightsContainer"></main>
 
-    <select id="priceSort">
-      <option value="">排序：默认</option>
-      <option value="eco">经济舱 ↑</option>
-      <option value="bus">商务舱 ↑</option>
-    </select>
-
-    <input type="date" id="datePicker" onchange="searchFlights()">
-  </div>
-
-  <!-- 航班展示区 -->
-  <div id="flightsContainer" class="cards"></div>
-
-  <!-- 机场选择弹窗 -->
-  <div id="airportModal" class="modal">
-    <div class="modal-content">
-      <h3>选择机场</h3>
-      <ul id="airportList"></ul>
-      <button onclick="closeModal()">关闭</button>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/main.js"></script>
 </body>
 </html>
