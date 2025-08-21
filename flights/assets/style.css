@@ -1,193 +1,113 @@
-/* ===== 新航风格配色 ===== */
-:root{
-  --primary: #002663;   /* 深蓝 */
-  --accent:  #d4af37;   /* 金色 */
-  --ink:     #1a1f36;   /* 文字主色 */
-  --muted:   #6b7280;   /* 次要文字 */
-  --bg:      #f5f6f8;   /* 背景灰 */
-  --card:    #ffffff;
-  --line:    #e5e7eb;
-
-  --radius: 12px;
-  --shadow: 0 6px 18px rgba(0,0,0,0.08);
+// 将日期转星期几（英文缩写）
+function getWeekday(dateStr) {
+  const days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  const d = new Date(dateStr);
+  return days[d.getDay()];
 }
 
-*{ box-sizing: border-box; }
+function parseFlights(rawData) {
+  const entries = rawData.trim().split(/《航班结束》/).filter(e => e.trim());
+  return entries.map(entry => {
+    const flightNo = entry.match(/【(.*?)】/)?.[1] || "";
+    const weekdays = entry.match(/«(.*?)»/)?.[1] || "";
+    const aircraft = entry.match(/〔(.*?)〕/)?.[1] || "";
+    const airline = entry.match(/『(.*?)』/)?.[1] || "";
+    const depAirport = entry.match(/《(.*?)出发》/)?.[1] || "";
+    const depTime = entry.match(/出发》{(.*?)}#\+\d+#/)?.[1] || "";
+    const depTerminal = entry.match(/出发》{.*?}#\+\d+#@(.*?)@/)?.[1] || "";
+    const arrAirport = entry.match(/《(.*?)到达》/)?.[1] || "";
+    const arrTime = entry.match(/到达》{(.*?)}#\+\d+#/)?.[1] || "";
+    const arrTerminal = entry.match(/到达》{.*?}#\+\d+#@(.*?)@/)?.[1] || "";
+    const econPrice = entry.match(/§(.*?)§/)?.[1] || "";
+    const bizPrice = entry.match(/θ(.*?)θ/)?.[1] || "";
+    const firstPrice = entry.match(/△(.*?)△/)?.[1] || "";
+    const addDay = arrTime.includes("+1") ? 1 : 0;
 
-html,body{
-  margin:0; padding:0;
-  font-family: "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-  color: var(--ink);
-  background: var(--bg);
+    return {
+      flightNo, weekdays, aircraft, airline,
+      depAirport, depTime, depTerminal,
+      arrAirport, arrTime: arrTime.replace(/\+.*#/, ""), arrTerminal,
+      econPrice, bizPrice, firstPrice, addDay
+    };
+  });
 }
 
-/* 顶栏 */
-.topbar{
-  position: sticky; top:0; z-index: 9;
-  display:flex; align-items:center; justify-content: space-between;
-  padding: 12px 18px;
-  background: var(--primary);
-  color: #fff;
+function renderFlights(list) {
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+  list.forEach(f => {
+    const card = document.createElement("div");
+    card.className = "flight-card";
+    card.innerHTML = `
+      <div class="flight-header">
+        <span class="flight-no">${f.flightNo}</span>
+        <span class="airline">${f.airline}</span>
+        <span class="aircraft">${f.aircraft}</span>
+      </div>
+      <div class="flight-body">
+        <div class="time-block">
+          <div><strong>${f.depTime}</strong></div>
+          <div>${f.depAirport} (${f.depTerminal})</div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="time-block">
+          <div><strong>${f.arrTime}${f.addDay ? " +1天" : ""}</strong></div>
+          <div>${f.arrAirport} (${f.arrTerminal})</div>
+        </div>
+      </div>
+      <div class="price-block">
+        ${f.econPrice ? `<span class="price econ">经济舱 ${f.econPrice}</span>` : ""}
+        ${f.bizPrice ? `<span class="price biz">商务舱 ${f.bizPrice}</span>` : ""}
+        ${f.firstPrice ? `<span class="price first">头等舱 ${f.firstPrice}</span>` : ""}
+      </div>
+    `;
+    results.appendChild(card);
+  });
 }
-.topbar .brand{ display:flex; align-items:center; gap:10px; }
-.topbar .logo{ font-size: 18px; }
-.topbar .title{ font-weight:700; letter-spacing: .5px; }
-.topbar .today{ opacity:.85; font-size: 14px; }
 
-/* 主布局 */
-.layout{
-  max-width: 1200px;
-  margin: 16px auto;
-  padding: 0 12px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
+function filterFlights() {
+  const from = document.getElementById("fromAirport").value.trim();
+  const to = document.getElementById("toAirport").value.trim();
+  const airline = document.getElementById("airlineFilter").value.trim();
+  const timeFilter = document.getElementById("timeFilter").value;
+  const date = document.getElementById("flightDate").value;
+  const weekday = date ? getWeekday(date) : "";
+  const sort = document.getElementById("priceSort").value;
 
-/* 大屏：左侧筛选，右侧结果 */
-@media (min-width: 992px){
-  .layout{
-    grid-template-columns: 320px 1fr;
-    align-items: start;
+  let list = flights.filter(f => {
+    if (from && !f.depAirport.includes(from)) return false;
+    if (to && !f.arrAirport.includes(to)) return false;
+    if (airline && !f.airline.includes(airline)) return false;
+    if (weekday && !f.weekdays.includes(weekday)) return false;
+    if (timeFilter) {
+      const hour = parseInt(f.depTime.split(":")[0],10);
+      if (timeFilter==="early" && (hour<0||hour>=6)) return false;
+      if (timeFilter==="morning" && (hour<6||hour>=12)) return false;
+      if (timeFilter==="noon" && (hour<12||hour>=14)) return false;
+      if (timeFilter==="afternoon" && (hour<14||hour>=18)) return false;
+      if (timeFilter==="evening" && (hour<18||hour>=24)) return false;
+    }
+    return true;
+  });
+
+  // 价格排序
+  if (sort) {
+    list.sort((a,b)=>{
+      const pa = parseInt(a.econPrice||a.bizPrice||a.firstPrice||"0");
+      const pb = parseInt(b.econPrice||b.bizPrice||b.firstPrice||"0");
+      return sort==="asc"? pa-pb : pb-pa;
+    });
   }
+
+  renderFlights(list);
 }
 
-/* 筛选面板 */
-.filters{
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  position: sticky;
-  top: 64px;
-}
-.filters hr{
-  border: none; border-top:1px solid var(--line);
-  margin: 12px 0;
-}
+const flights = parseFlights(flightsData);
+renderFlights(flights);
 
-.filter-group{ margin-bottom: 12px; }
-.filter-group label{ display:block; font-weight:600; margin-bottom:6px; color: var(--primary);}
-.filter-group .hint{ color: var(--muted); }
-
-.filter-row{ display:flex; gap: 8px; align-items:center; }
-
-.filters input[type="text"],
-.filters input[type="number"],
-.filters input[type="date"],
-.filters select{
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  outline: none;
-  background: #fff;
-}
-
-.price-row{ display:flex; gap:8px; }
-.price-row input{ flex:1; }
-
-/* 按钮 */
-.btn{
-  border: none; border-radius: 10px;
-  padding: 10px 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn.primary{ background: var(--accent); color:#111; }
-.btn.secondary{ background: #e9eef7; color: var(--primary); }
-.btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
-
-/* 结果摘要 */
-.summary{
-  display:flex; align-items:center; justify-content: space-between;
-  margin-bottom: 8px; padding: 8px 4px;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* 卡片网格（自适应列数） */
-.card-grid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-@media (min-width: 640px){
-  .card-grid{ grid-template-columns: 1fr 1fr; }
-}
-@media (min-width: 1200px){
-  .card-grid{ grid-template-columns: 1fr 1fr 1fr; }
-}
-
-/* 航班卡片：国际航司风格 */
-.flight-card{
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  transition: transform .15s ease;
-}
-.flight-card:hover{ transform: translateY(-2px); }
-
-.card-head{
-  display:flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 8px;
-}
-.flight-no{
-  font-weight: 800; color: var(--primary); letter-spacing: .3px;
-}
-.airline{
-  color: var(--muted); font-weight: 600;
-}
-.badges{
-  display:flex; gap:6px; flex-wrap: wrap;
-}
-.badge{
-  border: 1px dashed var(--line);
-  border-radius: 999px; padding: 2px 8px;
-  font-size: 12px; color: var(--muted);
-}
-
-.card-body{
-  display:grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
-}
-@media (max-width: 420px){
-  .card-body{ grid-template-columns: 1fr; }
-  .arrow{ display:none; }
-}
-
-.port{
-  display:flex; flex-direction: column; gap:4px;
-}
-.city{
-  font-weight: 700; color: #111;
-}
-.time{
-  font-size: 20px; font-weight: 800; letter-spacing: .3px;
-}
-.terminal, .date{
-  font-size: 12px; color: var(--muted);
-}
-
-.arrow{
-  font-size: 18px; color: var(--primary); font-weight: 900;
-}
-
-.card-foot{
-  display:flex; align-items:center; justify-content: space-between; margin-top: 10px;
-  border-top:1px solid var(--line); padding-top: 10px;
-}
-.aircraft{ color: var(--muted); font-weight:600; }
-
-.price-group{
-  display:flex; gap: 10px; align-items:center;
-}
-.price-chip{
-  background: #fff7e0; /* 金色淡底 */
-  color:#7a5a00;
-  border: 1px solid #f2e1a6;
-  padding: 4px 8px; border-radius: 8px; font-weight: 800;
-}
-.price-chip.bus{
-  background: #ffe9e9; color:#7a0000; border-color:#ffc7c7;
-}
+// 事件绑定
+document.getElementById("searchBtn").addEventListener("click", filterFlights);
+document.getElementById("onlyDepartureBtn").addEventListener("click", ()=>{
+  document.getElementById("toAirport").value="";
+  filterFlights();
+});
