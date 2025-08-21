@@ -12,58 +12,49 @@
     <h1>航班查询</h1>
   </header>
 
-  <!-- 页面主区 -->
   <div class="main-layout">
     <!-- 筛选区 -->
     <aside class="filters">
-      <button class="toggle-filters">筛选条件</button>
-      <div class="filters-content">
-        <div class="field">
-          <label>出发机场</label>
-          <input type="text" id="depAirportInput" placeholder="输入出发机场">
-        </div>
-        <div class="field">
-          <label>到达机场</label>
-          <input type="text" id="arrAirportInput" placeholder="输入到达机场">
-        </div>
-        <div class="field">
-          <button id="onlyDepBtn">只看出发机场航班</button>
-        </div>
-        <div class="field">
-          <label>出发日期</label>
-          <input type="date" id="dateInput">
-        </div>
-        <div class="field">
-          <label>时间段</label>
-          <select id="timeFilter">
-            <option value="">全部</option>
-            <option value="early">凌晨 (0-6)</option>
-            <option value="morning">上午 (6-12)</option>
-            <option value="noon">中午 (12-14)</option>
-            <option value="afternoon">下午 (14-18)</option>
-            <option value="evening">晚上 (18-24)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>航空公司</label>
-          <input type="text" id="airlineInput" placeholder="输入航空公司">
-        </div>
-        <div class="field">
-          <label>价格排序</label>
-          <select id="priceSort">
-            <option value="">默认</option>
-            <option value="asc">价格升序</option>
-            <option value="desc">价格降序</option>
-          </select>
-        </div>
-        <button id="searchBtn">搜索航班</button>
-      </div>
+      <label>出发机场:
+        <input type="text" id="depInput" placeholder="输入出发机场">
+      </label>
+      <label>到达机场:
+        <input type="text" id="arrInput" placeholder="输入到达机场">
+      </label>
+      <button id="onlyDepBtn">仅看出发</button>
+      
+      <label>航空公司:
+        <input type="text" id="airlineInput" placeholder="输入航空公司">
+      </label>
+
+      <label>出发时间段:
+        <select id="timeFilter">
+          <option value="">不限</option>
+          <option value="early">凌晨(0-6)</option>
+          <option value="morning">上午(6-12)</option>
+          <option value="noon">中午(12-14)</option>
+          <option value="afternoon">下午(14-18)</option>
+          <option value="evening">晚上(18-24)</option>
+        </select>
+      </label>
+
+      <label>价格排序:
+        <select id="priceSort">
+          <option value="">默认</option>
+          <option value="asc">价格升序</option>
+          <option value="desc">价格降序</option>
+        </select>
+      </label>
+
+      <label>选择日期:
+        <input type="date" id="dateInput">
+      </label>
+
+      <button id="searchBtn">搜索</button>
     </aside>
 
-    <!-- 航班卡片区 -->
-    <main class="flights-container" id="flightsContainer">
-      <!-- 航班卡片将动态生成 -->
-    </main>
+    <!-- 航班列表 -->
+    <main class="flights" id="flightsContainer"></main>
   </div>
 
   <script src="data.js"></script>
