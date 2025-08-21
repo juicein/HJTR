@@ -1,119 +1,126 @@
-// ===== 数据解析 =====
-function parseFlights(rawData) {
-  const entries = rawData.trim().split(/《航班结束》/).filter(e => e.trim());
-  return entries.map(entry => {
-    const flightNo = entry.match(/【(.*?)】/)?.[1] || "";
-    const weekdays = entry.match(/«(.*?)»/)?.[1] || "";
-    const aircraft = entry.match(/〔(.*?)〕/)?.[1] || "";
-    const airline = entry.match(/『(.*?)』/)?.[1] || "";
-    const depAirport = entry.match(/《(.*?)出发》/)?.[1] || "";
-    const depTime = entry.match(/出发》{(.*?)}#\+\d+#/)?.[1] || "";
-    const depTerminal = entry.match(/出发》{.*?}#\+\d+#@(.*?)@/)?.[1] || "";
-    const arrAirport = entry.match(/《(.*?)到达》/)?.[1] || "";
-    const arrTime = entry.match(/到达》{(.*?)}#\+\d+#/)?.[1] || "";
-    const arrTerminal = entry.match(/到达》{.*?}#\+\d+#@(.*?)@/)?.[1] || "";
-    const econPrice = entry.match(/§(.*?)元§/)?.[1] || null;
-    const bizPrice = entry.match(/θ(.*?)元θ/)?.[1] || null;
-    const firstPrice = entry.match(/△(.*?)元△/)?.[1] || null;
+const weekMap = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+const pad2 = n => n<10 ? "0"+n : ""+n;
 
+function parsePrice(txt){
+  const m = txt?.match(/\d+/);
+  return m ? parseInt(m[0],10) : null;
+}
+
+function parseFlights(raw){
+  const entries = raw.split("《航班结束》").map(s=>s.trim()).filter(Boolean);
+  return entries.map(str=>{
     return {
-      flightNo, weekdays, aircraft, airline,
-      depAirport, depTime, depTerminal,
-      arrAirport, arrTime, arrTerminal,
-      econPrice, bizPrice, firstPrice
+      flightNo: str.match(/【(.*?)】/)?.[1] || "",
+      weekdays: (str.match(/«(.*?)»/)?.[1] || "").split(",").filter(Boolean),
+      aircraft: str.match(/〔(.*?)〕/)?.[1] || "",
+      airline: str.match(/『(.*?)』/)?.[1] || "",
+      depAirport: str.match(/《(.*?)出发》/)?.[1] || "",
+      arrAirport: str.match(/《(.*?)到达》/)?.[1] || "",
+      depTime: str.match(/出发》{(.*?)}/)?.[1] || "",
+      arrTime: str.match(/到达》{(.*?)}/)?.[1] || "",
+      depDay: parseInt(str.match(/出发》.*#\+(\d+)#/)?.[1] || "0",10),
+      arrDay: parseInt(str.match(/到达》.*#\+(\d+)#/)?.[1] || "0",10),
+      depTerminal: str.match(/出发》.*@([^@]+)@/)?.[1] || "",
+      arrTerminal: str.match(/到达》.*@([^@]+)@/)?.[1] || "",
+      eco: str.match(/§(.*?)§/)?.[1] || "",
+      biz: str.match(/θ(.*?)θ/)?.[1] || "",
+      first: str.match(/△(.*?)△/)?.[1] || "",
+      ecoNum: parsePrice(str.match(/§(.*?)§/)?.[1]),
+      bizNum: parsePrice(str.match(/θ(.*?)θ/)?.[1]),
+      firstNum: parsePrice(str.match(/△(.*?)△/)?.[1])
     };
   });
 }
-
 const flights = parseFlights(flightsData);
 
-// ===== 星期转换 =====
-function getWeekday(dateStr) {
-  const d = new Date(dateStr);
-  const days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-  return days[d.getDay()];
+const datePicker = document.getElementById("datePicker");
+const today = new Date();
+datePicker.value = today.toISOString().split("T")[0];
+document.getElementById("todayText").textContent =
+  `今天：${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}`;
+
+function filterFlights(){
+  const from = document.getElementById("fromAirport").value.trim();
+  const to = document.getElementById("toAirport").value.trim();
+  const timeRange = document.getElementById("timeFilter").value;
+  const airline = document.getElementById("airlineFilter").value;
+  const sort = document.getElementById("sortSelect").value;
+
+  const selDate = new Date(datePicker.value);
+  const weekday = weekMap[selDate.getDay()];
+
+  let list = flights.filter(f=>{
+    if(f.weekdays.length && !f.weekdays.includes(weekday)) return false;
+    if(from && !f.depAirport.includes(from)) return false;
+    if(to && !f.arrAirport.includes(to)) return false;
+    if(airline && f.airline!==airline) return false;
+    if(timeRange){
+      const [s,e] = timeRange.split("-").map(Number);
+      const h = parseInt(f.depTime.split(":")[0],10);
+      if(h<s || h>=e) return false;
+    }
+    return true;
+  });
+
+  if(sort==="ecoAsc") list.sort((a,b)=>(a.ecoNum||1e12)-(b.ecoNum||1e12));
+  if(sort==="ecoDesc") list.sort((a,b)=>(b.ecoNum||0)-(a.ecoNum||0));
+  else if(!sort) list.sort((a,b)=>a.depTime.localeCompare(b.depTime));
+
+  renderFlights(list, selDate);
 }
 
-// ===== 渲染卡片 =====
-function renderFlights(list) {
-  const container = document.getElementById("flightsContainer");
-  container.innerHTML = "";
+function renderFlights(list, selDate){
+  const c = document.getElementById("flightsContainer");
+  const summary = document.getElementById("summaryBar");
+  c.innerHTML = "";
+  summary.textContent = `共 ${list.length} 班`;
 
-  list.forEach(f => {
+  list.forEach(f=>{
+    const depPlus = f.depDay>0?"（次日）":"";
+    const arrPlus = f.arrDay>0?"（次日）":"";
+
     const card = document.createElement("div");
-    card.className = "flight-card";
-    card.innerHTML = `
-      <div class="flight-header">
-        <span class="flight-no">${f.flightNo}</span>
-        <span class="airline">${f.airline}</span>
-        <span class="aircraft">${f.aircraft}</span>
+    card.className="flight-card";
+    card.innerHTML=`
+      <div class="card-head">
+        <div class="flight-no">${f.flightNo}</div>
+        <div class="badges"><span class="badge">${f.airline}</span><span class="badge">${f.aircraft}</span></div>
       </div>
-      <div class="flight-body">
-        <div class="time-block">
-          <strong>${f.depTime}</strong>
-          <div>${f.depAirport} (${f.depTerminal})</div>
+      <div class="card-body">
+        <div class="port">
+          <div class="city">${f.depAirport}</div>
+          <div class="time">${f.depTime}${depPlus}</div>
+          <div class="terminal">${f.depTerminal}</div>
         </div>
         <div class="arrow">→</div>
-        <div class="time-block">
-          <strong>${f.arrTime}</strong>
-          <div>${f.arrAirport} (${f.arrTerminal})</div>
+        <div class="port">
+          <div class="city">${f.arrAirport}</div>
+          <div class="time">${f.arrTime}${arrPlus}</div>
+          <div class="terminal">${f.arrTerminal}</div>
         </div>
       </div>
-      <div class="prices">
-        ${f.econPrice ? `<span class="price econ">经济舱 ¥${f.econPrice}</span>` : ""}
-        ${f.bizPrice ? `<span class="price biz">商务舱 ¥${f.bizPrice}</span>` : ""}
-        ${f.firstPrice ? `<span class="price first">头等舱 ¥${f.firstPrice}</span>` : ""}
+      <div class="card-foot">
+        <div class="aircraft">机型：${f.aircraft}</div>
+        <div class="price-group">
+          ${f.eco?`<div class="price-chip econ">经济舱 ¥${f.eco}</div>`:""}
+          ${f.biz?`<div class="price-chip biz">商务舱 ¥${f.biz}</div>`:""}
+          ${f.first?`<div class="price-chip first">头等舱 ¥${f.first}</div>`:""}
+        </div>
       </div>
     `;
-    container.appendChild(card);
+    c.appendChild(card);
   });
 }
 
-// ===== 筛选逻辑 =====
-function applyFilters() {
-  let list = [...flights];
-  const dep = document.getElementById("depInput").value.trim();
-  const arr = document.getElementById("arrInput").value.trim();
-  const onlyDep = document.getElementById("onlyDep").checked;
-  const airline = document.getElementById("airlineInput").value.trim();
-  const timeFilter = document.getElementById("timeFilter").value;
-  const sort = document.getElementById("priceSort").value;
+document.getElementById("searchBtn").onclick = filterFlights;
+document.getElementById("resetBtn").onclick = ()=>{document.querySelectorAll(".filters input,.filters select").forEach(el=>{if(el.type!=="date")el.value="";});filterFlights()};
+document.getElementById("onlyThisAirportBtn").onclick = ()=>{
+  const key=document.getElementById("fromAirport").value.trim();
+  if(!key) return;
+  const selDate=new Date(datePicker.value);const weekday=weekMap[selDate.getDay()];
+  const list=flights.filter(f=>(f.depAirport.includes(key)||f.arrAirport.includes(key)) && f.weekdays.includes(weekday));
+  renderFlights(list,selDate);
+};
+datePicker.onchange=filterFlights;
 
-  // 日期转星期
-  const date = document.getElementById("dateInput").value;
-  if (date) {
-    const week = getWeekday(date);
-    list = list.filter(f => f.weekdays.includes(week));
-  }
-
-  if (dep) list = list.filter(f => f.depAirport.includes(dep));
-  if (arr && !onlyDep) list = list.filter(f => f.arrAirport.includes(arr));
-  if (airline) list = list.filter(f => f.airline.includes(airline));
-
-  if (timeFilter) {
-    list = list.filter(f => {
-      const [h,m] = f.depTime.split(":").map(Number);
-      const minutes = h*60+m;
-      if (timeFilter==="late-night") return minutes>=0 && minutes<360;
-      if (timeFilter==="morning") return minutes>=360 && minutes<720;
-      if (timeFilter==="noon") return minutes>=720 && minutes<780;
-      if (timeFilter==="afternoon") return minutes>=780 && minutes<1080;
-      if (timeFilter==="evening") return minutes>=1080 && minutes<1440;
-    });
-  }
-
-  if (sort==="asc") list.sort((a,b)=> (a.econPrice||99999) - (b.econPrice||99999));
-  if (sort==="desc") list.sort((a,b)=> (b.econPrice||0) - (a.econPrice||0));
-
-  renderFlights(list);
-}
-
-// ===== 初始化 =====
-document.addEventListener("DOMContentLoaded", () => {
-  const today = new Date().toISOString().split("T")[0];
-  document.getElementById("dateInput").value = today;
-  renderFlights(flights);
-
-  document.querySelectorAll(".filters input, .filters select")
-    .forEach(el => el.addEventListener("input", applyFilters));
-});
+filterFlights();
