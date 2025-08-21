@@ -1,104 +1,67 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>航班时刻表</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="stylesheet" href="assets/style.css" />
-  <link rel="icon" href="https://www.singaporeair.com/etc.clientlibs/sia/clientlibs/clientlib-site/resources/images/favicon.ico">
+  <meta charset="UTF-8">
+  <title>航班查询系统</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <!-- 顶栏 -->
+  <!-- 顶部栏 -->
   <header class="topbar">
-    <div class="brand">
-      <span class="logo">✈</span>
-      <span class="title">航班时刻表</span>
-    </div>
-    <div class="today" id="todayText"></div>
+    <h1>航班查询</h1>
   </header>
 
-  <!-- 主布局：左侧筛选区 + 右侧卡片区（大屏两列，小屏垂直） -->
-  <div class="layout">
-    <!-- 筛选面板 -->
-    <aside class="filters" id="filterPanel">
+  <!-- 页面主区 -->
+  <div class="main-layout">
+    <!-- 搜索筛选区 -->
+    <aside class="search-panel">
       <div class="filter-group">
         <label>出发机场</label>
-        <input type="text" id="fromAirport" placeholder="如：拜科努尔 / 星羽天琴" list="airportList">
+        <input type="text" id="fromAirport" placeholder="输入出发机场">
       </div>
-
       <div class="filter-group">
         <label>到达机场</label>
-        <input type="text" id="toAirport" placeholder="如：临东金桦 / 万方沂川" list="airportList">
+        <input type="text" id="toAirport" placeholder="输入到达机场">
       </div>
-
-      <datalist id="airportList"></datalist>
-
-      <div class="filter-row">
-        <button class="btn secondary" id="onlyThisAirportBtn" title="只看左侧输入机场的出港+到港">只看该机场</button>
-        <button class="btn ghost" id="resetBtn">重置</button>
-      </div>
-
-      <hr>
-
       <div class="filter-group">
-        <label>日期（今天起90天内）</label>
-        <input type="date" id="datePicker">
-        <small class="hint">用于模拟→转换为星期几，与航班运行日匹配</small>
+        <button id="onlyDepartureBtn">只看出发</button>
       </div>
-
       <div class="filter-group">
-        <label>出发时间段</label>
+        <label>日期</label>
+        <input type="date" id="flightDate">
+      </div>
+      <div class="filter-group">
+        <label>时间段</label>
         <select id="timeFilter">
-          <option value="">不限</option>
-          <option value="0-6">凌晨 (0-6)</option>
-          <option value="6-12">上午 (6-12)</option>
-          <option value="12-14">中午 (12-14)</option>
-          <option value="14-18">下午 (14-18)</option>
-          <option value="18-24">晚上 (18-24)</option>
+          <option value="">全部</option>
+          <option value="early">凌晨 (0-6)</option>
+          <option value="morning">上午 (6-12)</option>
+          <option value="noon">中午 (12-14)</option>
+          <option value="afternoon">下午 (14-18)</option>
+          <option value="evening">晚上 (18-24)</option>
         </select>
       </div>
-
       <div class="filter-group">
         <label>航空公司</label>
-        <select id="airlineFilter">
-          <option value="">不限</option>
+        <input type="text" id="airlineFilter" placeholder="输入航空公司">
+      </div>
+      <div class="filter-group">
+        <label>价格排序</label>
+        <select id="priceSort">
+          <option value="">默认</option>
+          <option value="asc">价格升序</option>
+          <option value="desc">价格降序</option>
         </select>
       </div>
-
-      <div class="filter-group">
-        <label>价格（经济/商务）</label>
-        <div class="price-row">
-          <input type="number" id="ecoMin" placeholder="经济最低">
-          <input type="number" id="ecoMax" placeholder="经济最高">
-        </div>
-        <div class="price-row">
-          <input type="number" id="busMin" placeholder="商务最低">
-          <input type="number" id="busMax" placeholder="商务最高">
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <label>排序</label>
-        <select id="sortSelect">
-          <option value="">默认（按出发时间）</option>
-          <option value="ecoAsc">经济舱价格↑</option>
-          <option value="busAsc">商务舱价格↑</option>
-        </select>
-      </div>
-
-      <div class="filter-row">
-        <button class="btn primary" id="searchBtn">应用筛选</button>
-      </div>
+      <button id="searchBtn">筛选</button>
     </aside>
 
-    <!-- 卡片区 -->
-    <main class="results">
-      <div id="summaryBar" class="summary"></div>
-      <div id="flightsContainer" class="card-grid"></div>
-    </main>
+    <!-- 航班卡片区 -->
+    <main class="results" id="results"></main>
   </div>
 
-  <script src="assets/data.js"></script>
-  <script src="assets/main.js"></script>
+  <script src="data.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
