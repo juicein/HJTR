@@ -1,173 +1,138 @@
 body {
   margin: 0;
   font-family: "微软雅黑", sans-serif;
-  background: #f6f8fb;
+  background: #f5f7fa;
   color: #333;
 }
 
+/* 顶栏 */
 .topbar {
-  background: #003d7c;
+  background: #003d7c; /* 新航深蓝 */
   color: #fff;
-  padding: 15px 20px;
-  font-size: 20px;
+  padding: 15px;
+  text-align: center;
 }
 
+/* 主布局 */
 .main-layout {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
 }
 
-/* 筛选区 */
-.sidebar {
-  flex: 1 1 250px;
-  max-width: 280px;
-  padding: 15px;
-}
-
-.filter-card {
+.filters {
   background: #fff;
-  border-radius: 8px;
   padding: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  border-bottom: 1px solid #ddd;
 }
 
-.filter-card label {
-  display: block;
-  margin-top: 10px;
-  font-weight: bold;
+.filter-group {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
   font-size: 14px;
+  margin-bottom: 5px;
 }
 
-.filter-card input,
-.filter-card select {
-  width: 100%;
-  padding: 6px;
-  margin-top: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.filter-card button {
-  margin-top: 12px;
-  width: 100%;
+.filter-group input,
+.filter-group select,
+.filter-group button {
   padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+button {
   background: #003d7c;
   color: #fff;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
 }
-.filter-card button:hover {
-  background: #0050a0;
+button:hover {
+  background: #002a57;
 }
 
-/* 航班卡片 */
-.content {
-  flex: 3 1 600px;
+/* 卡片区 */
+.results {
   padding: 15px;
-}
-
-#summaryBar {
-  margin-bottom: 15px;
-  font-weight: bold;
-}
-
-#flightsContainer {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+  grid-template-columns: 1fr;
   gap: 15px;
 }
 
-.flight-card {
+.card {
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  border-radius: 12px;
   padding: 15px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
 
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-}
-
-.flight-no {
-  font-size: 18px;
   font-weight: bold;
-  color: #003d7c;
-}
-
-.badges {
-  display: flex;
-  gap: 6px;
-}
-.badge {
-  font-size: 12px;
-  padding: 3px 6px;
-  border: 1px solid #003d7c;
-  border-radius: 4px;
-  color: #003d7c;
+  margin-bottom: 8px;
 }
 
 .card-body {
   display: flex;
   justify-content: space-between;
-  margin: 10px 0;
+  margin-bottom: 8px;
 }
-.port {
+
+.airport {
   flex: 1;
+  text-align: center;
 }
-.city {
+
+.airport h3 {
+  margin: 0;
   font-size: 16px;
-  font-weight: bold;
 }
+
 .time {
-  font-size: 18px;
-  color: #003d7c;
-}
-.arrow {
-  margin: 0 10px;
-  font-size: 20px;
-  color: #888;
+  font-size: 14px;
+  color: #666;
 }
 
 .card-foot {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #555;
-}
-.price-group {
-  margin-top: 6px;
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
   flex-wrap: wrap;
 }
-.price-chip {
-  background: #f0f4fa;
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 13px;
-}
-.price-chip.bus {
-  background: #e0f2ff;
-}
-.price-chip.first {
-  background: #fff0e0;
+
+.price-group {
+  display: flex;
+  gap: 8px;
 }
 
-/* 手机优化 */
-@media(max-width:768px){
+.price-chip {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.price-chip { background: #f0f0f0; }
+.price-chip.bus { background: #c17c00; color: #fff; }
+.price-chip.first { background: #5e2b97; color: #fff; }
+
+/* 大屏布局 */
+@media(min-width: 900px) {
   .main-layout {
-    flex-direction: column;
+    flex-direction: row;
   }
-  .sidebar {
-    max-width: 100%;
+  .filters {
+    width: 250px;
+    border-right: 1px solid #ddd;
+    border-bottom: none;
   }
-  #flightsContainer {
-    grid-template-columns: 1fr;
+  .results {
+    flex: 1;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
