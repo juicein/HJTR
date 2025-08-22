@@ -8,10 +8,11 @@ function parsePriceNum(txt){
 }
 function toMinutes(t){ // "HH:MM" -> minutes
   const [h,m] = (t||"0:0").split(":").map(x=>parseInt(x,10));
-  return h*60 + (m||0);
+  return (isNaN(h)?0:h)*60 + (isNaN(m)?0:m);
 }
 function fmtDuration(mins){
-  const h = Math.floor(mins/60), m = mins%60;
+  const safe = Math.max(0, mins|0);
+  const h = Math.floor(safe/60), m = safe%60;
   return `${h}小时${m}分`;
 }
 
@@ -39,16 +40,16 @@ function parseFlights(raw){
 
     const ecoText     = str.match(/§(.*?)§/)?.[1] || "";
     const busText     = str.match(/θ(.*?)θ/)?.[1] || "";
-    const firstText   = str.match(/△(.*?)△/)?.[1] || ""; // ✨ 新增：头等舱
+    const firstText   = str.match(/△(.*?)△/)?.[1] || ""; // 头等舱（可选）
 
     const economyNum  = parsePriceNum(ecoText);
     const businessNum = parsePriceNum(busText);
     const firstNum    = parsePriceNum(firstText);
 
-    // ✨ 新增：飞行时长（分钟）
+    // 飞行时长（分钟）
     const depAbs = depDay*24*60 + toMinutes(depTime);
     const arrAbs = arrDay*24*60 + toMinutes(arrTime);
-    const durationMins = Math.max(0, arrAbs - depAbs); // 简化：数据保证到达不早于出发
+    const durationMins = Math.max(0, arrAbs - depAbs);
 
     return {
       raw: str,
@@ -62,45 +63,54 @@ function parseFlights(raw){
   });
 }
 
-const flights = parseFlights(flightsData);
+const flights = parseFlights(flightsData || "");
 
 /* ========= 日期：默认今天，限制+90天 ========= */
 const today = new Date();
 const maxDate = new Date(); maxDate.setDate(today.getDate()+90);
 
 const datePicker = document.getElementById("datePicker");
-datePicker.min = today.toISOString().split("T")[0];
-datePicker.max = maxDate.toISOString().split("T")[0];
-datePicker.value = today.toISOString().split("T")[0];
+if (datePicker) {
+  datePicker.min = today.toISOString().split("T")[0];
+  datePicker.max = maxDate.toISOString().split("T")[0];
+  if (!datePicker.value) datePicker.value = today.toISOString().split("T")[0];
+}
 
-document.getElementById("todayText").textContent =
-  `今天：${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}`;
+const todayTextEl = document.getElementById("todayText");
+if (todayTextEl) {
+  todayTextEl.textContent =
+    `今天：${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}`;
+}
 
 /* ========= 机场与航司下拉 ========= */
 function initAirportsAndAirlines(){
   const setAirports = new Set();
   const setAirlines = new Set();
   flights.forEach(f=>{
-    setAirports.add(f.depAirport);
-    setAirports.add(f.arrAirport);
-    if(f.airline) setAirlines.add(f.airline);
+    if (f.depAirport) setAirports.add(f.depAirport);
+    if (f.arrAirport) setAirports.add(f.arrAirport);
+    if (f.airline) setAirlines.add(f.airline);
   });
 
   const airportList = document.getElementById("airportList");
-  airportList.innerHTML = "";
-  [...setAirports].sort().forEach(name=>{
-    const opt = document.createElement("option");
-    opt.value = name;
-    airportList.appendChild(opt);
-  });
+  if (airportList) {
+    airportList.innerHTML = "";
+    [...setAirports].sort().forEach(name=>{
+      const opt = document.createElement("option");
+      opt.value = name;
+      airportList.appendChild(opt);
+    });
+  }
 
   const airlineFilter = document.getElementById("airlineFilter");
-  airlineFilter.innerHTML = `<option value="">不限</option>`;
-  [...setAirlines].sort().forEach(name=>{
-    const opt = document.createElement("option");
-    opt.value = name; opt.textContent = name;
-    airlineFilter.appendChild(opt);
-  });
+  if (airlineFilter) {
+    airlineFilter.innerHTML = `<option value="">不限</option>`;
+    [...setAirlines].sort().forEach(name=>{
+      const opt = document.createElement("option");
+      opt.value = name; opt.textContent = name;
+      airlineFilter.appendChild(opt);
+    });
+  }
 }
 initAirportsAndAirlines();
 
@@ -112,7 +122,7 @@ function withinTimeRange(depTime, range){
   return (h>=s && h<e);
 }
 
-// ✨ 统一“有效价格”：优先经济，其次商务，再次头等
+// 统一“有效价格”：优先经济，其次商务，再次头等
 function effectivePriceNum(f){
   if(!Number.isNaN(f.economyNum)) return f.economyNum;
   if(!Number.isNaN(f.businessNum)) return f.businessNum;
@@ -121,13 +131,19 @@ function effectivePriceNum(f){
 }
 
 function applyFilters(){
-  const from = document.getElementById("fromAirport").value.trim();
-  const to   = document.getElementById("toAirport").value.trim();
-  const timeRange = document.getElementById("timeFilter").value;
-  const airline   = document.getElementById("airlineFilter").value;
-  const sort   = document.getElementById("sortSelect").value;
+  const from = (document.getElementById("fromAirport")?.value || "").trim();
+  const to   = (document.getElementById("toAirport")?.value || "").trim();
+  const timeRange = document.getElementById("timeFilter")?.value || "";
+  const airline   = document.getElementById("airlineFilter")?.value || "";
+  const sortVal   = document.getElementById("sortSelect")?.value || "";
 
-  const selDate = new Date(datePicker.value);
+  // 兼容老值：ecoAsc/busAsc -> 升序；ecoDesc/busDesc -> 降序
+  const sort = (sortVal==="ecoAsc"||sortVal==="busAsc") ? "priceAsc"
+             : (sortVal==="ecoDesc"||sortVal==="busDesc") ? "priceDesc"
+             : sortVal;
+
+  const baseDateStr = datePicker && datePicker.value ? datePicker.value : (new Date()).toISOString().split("T")[0];
+  const selDate = new Date(baseDateStr);
   const weekday = weekMap[selDate.getDay()];
 
   let list = flights.filter(f=>{
@@ -139,15 +155,15 @@ function applyFilters(){
     return true;
   });
 
-  // ✨ 排序：默认出发时间；价格升/降
+  // 排序：默认出发时间；价格升/降
   if(sort === "priceAsc"){
     list.sort((a,b)=> effectivePriceNum(a) - effectivePriceNum(b));
   }else if(sort === "priceDesc"){
     list.sort((a,b)=> effectivePriceNum(b) - effectivePriceNum(a));
   }else{
     list.sort((a,b)=>{
-      const ta = a.depTime.padStart(5,"0");
-      const tb = b.depTime.padStart(5,"0");
+      const ta = (a.depTime||"").padStart(5,"0");
+      const tb = (b.depTime||"").padStart(5,"0");
       return ta.localeCompare(tb);
     });
   }
@@ -156,13 +172,14 @@ function applyFilters(){
 }
 
 function onlyThisAirport(){
-  const key = document.getElementById("fromAirport").value.trim();
+  const key = (document.getElementById("fromAirport")?.value || "").trim();
   if(!key){ alert("请先在“出发机场”输入一个机场名称"); return; }
 
-  const selDate = new Date(datePicker.value);
+  const baseDateStr = datePicker && datePicker.value ? datePicker.value : (new Date()).toISOString().split("T")[0];
+  const selDate = new Date(baseDateStr);
   const weekday = weekMap[selDate.getDay()];
-  const timeRange = document.getElementById("timeFilter").value;
-  const airline   = document.getElementById("airlineFilter").value;
+  const timeRange = document.getElementById("timeFilter")?.value || "";
+  const airline   = document.getElementById("airlineFilter")?.value || "";
 
   let list = flights.filter(f=>{
     if(f.weekdays.length && !f.weekdays.includes(weekday)) return false;
@@ -172,16 +189,13 @@ function onlyThisAirport(){
     return true;
   });
 
-  list.sort((a,b)=>a.depTime.localeCompare(b.depTime));
+  list.sort((a,b)=> (a.depTime||"").localeCompare(b.depTime||""));
   renderFlights(list, selDate);
 }
 
 function resetFilters(){
-  document.getElementById("fromAirport").value = "";
-  document.getElementById("toAirport").value = "";
-  document.getElementById("timeFilter").value = "";
-  document.getElementById("airlineFilter").value = "";
-  document.getElementById("sortSelect").value = "";
+  const ids = ["fromAirport","toAirport","timeFilter","airlineFilter","sortSelect"];
+  ids.forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ""; });
   applyFilters();
 }
 
@@ -195,10 +209,14 @@ function addDays(baseDate, offset){
 function renderFlights(list, selectedDate){
   const container = document.getElementById("flightsContainer");
   const summary   = document.getElementById("summaryBar");
+  if(!container) return;
+
   container.innerHTML = "";
 
   const weekday = weekMap[selectedDate.getDay()];
-  summary.textContent = `共 ${list.length} 班 · 日期：${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth()+1)}-${pad2(selectedDate.getDate())}（${weekday}）`;
+  if (summary){
+    summary.textContent = `共 ${list.length} 班 · 日期：${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth()+1)}-${pad2(selectedDate.getDate())}（${weekday}）`;
+  }
 
   if(list.length === 0){
     container.innerHTML = `<div class="flight-card"><div class="airline">没有符合条件的航班</div></div>`;
@@ -256,13 +274,13 @@ function renderFlights(list, selectedDate){
       </div>
     `;
 
-    // ✨ 点击卡片 -> 弹窗
+    // 点击卡片 -> 弹窗
     card.addEventListener("click", ()=>openModal(f));
     container.appendChild(card);
   });
 }
 
-/* ========= 弹窗逻辑 ========= */
+/* ========= 弹窗逻辑（安全防护：元素缺失时不报错） ========= */
 const overlay = document.getElementById("modalOverlay");
 const modalTitle = document.getElementById("modalTitle");
 const modalBody  = document.getElementById("modalBody");
@@ -271,9 +289,13 @@ const copyRawBtn = document.getElementById("copyRawBtn");
 const buyBtn     = document.getElementById("buyBtn");
 const toast      = document.getElementById("toast");
 
+// 强制初始化为隐藏，防止“进页就弹窗”
+if (overlay) overlay.hidden = true;
+
 let currentFlight = null;
 
 function openModal(f){
+  if(!overlay || !modalTitle || !modalBody) return; // 没有弹窗 DOM 就直接返回
   currentFlight = f;
   modalTitle.textContent = `${f.flightNo} · ${f.airline}`;
 
@@ -309,47 +331,86 @@ function openModal(f){
 }
 
 function closeModal(){
+  if (!overlay) return;
   overlay.hidden = true;
   currentFlight = null;
 }
 
-modalCloseBtn.addEventListener("click", closeModal);
-overlay.addEventListener("click", (e)=>{
+// 事件（存在才绑定，避免报错阻断首页渲染）
+if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeModal);
+if (overlay) overlay.addEventListener("click", (e)=>{
   if(e.target === overlay) closeModal();
 });
 document.addEventListener("keydown", (e)=>{
-  if(e.key === "Escape" && !overlay.hidden) closeModal();
+  if(e.key === "Escape" && overlay && !overlay.hidden) closeModal();
 });
 
 // 复制原始数据
-copyRawBtn.addEventListener("click", async ()=>{
-  if(!currentFlight) return;
-  try{
-    await navigator.clipboard.writeText(currentFlight.raw);
-    showToast("源数据已复制");
-  }catch(e){
-    showToast("复制失败，请手动选择复制");
-  }
-});
+if (copyRawBtn) {
+  copyRawBtn.addEventListener("click", async ()=>{
+    if(!currentFlight) return;
+    try{
+      await navigator.clipboard.writeText(currentFlight.raw);
+      showToast("源数据已复制");
+    }catch(e){
+      showToast("复制失败，请手动选择复制");
+    }
+  });
+}
 
 // 购买按钮 -> 成功提示
-buyBtn.addEventListener("click", ()=>{
-  showToast("购买成功 ✔");
-});
+if (buyBtn) {
+  buyBtn.addEventListener("click", ()=>{
+    showToast("购买成功 ✔");
+  });
+}
 
 let toastTimer = null;
 function showToast(text){
+  if (!toast){
+    alert(text);
+    return;
+  }
   toast.textContent = text;
   toast.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>{ toast.hidden = true; }, 1600);
 }
 
-/* ========= 事件绑定 ========= */
-document.getElementById("searchBtn").addEventListener("click", applyFilters);
-document.getElementById("onlyThisAirportBtn").addEventListener("click", onlyThisAirport);
-document.getElementById("resetBtn").addEventListener("click", resetFilters);
-document.getElementById("datePicker").addEventListener("change", applyFilters);
+/* ========= 事件绑定（含手机端自动滚动到卡片区） ========= */
+const flightsContainerEl = document.getElementById("flightsContainer");
+function scrollToResultsOnMobile(){
+  if (window.innerWidth < 992 && flightsContainerEl){
+    flightsContainerEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
 
-// 首次渲染
-applyFilters();
+const searchBtn = document.getElementById("searchBtn");
+if (searchBtn){
+  searchBtn.addEventListener("click", ()=>{
+    applyFilters();
+    scrollToResultsOnMobile();
+  });
+}
+
+const onlyThisAirportBtn = document.getElementById("onlyThisAirportBtn");
+if (onlyThisAirportBtn){
+  onlyThisAirportBtn.addEventListener("click", ()=>{
+    onlyThisAirport();
+    scrollToResultsOnMobile();
+  });
+}
+
+const resetBtn = document.getElementById("resetBtn");
+if (resetBtn) resetBtn.addEventListener("click", resetFilters);
+
+if (datePicker) datePicker.addEventListener("change", applyFilters);
+
+/* ========= 首次渲染（确保任何上面的小报错都不会阻断） ========= */
+try{
+  applyFilters();
+}catch(err){
+  console.error("初始化渲染失败：", err);
+  const container = document.getElementById("flightsContainer");
+  if (container) container.innerHTML = `<div class="flight-card"><div class="airline">初始化失败，请检查 data.js 数据格式</div></div>`;
+}
