@@ -228,6 +228,11 @@ html,body{
   padding: 10px 14px; border-radius: 999px; box-shadow: var(--shadow); z-index: 100;
 }
 
+
+.overlay[hidden] {
+  display: none !important;
+}
+
 /* ✨ 移动端专属：筛选不再 sticky，避免遮挡航班 */
 @media (max-width: 991px){
   .filters{
