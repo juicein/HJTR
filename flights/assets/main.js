@@ -329,12 +329,20 @@ function openModal(f){
 
   overlay.hidden = false;
 }
-
+/*
 function closeModal(){
   if (!overlay) return;
   overlay.hidden = true;
   currentFlight = null;
 }
+*/
+function closeModal(){
+  overlay.hidden = true;
+  overlay.setAttribute("hidden", "true"); // ✨ 增加这一行，确保被隐藏
+  currentFlight = null;
+}
+
+
 
 // 事件（存在才绑定，避免报错阻断首页渲染）
 if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeModal);
