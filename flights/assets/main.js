@@ -1,108 +1,108 @@
-// 将星期映射到 JS
-const weekMap = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-
-function pad2(n){ return n<10 ? "0"+n : ""+n; }
-function addDays(date, d){ let nd=new Date(date); nd.setDate(nd.getDate()+d); return `${nd.getFullYear()}-${pad2(nd.getMonth()+1)}-${pad2(nd.getDate())}`; }
-
-// 正则解析原始字符串
-function parseFlights(raw){
-  const regex = /【(.*?)】〈〉«(.*?)»〔(.*?)〕『(.*?)』《(.*?)出发》{(.*?)}\#\+(\d+)#@([^@]+)@《(.*?)到达》{(.*?)}\#\+(\d+)#@([^@]+)@ (§.*?§)(θ.*?θ)?(△.*?△)?《航班结束》/g;
-  let flights=[], m;
-  while((m=regex.exec(raw))!==null){
-    flights.push({
-      flightNo:m[1],
-      days:m[2].split(","),
-      aircraft:m[3],
-      airline:m[4],
-      depAirport:m[5],
-      depTime:m[6],
-      depDay:parseInt(m[7]),
-      depTerminal:m[8],
-      arrAirport:m[9],
-      arrTime:m[10],
-      arrDay:parseInt(m[11]),
-      arrTerminal:m[12],
-      ecoText:m[13]||"",
-      busText:m[14]||"",
-      firstText:m[15]||""
+// ===== 解析函数 =====
+function parseFlights(data) {
+  const regex = /【(.*?)】〈〉«(.*?)»〔(.*?)〕『(.*?)』《(.*?)出发》{(.*?)}\#\+\d\#@.*?@《(.*?)到达》{(.*?)}\#\+\d\#@.*?@ (.*?)《航班结束》/g;
+  let match, results = [];
+  while ((match = regex.exec(data)) !== null) {
+    const [_, flightNo, days, aircraft, airline, from, depTime, to, arrTime, priceStr] = match;
+    const prices = parsePrice(priceStr);
+    results.push({
+      flightNo, days, aircraft, airline,
+      from, depTime, to, arrTime,
+      ...prices
     });
   }
-  return flights;
+  return results;
 }
 
-// 计算时长
-function calcDuration(depDateStr, depTime, arrDateStr, arrTime){
-  const dep=new Date(`${depDateStr}T${depTime}:00`);
-  const arr=new Date(`${arrDateStr}T${arrTime}:00`);
-  let diff=(arr-dep)/60000;
-  if(diff<0) return "";
-  return `${Math.floor(diff/60)}小时${diff%60}分`;
+function parsePrice(str){
+  const eco  = (str.match(/§(.*?)元§/) || [])[1];
+  const bus  = (str.match(/θ(.*?)元θ/) || [])[1];
+  const first= (str.match(/△(.*?)元△/) || [])[1];
+  return {
+    ecoText: eco ? eco+"元" : "",
+    busText: bus ? bus+"元" : "",
+    firstText: first ? first+"元" : ""
+  };
 }
 
-const allFlights=parseFlights(flightsData);
-
-// 渲染
-function renderFlights(list, selectedDate){
-  const container=document.getElementById("flightsContainer");
-  const summary=document.getElementById("summaryBar");
-  container.innerHTML="";
-
-  const weekday=weekMap[selectedDate.getDay()];
-  summary.textContent=`共 ${list.length} 班 · 日期：${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth()+1)}-${pad2(selectedDate.getDate())}（${weekday}）`;
-
-  if(list.length===0){
-    container.innerHTML=`<div class="flight-card"><div class="airline">没有符合条件的航班</div></div>`;
-    return;
-  }
-
+// ===== 渲染 =====
+function renderFlights(list) {
+  const container = document.getElementById("results");
+  container.innerHTML = "";
   list.forEach(f=>{
-    const depDateStr=addDays(selectedDate,f.depDay);
-    const arrDateStr=addDays(selectedDate,f.arrDay);
-    const depPlus=f.depDay>0?"（次日）":"";
-    const arrPlus=f.arrDay>0?"（次日）":"";
-    const duration=calcDuration(depDateStr,f.depTime,arrDateStr,f.arrTime);
-
-    const card=document.createElement("div");
-    card.className="flight-card";
-    card.innerHTML=`
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
       <div class="card-head">
-        <div class="flight-no">${f.flightNo}</div>
-        <div class="badges">
-          <span class="badge">${f.airline}</span>
-          <span class="badge">${f.aircraft}</span>
-        </div>
+        <span>${f.flightNo}</span>
+        <span>${f.airline}</span>
       </div>
       <div class="card-body">
-        <div class="port">
-          <div class="city">${f.depAirport}</div>
-          <div class="time">${f.depTime}${depPlus}</div>
-          <div class="terminal">航站楼：${f.depTerminal}</div>
-          <div class="date">起飞日期：${depDateStr}</div>
+        <div class="airport">
+          <h3>${f.from}</h3>
+          <div class="time">${f.depTime}</div>
         </div>
-        <div class="arrow">→</div>
-        <div class="port">
-          <div class="city">${f.arrAirport}</div>
-          <div class="time">${f.arrTime}${arrPlus}</div>
-          <div class="terminal">航站楼：${f.arrTerminal}</div>
-          <div class="date">到达日期：${arrDateStr}</div>
+        <div class="airport">
+          ➡
+        </div>
+        <div class="airport">
+          <h3>${f.to}</h3>
+          <div class="time">${f.arrTime}</div>
         </div>
       </div>
       <div class="card-foot">
-        <div class="aircraft">机型：${f.aircraft} ｜ 飞行时长：${duration||"—"}</div>
+        <div class="aircraft">机型：${f.aircraft}</div>
         <div class="price-group">
-          <div class="price-chip">经济舱：${f.ecoText||"—"}</div>
-          ${f.busText?`<div class="price-chip bus">商务舱：${f.busText}</div>`:""}
-          ${f.firstText?`<div class="price-chip first">头等舱：${f.firstText}</div>`:""}
+          ${f.ecoText ? `<div class="price-chip">经济舱 ${f.ecoText}</div>` : ""}
+          ${f.busText ? `<div class="price-chip bus">商务舱 ${f.busText}</div>` : ""}
+          ${f.firstText ? `<div class="price-chip first">头等舱 ${f.firstText}</div>` : ""}
         </div>
-      </div>`;
+      </div>
+    `;
     container.appendChild(card);
   });
 }
 
-// 初始化
-window.onload=function(){
-  const dateInput=document.getElementById("dateInput");
-  const today=new Date();
-  dateInput.value=`${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}`;
-  renderFlights(allFlights,today);
-};
+// ===== 筛选逻辑 =====
+function applyFilters(){
+  const fromVal = document.getElementById("fromAirport").value.trim();
+  const toVal = document.getElementById("toAirport").value.trim();
+  const classVal = document.getElementById("classFilter").value;
+  const sortVal = document.getElementById("priceSort").value;
+
+  let filtered = flights.slice();
+
+  if (fromVal) filtered = filtered.filter(f=>f.from.includes(fromVal));
+  if (toVal) filtered = filtered.filter(f=>f.to.includes(toVal));
+
+  if (classVal) {
+    filtered = filtered.filter(f=>{
+      if(classVal==="eco") return f.ecoText;
+      if(classVal==="bus") return f.busText;
+      if(classVal==="first") return f.firstText;
+      return true;
+    });
+  }
+
+  if (sortVal) {
+    filtered.sort((a,b)=>{
+      const aPrice = parseInt((a.ecoText||a.busText||a.firstText));
+      const bPrice = parseInt((b.ecoText||b.busText||b.firstText));
+      return sortVal==="asc" ? aPrice-bPrice : bPrice-aPrice;
+    });
+  }
+
+  renderFlights(filtered);
+}
+
+// ===== 初始化 =====
+const flights = parseFlights(flightsData);
+renderFlights(flights);
+
+document.getElementById("searchBtn").addEventListener("click", applyFilters);
+document.getElementById("departOnlyBtn").addEventListener("click", ()=>{
+  const fromVal = document.getElementById("fromAirport").value.trim();
+  let filtered = flights;
+  if(fromVal) filtered = flights.filter(f=>f.from.includes(fromVal) || f.to.includes(fromVal));
+  renderFlights(filtered);
+});
