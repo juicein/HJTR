@@ -1,236 +1,355 @@
-/* ===== 新航风格配色 ===== */
-:root{
-  --primary: #002663;   /* 深蓝 */
-  --accent:  #d4af37;   /* 金色 */
-  --ink:     #1a1f36;   /* 文字主色 */
-  --muted:   #6b7280;   /* 次要文字 */
-  --bg:      #f5f6f8;   /* 背景灰 */
-  --card:    #ffffff;
-  --line:    #e5e7eb;
+/* ========= 工具与常量 ========= */
+const weekMap = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+const pad2 = n => (n<10? "0"+n : ""+n);
 
-  --radius: 12px;
-  --shadow: 0 6px 18px rgba(0,0,0,0.08);
+function parsePriceNum(txt){
+  const m = (txt||"").toString().match(/\d+/);
+  return m ? parseInt(m[0], 10) : NaN;
+}
+function toMinutes(t){ // "HH:MM" -> minutes
+  const [h,m] = (t||"0:0").split(":").map(x=>parseInt(x,10));
+  return h*60 + (m||0);
+}
+function fmtDuration(mins){
+  const h = Math.floor(mins/60), m = mins%60;
+  return `${h}小时${m}分`;
 }
 
-*{ box-sizing: border-box; }
+/* ========= 把原始字符串解析为对象 ========= */
+function parseFlights(raw){
+  const entries = raw.split("《航班结束》").map(s=>s.trim()).filter(Boolean);
+  return entries.map(str=>{
+    const flightNo    = str.match(/【(.*?)】/)?.[1] || "";
+    const weekdaysStr = str.match(/«(.*?)»/)?.[1] || "";
+    const weekdays    = weekdaysStr.split(",").map(s=>s.trim()).filter(Boolean);
+    const aircraft    = str.match(/〔(.*?)〕/)?.[1] || "";
+    const airline     = str.match(/『(.*?)』/)?.[1] || "";
 
-html,body{
-  margin:0; padding:0;
-  font-family: "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-  color: var(--ink);
-  background: var(--bg);
+    const depAirport  = str.match(/《(.*?)出发》/)?.[1] || "";
+    const arrAirport  = str.match(/《(.*?)到达》/)?.[1] || "";
+
+    const depTime     = str.match(/出发》{(.*?)}/)?.[1] || "";
+    const arrTime     = str.match(/到达》{(.*?)}/)?.[1] || "";
+
+    const depDay      = parseInt(str.match(/出发》.*#\+(\d+)#/)?.[1] || "0", 10);
+    const arrDay      = parseInt(str.match(/到达》.*#\+(\d+)#/)?.[1] || "0", 10);
+
+    const depTerminal = str.match(/出发》.*@([^@]+)@/)?.[1] || "";
+    const arrTerminal = str.match(/到达》.*@([^@]+)@/)?.[1] || "";
+
+    const ecoText     = str.match(/§(.*?)§/)?.[1] || "";
+    const busText     = str.match(/θ(.*?)θ/)?.[1] || "";
+    const firstText   = str.match(/△(.*?)△/)?.[1] || ""; // ✨ 新增：头等舱
+
+    const economyNum  = parsePriceNum(ecoText);
+    const businessNum = parsePriceNum(busText);
+    const firstNum    = parsePriceNum(firstText);
+
+    // ✨ 新增：飞行时长（分钟）
+    const depAbs = depDay*24*60 + toMinutes(depTime);
+    const arrAbs = arrDay*24*60 + toMinutes(arrTime);
+    const durationMins = Math.max(0, arrAbs - depAbs); // 简化：数据保证到达不早于出发
+
+    return {
+      raw: str,
+      flightNo, weekdays, aircraft, airline,
+      depAirport, depTime, depDay, depTerminal,
+      arrAirport, arrTime, arrDay, arrTerminal,
+      ecoText, busText, firstText,
+      economyNum, businessNum, firstNum,
+      durationMins
+    };
+  });
 }
 
-/* 顶栏 */
-.topbar{
-  position: sticky; top:0; z-index: 9;
-  display:flex; align-items:center; justify-content: space-between;
-  padding: 12px 18px;
-  background: var(--primary);
-  color: #fff;
-}
-.topbar .brand{ display:flex; align-items:center; gap:10px; }
-.topbar .logo{ font-size: 18px; }
-.topbar .title{ font-weight:700; letter-spacing: .5px; }
-.topbar .today{ opacity:.85; font-size: 14px; }
+const flights = parseFlights(flightsData);
 
-/* 主布局 */
-.layout{
-  max-width: 1200px;
-  margin: 16px auto;
-  padding: 0 12px;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
+/* ========= 日期：默认今天，限制+90天 ========= */
+const today = new Date();
+const maxDate = new Date(); maxDate.setDate(today.getDate()+90);
+
+const datePicker = document.getElementById("datePicker");
+datePicker.min = today.toISOString().split("T")[0];
+datePicker.max = maxDate.toISOString().split("T")[0];
+datePicker.value = today.toISOString().split("T")[0];
+
+document.getElementById("todayText").textContent =
+  `今天：${today.getFullYear()}-${pad2(today.getMonth()+1)}-${pad2(today.getDate())}`;
+
+/* ========= 机场与航司下拉 ========= */
+function initAirportsAndAirlines(){
+  const setAirports = new Set();
+  const setAirlines = new Set();
+  flights.forEach(f=>{
+    setAirports.add(f.depAirport);
+    setAirports.add(f.arrAirport);
+    if(f.airline) setAirlines.add(f.airline);
+  });
+
+  const airportList = document.getElementById("airportList");
+  airportList.innerHTML = "";
+  [...setAirports].sort().forEach(name=>{
+    const opt = document.createElement("option");
+    opt.value = name;
+    airportList.appendChild(opt);
+  });
+
+  const airlineFilter = document.getElementById("airlineFilter");
+  airlineFilter.innerHTML = `<option value="">不限</option>`;
+  [...setAirlines].sort().forEach(name=>{
+    const opt = document.createElement("option");
+    opt.value = name; opt.textContent = name;
+    airlineFilter.appendChild(opt);
+  });
+}
+initAirportsAndAirlines();
+
+/* ========= 过滤与排序 ========= */
+function withinTimeRange(depTime, range){
+  if(!range) return true;
+  const [s,e] = range.split("-").map(Number);
+  const h = parseInt(depTime.split(":")[0], 10);
+  return (h>=s && h<e);
 }
 
-/* 大屏：左侧筛选，右侧结果 */
-@media (min-width: 992px){
-  .layout{
-    grid-template-columns: 320px 1fr;
-    align-items: start;
+// ✨ 统一“有效价格”：优先经济，其次商务，再次头等
+function effectivePriceNum(f){
+  if(!Number.isNaN(f.economyNum)) return f.economyNum;
+  if(!Number.isNaN(f.businessNum)) return f.businessNum;
+  if(!Number.isNaN(f.firstNum)) return f.firstNum;
+  return Number.POSITIVE_INFINITY;
+}
+
+function applyFilters(){
+  const from = document.getElementById("fromAirport").value.trim();
+  const to   = document.getElementById("toAirport").value.trim();
+  const timeRange = document.getElementById("timeFilter").value;
+  const airline   = document.getElementById("airlineFilter").value;
+  const sort   = document.getElementById("sortSelect").value;
+
+  const selDate = new Date(datePicker.value);
+  const weekday = weekMap[selDate.getDay()];
+
+  let list = flights.filter(f=>{
+    if(f.weekdays.length && !f.weekdays.includes(weekday)) return false;
+    if(from && !f.depAirport.includes(from)) return false;
+    if(to && !f.arrAirport.includes(to)) return false;
+    if(airline && f.airline !== airline) return false;
+    if(!withinTimeRange(f.depTime, timeRange)) return false;
+    return true;
+  });
+
+  // ✨ 排序：默认出发时间；价格升/降
+  if(sort === "priceAsc"){
+    list.sort((a,b)=> effectivePriceNum(a) - effectivePriceNum(b));
+  }else if(sort === "priceDesc"){
+    list.sort((a,b)=> effectivePriceNum(b) - effectivePriceNum(a));
+  }else{
+    list.sort((a,b)=>{
+      const ta = a.depTime.padStart(5,"0");
+      const tb = b.depTime.padStart(5,"0");
+      return ta.localeCompare(tb);
+    });
   }
+
+  renderFlights(list, selDate);
 }
 
-/* 筛选面板 */
-.filters{
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  position: sticky;
-  top: 64px;
-}
-.filters hr{
-  border: none; border-top:1px solid var(--line);
-  margin: 12px 0;
+function onlyThisAirport(){
+  const key = document.getElementById("fromAirport").value.trim();
+  if(!key){ alert("请先在“出发机场”输入一个机场名称"); return; }
+
+  const selDate = new Date(datePicker.value);
+  const weekday = weekMap[selDate.getDay()];
+  const timeRange = document.getElementById("timeFilter").value;
+  const airline   = document.getElementById("airlineFilter").value;
+
+  let list = flights.filter(f=>{
+    if(f.weekdays.length && !f.weekdays.includes(weekday)) return false;
+    if(!(f.depAirport.includes(key) || f.arrAirport.includes(key))) return false;
+    if(airline && f.airline !== airline) return false;
+    if(!withinTimeRange(f.depTime, timeRange)) return false;
+    return true;
+  });
+
+  list.sort((a,b)=>a.depTime.localeCompare(b.depTime));
+  renderFlights(list, selDate);
 }
 
-.filter-group{ margin-bottom: 12px; }
-.filter-group label{ display:block; font-weight:600; margin-bottom:6px; color: var(--primary);}
-.filter-group .hint{ color: var(--muted); }
-
-.filter-row{ display:flex; gap: 8px; align-items:center; }
-
-.filters input[type="text"],
-.filters input[type="number"],
-.filters input[type="date"],
-.filters select{
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  outline: none;
-  background: #fff;
+function resetFilters(){
+  document.getElementById("fromAirport").value = "";
+  document.getElementById("toAirport").value = "";
+  document.getElementById("timeFilter").value = "";
+  document.getElementById("airlineFilter").value = "";
+  document.getElementById("sortSelect").value = "";
+  applyFilters();
 }
 
-.price-row{ display:flex; gap:8px; }
-.price-row input{ flex:1; }
-
-/* 按钮 */
-.btn{
-  border: none; border-radius: 10px;
-  padding: 10px 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn.primary{ background: var(--accent); color:#111; }
-.btn.secondary{ background: #e9eef7; color: var(--primary); }
-.btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
-
-/* 结果摘要 */
-.summary{
-  display:flex; align-items:center; justify-content: space-between;
-  margin-bottom: 8px; padding: 8px 4px;
-  color: var(--muted);
-  font-size: 14px;
+/* ========= 卡片渲染 ========= */
+function addDays(baseDate, offset){
+  const d = new Date(baseDate);
+  d.setDate(d.getDate() + (offset||0));
+  return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
 }
 
-/* 卡片网格（自适应列数） */
-.card-grid{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-}
-@media (min-width: 640px){
-  .card-grid{ grid-template-columns: 1fr 1fr; }
-}
-@media (min-width: 1200px){
-  .card-grid{ grid-template-columns: 1fr 1fr 1fr; }
-}
+function renderFlights(list, selectedDate){
+  const container = document.getElementById("flightsContainer");
+  const summary   = document.getElementById("summaryBar");
+  container.innerHTML = "";
 
-/* 航班卡片：国际航司风格 */
-.flight-card{
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
-  transition: transform .15s ease;
-  cursor: pointer;
-}
-.flight-card:hover{ transform: translateY(-2px); }
+  const weekday = weekMap[selectedDate.getDay()];
+  summary.textContent = `共 ${list.length} 班 · 日期：${selectedDate.getFullYear()}-${pad2(selectedDate.getMonth()+1)}-${pad2(selectedDate.getDate())}（${weekday}）`;
 
-.card-head{
-  display:flex; justify-content: space-between; align-items: baseline;
-  margin-bottom: 8px;
-}
-.flight-no{
-  font-weight: 800; color: var(--primary); letter-spacing: .3px;
-}
-.airline{
-  color: var(--muted); font-weight: 600;
-}
-.badges{
-  display:flex; gap:6px; flex-wrap: wrap;
-}
-.badge{
-  border: 1px dashed var(--line);
-  border-radius: 999px; padding: 2px 8px;
-  font-size: 12px; color: var(--muted);
-}
-
-.card-body{
-  display:grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
-}
-@media (max-width: 420px){
-  .card-body{ grid-template-columns: 1fr; }
-  .arrow{ display:none; }
-}
-
-.port{
-  display:flex; flex-direction: column; gap:4px;
-}
-.city{
-  font-weight: 700; color: #111;
-}
-.time{
-  font-size: 20px; font-weight: 800; letter-spacing: .3px;
-}
-.terminal, .date, .duration{
-  font-size: 12px; color: var(--muted);
-}
-
-.arrow{
-  font-size: 18px; color: var(--primary); font-weight: 900;
-}
-
-.card-foot{
-  display:flex; align-items:center; justify-content: space-between; margin-top: 10px;
-  border-top:1px solid var(--line); padding-top: 10px;
-}
-.aircraft{ color: var(--muted); font-weight:600; }
-
-.price-group{
-  display:flex; gap: 10px; align-items:center;
-}
-.price-chip{
-  background: #fff7e0; /* 金色淡底 */
-  color:#7a5a00;
-  border: 1px solid #f2e1a6;
-  padding: 4px 8px; border-radius: 8px; font-weight: 800;
-}
-.price-chip.bus{
-  background: #ffe9e9; color:#7a0000; border-color:#ffc7c7;
-}
-.price-chip.first{
-  background: #ece9ff; color:#382f8f; border-color:#d7d2ff;
-}
-
-/* ✨ 新增：弹窗与吐司，延续你的配色体系 */
-.modal-overlay{
-  position: fixed; inset: 0; background: rgba(0,0,0,.35);
-  display: flex; align-items: center; justify-content: center;
-  padding: 16px; z-index: 99;
-}
-.modal{
-  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
-  width: 100%; max-width: 640px; padding: 16px;
-}
-.modal-head{ display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; }
-.modal-title{ font-weight: 800; color: var(--primary); }
-.modal-close{
-  border:none; background: transparent; font-size: 20px; color: var(--muted); cursor: pointer;
-}
-.modal-body{ display: grid; gap: 8px; }
-.modal-body .grid{
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-}
-.modal-body pre{
-  background: #f8fafc; border:1px dashed var(--line); padding: 8px; border-radius: 8px; overflow:auto;
-}
-.modal-foot{
-  display:flex; justify-content: flex-end; gap: 8px; margin-top: 10px;
-}
-
-.toast{
-  position: fixed; left:50%; transform: translateX(-50%);
-  bottom: 24px; background: #0ea5e9; color: #fff;
-  padding: 10px 14px; border-radius: 999px; box-shadow: var(--shadow); z-index: 100;
-}
-
-/* ✨ 移动端专属：筛选不再 sticky，避免遮挡航班 */
-@media (max-width: 991px){
-  .filters{
-    position: static; top: auto;
+  if(list.length === 0){
+    container.innerHTML = `<div class="flight-card"><div class="airline">没有符合条件的航班</div></div>`;
+    return;
   }
+
+  list.forEach((f, idx)=>{
+    const depDateStr = addDays(selectedDate, f.depDay);
+    const arrDate    = new Date(selectedDate); arrDate.setDate(arrDate.getDate()+f.arrDay);
+    const arrDateStr = `${arrDate.getFullYear()}-${pad2(arrDate.getMonth()+1)}-${pad2(arrDate.getDate())}`;
+
+    const depPlus = f.depDay>0 ? "（次日）" : "";
+    const arrPlus = f.arrDay>0 ? "（次日）" : "";
+
+    const card = document.createElement("div");
+    card.className = "flight-card";
+    card.dataset.index = idx; // 用于弹窗找到对应数据
+    card.innerHTML = `
+      <div class="card-head">
+        <div class="flight-no">${f.flightNo}</div>
+        <div class="badges">
+          <span class="badge">${f.airline}</span>
+          <span class="badge">${f.aircraft}</span>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="port">
+          <div class="city">${f.depAirport}</div>
+          <div class="time">${f.depTime}${depPlus}</div>
+          <div class="terminal">航站楼：${f.depTerminal || "-"}</div>
+          <div class="date">起飞日期：${depDateStr}</div>
+        </div>
+
+        <div class="arrow">→</div>
+
+        <div class="port">
+          <div class="city">${f.arrAirport}</div>
+          <div class="time">${f.arrTime}${arrPlus}</div>
+          <div class="terminal">航站楼：${f.arrTerminal || "-"}</div>
+          <div class="date">到达日期：${arrDateStr}</div>
+        </div>
+      </div>
+
+      <div class="card-foot">
+        <div class="aircraft">
+          机型：${f.aircraft}
+          <span class="duration"> · 飞行时长：${fmtDuration(f.durationMins)}</span>
+        </div>
+        <div class="price-group">
+          ${f.ecoText ? `<div class="price-chip">经济舱：${f.ecoText}</div>` : ""}
+          ${f.busText ? `<div class="price-chip bus">商务舱：${f.busText}</div>` : ""}
+          ${f.firstText ? `<div class="price-chip first">头等舱：${f.firstText}</div>` : ""}
+        </div>
+      </div>
+    `;
+
+    // ✨ 点击卡片 -> 弹窗
+    card.addEventListener("click", ()=>openModal(f));
+    container.appendChild(card);
+  });
 }
+
+/* ========= 弹窗逻辑 ========= */
+const overlay = document.getElementById("modalOverlay");
+const modalTitle = document.getElementById("modalTitle");
+const modalBody  = document.getElementById("modalBody");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+const copyRawBtn = document.getElementById("copyRawBtn");
+const buyBtn     = document.getElementById("buyBtn");
+const toast      = document.getElementById("toast");
+
+let currentFlight = null;
+
+function openModal(f){
+  currentFlight = f;
+  modalTitle.textContent = `${f.flightNo} · ${f.airline}`;
+
+  const weekdays = (f.weekdays||[]).join(" / ") || "未标注";
+  const priceLines = [
+    f.ecoText   ? `经济舱：${f.ecoText}`   : null,
+    f.busText   ? `商务舱：${f.busText}`   : null,
+    f.firstText ? `头等舱：${f.firstText}` : null
+  ].filter(Boolean).join("  |  ");
+
+  modalBody.innerHTML = `
+    <div class="grid">
+      <div>
+        <div><strong>出发</strong>：${f.depAirport}（${f.depTerminal || "-"}）</div>
+        <div><strong>时间</strong>：${f.depTime}  ${f.depDay>0?"（次日）":""}</div>
+      </div>
+      <div>
+        <div><strong>到达</strong>：${f.arrAirport}（${f.arrTerminal || "-"}）</div>
+        <div><strong>时间</strong>：${f.arrTime}  ${f.arrDay>0?"（次日）":""}</div>
+      </div>
+    </div>
+    <div><strong>机型</strong>：${f.aircraft}</div>
+    <div><strong>运行日</strong>：${weekdays}</div>
+    <div><strong>飞行时长</strong>：${fmtDuration(f.durationMins)}</div>
+    <div><strong>票价</strong>：${priceLines || "—"}</div>
+    <div>
+      <strong>该航班源数据</strong>：
+      <pre>${f.raw}</pre>
+    </div>
+  `;
+
+  overlay.hidden = false;
+}
+
+function closeModal(){
+  overlay.hidden = true;
+  currentFlight = null;
+}
+
+modalCloseBtn.addEventListener("click", closeModal);
+overlay.addEventListener("click", (e)=>{
+  if(e.target === overlay) closeModal();
+});
+document.addEventListener("keydown", (e)=>{
+  if(e.key === "Escape" && !overlay.hidden) closeModal();
+});
+
+// 复制原始数据
+copyRawBtn.addEventListener("click", async ()=>{
+  if(!currentFlight) return;
+  try{
+    await navigator.clipboard.writeText(currentFlight.raw);
+    showToast("源数据已复制");
+  }catch(e){
+    showToast("复制失败，请手动选择复制");
+  }
+});
+
+// 购买按钮 -> 成功提示
+buyBtn.addEventListener("click", ()=>{
+  showToast("购买成功 ✔");
+});
+
+let toastTimer = null;
+function showToast(text){
+  toast.textContent = text;
+  toast.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ toast.hidden = true; }, 1600);
+}
+
+/* ========= 事件绑定 ========= */
+document.getElementById("searchBtn").addEventListener("click", applyFilters);
+document.getElementById("onlyThisAirportBtn").addEventListener("click", onlyThisAirport);
+document.getElementById("resetBtn").addEventListener("click", resetFilters);
+document.getElementById("datePicker").addEventListener("change", applyFilters);
+
+// 首次渲染
+applyFilters();
