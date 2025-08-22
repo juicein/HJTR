@@ -13,7 +13,7 @@ function toMinutes(t){ // "HH:MM" -> minutes
 function fmtDuration(mins){
   const safe = Math.max(0, mins|0);
   const h = Math.floor(safe/60), m = safe%60;
-  return `${h}小时${m}分`;
+  return `${h}时${m}分`;
 }
 
 /* ========= 把原始字符串解析为对象 ========= */
@@ -27,7 +27,7 @@ function parseFlights(raw){
     const airline     = str.match(/『(.*?)』/)?.[1] || "";
 
     const depAirport  = str.match(/《(.*?)出发》/)?.[1] || "";
-    const arrAirport  = str.match(/《(.*?)到达》/)?.[1] || "";
+    const arrAirport  = str.match(/@《(.*?)到达》/)?.[1] || "";
 
     const depTime     = str.match(/出发》{(.*?)}/)?.[1] || "";
     const arrTime     = str.match(/到达》{(.*?)}/)?.[1] || "";
