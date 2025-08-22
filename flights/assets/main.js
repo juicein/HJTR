@@ -16,7 +16,7 @@ function fmtDuration(mins){
   return `${h}时${m}分`;
 }
 
-/* ========= 把原始字符串解析为对象 ========= */
+/* ========= 把原始字符串解析为对象（有bug存疑========= */
 function parseFlights(raw){
   const entries = raw.split("《航班结束》").map(s=>s.trim()).filter(Boolean);
   return entries.map(str=>{
