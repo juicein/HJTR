@@ -15,7 +15,7 @@ function parseFlights(raw){
       aircraft: str.match(/〔(.*?)〕/)?.[1] || "",
       airline: str.match(/『(.*?)』/)?.[1] || "",
       depAirport: str.match(/《(.*?)出发》/)?.[1] || "",
-      arrAirport: str.match(/《(.*?)到达》/)?.[1] || "",
+      arrAirport: str.match(/@《(.*?)到达》/)?.[1] || "",
       depTime: str.match(/出发》{(.*?)}/)?.[1] || "",
       arrTime: str.match(/到达》{(.*?)}/)?.[1] || "",
       depDay: parseInt(str.match(/出发》.*#\+(\d+)#/)?.[1] || "0",10),
