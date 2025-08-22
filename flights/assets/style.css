@@ -1,105 +1,173 @@
-:root{
-  --primary: #002663;
-  --accent:  #d4af37;
-  --ink:     #1a1f36;
-  --muted:   #6b7280;
-  --bg:      #f5f6f8;
-  --card:    #ffffff;
-  --line:    #e5e7eb;
-
-  --radius: 12px;
-  --shadow: 0 6px 18px rgba(0,0,0,0.08);
+body {
+  margin: 0;
+  font-family: "微软雅黑", sans-serif;
+  background: #f6f8fb;
+  color: #333;
 }
 
-body{
-  margin:0; padding:0;
-  font-family: "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-}
-
-/* 顶栏 */
-.topbar{
-  background: var(--primary);
+.topbar {
+  background: #003d7c;
   color: #fff;
-  padding: 12px 18px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.topbar .title{ font-weight:700; }
-
-/* 布局 */
-.layout{
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  max-width: 1200px;
-  margin: 16px auto;
-  padding: 0 12px;
-}
-@media (min-width: 992px){
-  .layout{ grid-template-columns: 320px 1fr; }
+  padding: 15px 20px;
+  font-size: 20px;
 }
 
-/* 筛选 */
-.filters{
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
+.main-layout {
+  display: flex;
+  flex-wrap: wrap;
 }
-.filter-group{ margin-bottom: 12px; }
-.filter-group label{ font-weight:600; font-size:14px; margin-bottom:4px; display:block; color:var(--primary); }
-.filter-row{ display:flex; gap:8px; }
 
-.filters input, .filters select{
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
+/* 筛选区 */
+.sidebar {
+  flex: 1 1 250px;
+  max-width: 280px;
+  padding: 15px;
+}
+
+.filter-card {
+  background: #fff;
   border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* 小屏筛选优化 */
-@media (max-width: 768px){
-  .filters{ position: static; }
-  .filter-group{ display:flex; align-items:center; gap:8px; }
-  .filter-group label{ flex:0 0 70px; margin-bottom:0; font-size:13px; }
-  .filters input, .filters select{ flex:1; }
+.filter-card label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+  font-size: 14px;
 }
 
-/* 卡片区 */
-.card-grid{
+.filter-card input,
+.filter-card select {
+  width: 100%;
+  padding: 6px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.filter-card button {
+  margin-top: 12px;
+  width: 100%;
+  padding: 8px;
+  background: #003d7c;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.filter-card button:hover {
+  background: #0050a0;
+}
+
+/* 航班卡片 */
+.content {
+  flex: 3 1 600px;
+  padding: 15px;
+}
+
+#summaryBar {
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+#flightsContainer {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill,minmax(280px,1fr));
+  gap: 15px;
 }
-@media (min-width: 640px){ .card-grid{ grid-template-columns: 1fr 1fr; } }
-@media (min-width: 1200px){ .card-grid{ grid-template-columns: 1fr 1fr 1fr; } }
 
-.flight-card{
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 14px;
+.flight-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
-.card-head{ display:flex; justify-content:space-between; margin-bottom:8px; }
-.flight-no{ font-weight:800; color:var(--primary); }
-.badges{ display:flex; gap:6px; flex-wrap:wrap; }
-.badge{ font-size:12px; color:var(--muted); }
 
-.card-body{
-  display:grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 8px; align-items:center;
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
-@media (max-width:420px){ .card-body{ grid-template-columns:1fr; } .arrow{display:none;} }
 
-.port .city{ font-weight:700; }
-.port .time{ font-size:18px; font-weight:700; }
-.port .terminal,.port .date{ font-size:12px; color:var(--muted); }
+.flight-no {
+  font-size: 18px;
+  font-weight: bold;
+  color: #003d7c;
+}
 
-.card-foot{ display:flex; justify-content:space-between; margin-top:10px; border-top:1px solid var(--line); padding-top:8px; }
-.price-group{ display:flex; gap:8px; flex-wrap:wrap; }
-.price-chip{ padding:4px 8px; border-radius:8px; font-size:13px; font-weight:700; }
-.price-chip.econ{ background:#e8f0ff; color:#002663; }
-.price-chip.biz{ background:#fff0e6; color:#a84300; }
-.price-chip.first{ background:#f9e6ff; color:#6a1b9a; }
+.badges {
+  display: flex;
+  gap: 6px;
+}
+.badge {
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid #003d7c;
+  border-radius: 4px;
+  color: #003d7c;
+}
+
+.card-body {
+  display: flex;
+  justify-content: space-between;
+  margin: 10px 0;
+}
+.port {
+  flex: 1;
+}
+.city {
+  font-size: 16px;
+  font-weight: bold;
+}
+.time {
+  font-size: 18px;
+  color: #003d7c;
+}
+.arrow {
+  margin: 0 10px;
+  font-size: 20px;
+  color: #888;
+}
+
+.card-foot {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+}
+.price-group {
+  margin-top: 6px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.price-chip {
+  background: #f0f4fa;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 13px;
+}
+.price-chip.bus {
+  background: #e0f2ff;
+}
+.price-chip.first {
+  background: #fff0e0;
+}
+
+/* 手机优化 */
+@media(max-width:768px){
+  .main-layout {
+    flex-direction: column;
+  }
+  .sidebar {
+    max-width: 100%;
+  }
+  #flightsContainer {
+    grid-template-columns: 1fr;
+  }
+}
