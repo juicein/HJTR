@@ -5,8 +5,6 @@
   <title>航班查询系统</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="assets/style.css">
-  <script src="assets/data.js"></script>
-  <script src="assets/main.js" defer></script>
 </head>
 <body>
   <!-- 顶部栏 -->
@@ -14,51 +12,60 @@
     <h1>航班查询</h1>
   </header>
 
-  <!-- 页面布局 -->
   <div class="main-layout">
-    <!-- 左侧筛选区（小屏时在上方） -->
-    <aside class="sidebar">
-      <div class="filter-card">
+    <!-- 筛选区 -->
+    <aside class="filters">
+      <div class="filter-group">
         <label>出发机场</label>
-        <input type="text" id="depInput" placeholder="输入出发机场...">
-
+        <input type="text" id="fromAirport" placeholder="输入出发地">
+      </div>
+      <div class="filter-group">
         <label>到达机场</label>
-        <input type="text" id="arrInput" placeholder="输入到达机场...">
-
-        <button id="onlyDepBtn">只看出发地航班</button>
-
-        <label>出发日期</label>
-        <input type="date" id="dateInput">
-
+        <input type="text" id="toAirport" placeholder="输入到达地">
+      </div>
+      <div class="filter-group">
+        <button id="departOnlyBtn">只看出发机场航班</button>
+      </div>
+      <div class="filter-group">
+        <label>日期</label>
+        <input type="date" id="datePicker">
+      </div>
+      <div class="filter-group">
         <label>时间段</label>
-        <select id="timeRange">
+        <select id="timeFilter">
           <option value="">全部</option>
-          <option value="0-6">凌晨 (0-6)</option>
-          <option value="6-12">上午 (6-12)</option>
-          <option value="12-14">中午 (12-14)</option>
-          <option value="14-18">下午 (14-18)</option>
-          <option value="18-24">晚上 (18-24)</option>
+          <option value="night">凌晨(0-6)</option>
+          <option value="morning">上午(6-12)</option>
+          <option value="noon">中午(12-14)</option>
+          <option value="afternoon">下午(14-18)</option>
+          <option value="evening">晚上(18-24)</option>
         </select>
-
-        <label>航空公司</label>
-        <input type="text" id="airlineInput" placeholder="输入航空公司...">
-
+      </div>
+      <div class="filter-group">
+        <label>舱位</label>
+        <select id="classFilter">
+          <option value="">全部</option>
+          <option value="eco">经济舱</option>
+          <option value="bus">商务舱</option>
+          <option value="first">头等舱</option>
+        </select>
+      </div>
+      <div class="filter-group">
         <label>价格排序</label>
         <select id="priceSort">
           <option value="">默认</option>
           <option value="asc">价格升序</option>
           <option value="desc">价格降序</option>
         </select>
-
-        <button id="resetBtn">重置筛选</button>
       </div>
+      <button id="searchBtn">筛选</button>
     </aside>
 
-    <!-- 右侧航班展示区 -->
-    <main class="content">
-      <div id="summaryBar"></div>
-      <div id="flightsContainer"></div>
-    </main>
+    <!-- 航班卡片区 -->
+    <main class="results" id="results"></main>
   </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/main.js"></script>
 </body>
 </html>
