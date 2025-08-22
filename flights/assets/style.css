@@ -1,138 +1,236 @@
-body {
-  margin: 0;
-  font-family: "微软雅黑", sans-serif;
-  background: #f5f7fa;
-  color: #333;
+/* ===== 新航风格配色 ===== */
+:root{
+  --primary: #002663;   /* 深蓝 */
+  --accent:  #d4af37;   /* 金色 */
+  --ink:     #1a1f36;   /* 文字主色 */
+  --muted:   #6b7280;   /* 次要文字 */
+  --bg:      #f5f6f8;   /* 背景灰 */
+  --card:    #ffffff;
+  --line:    #e5e7eb;
+
+  --radius: 12px;
+  --shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+*{ box-sizing: border-box; }
+
+html,body{
+  margin:0; padding:0;
+  font-family: "Segoe UI", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
 }
 
 /* 顶栏 */
-.topbar {
-  background: #003d7c; /* 新航深蓝 */
+.topbar{
+  position: sticky; top:0; z-index: 9;
+  display:flex; align-items:center; justify-content: space-between;
+  padding: 12px 18px;
+  background: var(--primary);
   color: #fff;
-  padding: 15px;
-  text-align: center;
 }
+.topbar .brand{ display:flex; align-items:center; gap:10px; }
+.topbar .logo{ font-size: 18px; }
+.topbar .title{ font-weight:700; letter-spacing: .5px; }
+.topbar .today{ opacity:.85; font-size: 14px; }
 
 /* 主布局 */
-.main-layout {
-  display: flex;
-  flex-direction: column;
-}
-
-.filters {
-  background: #fff;
-  padding: 15px;
-  border-bottom: 1px solid #ddd;
-}
-
-.filter-group {
-  margin-bottom: 10px;
-  display: flex;
-  flex-direction: column;
-}
-
-.filter-group label {
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-
-.filter-group input,
-.filter-group select,
-.filter-group button {
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-}
-
-button {
-  background: #003d7c;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-button:hover {
-  background: #002a57;
-}
-
-/* 卡片区 */
-.results {
-  padding: 15px;
+.layout{
+  max-width: 1200px;
+  margin: 16px auto;
+  padding: 0 12px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 15px;
+  gap: 16px;
 }
 
-.card {
+/* 大屏：左侧筛选，右侧结果 */
+@media (min-width: 992px){
+  .layout{
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+/* 筛选面板 */
+.filters{
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  position: sticky;
+  top: 64px;
+}
+.filters hr{
+  border: none; border-top:1px solid var(--line);
+  margin: 12px 0;
+}
+
+.filter-group{ margin-bottom: 12px; }
+.filter-group label{ display:block; font-weight:600; margin-bottom:6px; color: var(--primary);}
+.filter-group .hint{ color: var(--muted); }
+
+.filter-row{ display:flex; gap: 8px; align-items:center; }
+
+.filters input[type="text"],
+.filters input[type="number"],
+.filters input[type="date"],
+.filters select{
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: none;
   background: #fff;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
 
-.card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
+.price-row{ display:flex; gap:8px; }
+.price-row input{ flex:1; }
 
-.card-body {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 8px;
+/* 按钮 */
+.btn{
+  border: none; border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
+.btn.primary{ background: var(--accent); color:#111; }
+.btn.secondary{ background: #e9eef7; color: var(--primary); }
+.btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
 
-.airport {
-  flex: 1;
-  text-align: center;
-}
-
-.airport h3 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.time {
+/* 结果摘要 */
+.summary{
+  display:flex; align-items:center; justify-content: space-between;
+  margin-bottom: 8px; padding: 8px 4px;
+  color: var(--muted);
   font-size: 14px;
-  color: #666;
 }
 
-.card-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
+/* 卡片网格（自适应列数） */
+.card-grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 640px){
+  .card-grid{ grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 1200px){
+  .card-grid{ grid-template-columns: 1fr 1fr 1fr; }
 }
 
-.price-group {
-  display: flex;
-  gap: 8px;
+/* 航班卡片：国际航司风格 */
+.flight-card{
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  transition: transform .15s ease;
+  cursor: pointer;
+}
+.flight-card:hover{ transform: translateY(-2px); }
+
+.card-head{
+  display:flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 8px;
+}
+.flight-no{
+  font-weight: 800; color: var(--primary); letter-spacing: .3px;
+}
+.airline{
+  color: var(--muted); font-weight: 600;
+}
+.badges{
+  display:flex; gap:6px; flex-wrap: wrap;
+}
+.badge{
+  border: 1px dashed var(--line);
+  border-radius: 999px; padding: 2px 8px;
+  font-size: 12px; color: var(--muted);
 }
 
-.price-chip {
-  padding: 4px 8px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: bold;
+.card-body{
+  display:grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+}
+@media (max-width: 420px){
+  .card-body{ grid-template-columns: 1fr; }
+  .arrow{ display:none; }
 }
 
-.price-chip { background: #f0f0f0; }
-.price-chip.bus { background: #c17c00; color: #fff; }
-.price-chip.first { background: #5e2b97; color: #fff; }
+.port{
+  display:flex; flex-direction: column; gap:4px;
+}
+.city{
+  font-weight: 700; color: #111;
+}
+.time{
+  font-size: 20px; font-weight: 800; letter-spacing: .3px;
+}
+.terminal, .date, .duration{
+  font-size: 12px; color: var(--muted);
+}
 
-/* 大屏布局 */
-@media(min-width: 900px) {
-  .main-layout {
-    flex-direction: row;
-  }
-  .filters {
-    width: 250px;
-    border-right: 1px solid #ddd;
-    border-bottom: none;
-  }
-  .results {
-    flex: 1;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+.arrow{
+  font-size: 18px; color: var(--primary); font-weight: 900;
+}
+
+.card-foot{
+  display:flex; align-items:center; justify-content: space-between; margin-top: 10px;
+  border-top:1px solid var(--line); padding-top: 10px;
+}
+.aircraft{ color: var(--muted); font-weight:600; }
+
+.price-group{
+  display:flex; gap: 10px; align-items:center;
+}
+.price-chip{
+  background: #fff7e0; /* 金色淡底 */
+  color:#7a5a00;
+  border: 1px solid #f2e1a6;
+  padding: 4px 8px; border-radius: 8px; font-weight: 800;
+}
+.price-chip.bus{
+  background: #ffe9e9; color:#7a0000; border-color:#ffc7c7;
+}
+.price-chip.first{
+  background: #ece9ff; color:#382f8f; border-color:#d7d2ff;
+}
+
+/* ✨ 新增：弹窗与吐司，延续你的配色体系 */
+.modal-overlay{
+  position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px; z-index: 99;
+}
+.modal{
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  width: 100%; max-width: 640px; padding: 16px;
+}
+.modal-head{ display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; }
+.modal-title{ font-weight: 800; color: var(--primary); }
+.modal-close{
+  border:none; background: transparent; font-size: 20px; color: var(--muted); cursor: pointer;
+}
+.modal-body{ display: grid; gap: 8px; }
+.modal-body .grid{
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+}
+.modal-body pre{
+  background: #f8fafc; border:1px dashed var(--line); padding: 8px; border-radius: 8px; overflow:auto;
+}
+.modal-foot{
+  display:flex; justify-content: flex-end; gap: 8px; margin-top: 10px;
+}
+
+.toast{
+  position: fixed; left:50%; transform: translateX(-50%);
+  bottom: 24px; background: #0ea5e9; color: #fff;
+  padding: 10px 14px; border-radius: 999px; box-shadow: var(--shadow); z-index: 100;
+}
+
+/* ✨ 移动端专属：筛选不再 sticky，避免遮挡航班 */
+@media (max-width: 991px){
+  .filters{
+    position: static; top: auto;
   }
 }
