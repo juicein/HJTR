@@ -11,7 +11,7 @@
   <!-- 顶栏 -->
   <header class="topbar">
     <div class="brand">
-      <span class="logo">✈</span>
+      <span class="logo"></span>   <!--图标预留位置-->
       <span class="title">航班时刻表</span>
     </div>
     <div class="today" id="todayText"></div>
@@ -22,12 +22,12 @@
     <!-- 筛选面板 -->
     <aside class="filters" id="filterPanel">
       <div class="filter-group">
-        <label>出发机场</label>
+        <label>出发</label>
         <input type="text" id="fromAirport" placeholder="如：拜科努尔 / 星羽天琴" list="airportList">
       </div>
 
       <div class="filter-group">
-        <label>到达机场</label>
+        <label>到达</label>
         <input type="text" id="toAirport" placeholder="如：临东金桦 / 万方沂川" list="airportList">
       </div>
 
@@ -41,9 +41,9 @@
       <hr>
 
       <div class="filter-group">
-        <label>日期（今天起90天内）</label>
+        <label>日期</label>
         <input type="date" id="datePicker">
-        <small class="hint">用于模拟→转换为星期几，与航班运行日匹配</small>
+<!--        <small class="hint">用于模拟→转换为星期几，与航班运行日匹配</small>   -->
       </div>
 
       <div class="filter-group">
@@ -69,7 +69,7 @@
       <div class="filter-group">
         <label>价格排序</label>
         <select id="sortSelect">
-          <option value="">默认（按出发时间）</option>
+          <option value="">默认</option>
           <option value="priceAsc">价格↑（优先经济）</option>
           <option value="priceDesc">价格↓（优先经济）</option>
         </select>
