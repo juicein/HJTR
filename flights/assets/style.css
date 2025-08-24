@@ -94,7 +94,7 @@ html,body{
   font-weight: 600;
   cursor: pointer;
 }
-.btn.primary{ background: var(--primary); color:#ffffff; }
+.btn.primary{ background: var(--primary); color:var(--card); }
 .btn.secondary{ background: #e9eef7; color: var(--primary); }
 .btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
 
