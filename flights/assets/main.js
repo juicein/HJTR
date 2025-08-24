@@ -262,7 +262,7 @@ function renderFlights(list, selectedDate){
       </div>
 
       <div class="card-foot">
-         <div class="aircraft">
+         
          
           <span class="duration"> 飞行时长：${fmtDuration(f.durationMins)}</span>
         </div>
@@ -274,7 +274,7 @@ function renderFlights(list, selectedDate){
       </div>
     `;
 
-    // 点击卡片 -> 弹窗<!-- 机型：${f.aircraft｝-
+    // 点击卡片 -> 弹窗<!-- <div class="aircraft"> 机型：${f.aircraft｝-
     card.addEventListener("click", ()=>openModal(f));
     container.appendChild(card);
   });
