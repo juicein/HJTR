@@ -263,7 +263,7 @@ function renderFlights(list, selectedDate){
 
       <div class="card-foot">
          <div class="aircraft">
-         // 机型：${f.aircraft｝
+         <!-- 机型：${f.aircraft｝-->
           <span class="duration"> 飞行时长：${fmtDuration(f.durationMins)}</span>
         </div>
         <div class="price-group">
