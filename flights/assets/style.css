@@ -106,7 +106,7 @@ html,body{
   font-size: 14px;
 }
 
-/* 卡片网格（自适应列数） */
+/* 卡片网格自适应排列 */
 .card-grid{
   display: grid;
   grid-template-columns: 1fr;
@@ -119,7 +119,7 @@ html,body{
   .card-grid{ grid-template-columns: 1fr 1fr 1fr; }
 }
 
-/* 航班卡片：国际航司风格 */
+/* 航班卡片haojin风格 */
 .flight-card{
   background: var(--card);
   border-radius: var(--radius);
