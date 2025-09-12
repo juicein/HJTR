@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>音游 Demo - 选曲</title>
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="song-card">
+    <img src="assets/images/cover.jpg" alt="封面">
+    <h2>Sunrise Dream</h2>
+    <p>一首轻快的电子曲。</p>
+    <button onclick="startGame('charts/song_easy.json','assets/audio/song.mp3')">开始游戏</button>
+  </div>
+
+  <script>
+    function startGame(chart, audio) {
+      localStorage.setItem("chartFile", chart);
+      localStorage.setItem("audioFile", audio);
+      location.href = "play.html";
+    }
+  </script>
+</body>
+</html>
