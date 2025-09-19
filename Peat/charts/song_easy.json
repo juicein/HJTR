@@ -1,6 +1,0 @@
-[
-  {"time": 1.0, "type": "tap", "lane": 1},
-  {"time": 2.0, "type": "tap", "lane": 2},
-  {"time": 3.0, "type": "tap", "lane": 3},
-  {"time": 4.0, "type": "tap", "lane": 4}
-]
