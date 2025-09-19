@@ -1,0 +1,60 @@
+#background {
+  position: fixed;
+  top:0; left:0;
+  width:100%; height:100%;
+  background: black center/cover no-repeat;
+  z-index:-2;
+}
+
+#character {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 80%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom;
+  z-index: -1;
+}
+
+#dialog-box {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  background: rgba(0,0,0,0.6);
+  padding: 20px;
+  font-size: 1.2em;
+}
+
+#name-box {
+  font-weight: bold;
+  color: cyan;
+  margin-bottom: 10px;
+}
+
+#text-box {
+  color: white;
+}
+
+#ui-buttons {
+  position: absolute;
+  bottom: 10px;
+  right: 20px;
+}
+
+#ui-buttons button {
+  margin-left: 10px;
+  padding: 10px 20px;
+  border:none;
+  border-radius: 10px;
+  background: linear-gradient(45deg, magenta, cyan);
+  color:white;
+  font-size:1em;
+  cursor:pointer;
+  transition:0.3s;
+}
+#ui-buttons button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px magenta;
+}
