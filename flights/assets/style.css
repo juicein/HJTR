@@ -1,4 +1,31 @@
-/* ===== 新航风格配色 ===== */
+/* ========== 顶栏（新加坡航空风格参考） ========== */
+.site-header {
+  background-color: #002147;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 5%;
+  flex-wrap: wrap;
+}
+.logo img {
+  height: 40px;
+}
+.nav-links a {
+  color: white;
+  margin: 0 12px;
+  font-size: 0.95rem;
+}
+.nav-links a:hover {
+  border-bottom: 2px solid #ffcc00;
+  padding-bottom: 2px;
+}
+
+
+
+
+
+/* ===== 风格配色 ===== */
 :root{
   --primary: #002663;   /* 深蓝 */
   --accent:  #d4af37;   /* 金色 */
