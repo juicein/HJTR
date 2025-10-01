@@ -1,3 +1,15 @@
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei", sans-serif;
+  background-color: #f8f9fa;
+  color: #333;
+}
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+
 /* ========== 顶栏（新加坡航空风格参考） ========== */
 .site-header {
   background-color: #002147;
