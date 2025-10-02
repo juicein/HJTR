@@ -2,17 +2,16 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
+  <link rel="stylesheet" href="../assets/style.css" />
   <title>加载中...</title>
 
-  <!-- 默认 OG 标签 -->
+  <!-- 默认 OG 标签（JS 加载后会替换） -->
   <meta property="og:title" content="加载中..." />
   <meta property="og:description" content="正在加载新闻..." />
   <meta property="og:image" content="" />
   <meta property="og:type" content="article" />
   <meta property="og:url" content="" />
 
-  <!-- 样式 -->
-  <link rel="stylesheet" href="../assets/style.css" />
   <style>
     body {
       max-width: 900px;
@@ -34,11 +33,6 @@
       color: #666;
       margin-bottom: 10px;
     }
-    .view-count {
-      color: #999;
-      font-size: 0.9em;
-      margin-bottom: 20px;
-    }
     .news-image {
       max-width: 100%;
       height: auto;
@@ -50,92 +44,28 @@
       white-space: pre-wrap;
       line-height: 1.6;
       font-size: 1.1em;
+      margin-bottom: 20px;
     }
-    /* 分享按钮样式 */
-    .share-container {
-      margin-top: 40px;
-      border-top: 1px solid #eee;
-      padding-top: 15px;
-    }
-    .share-title {
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    .share-buttons a {
-      display: inline-block;
-      margin-right: 10px;
-      text-decoration: none;
-      color: #fff;
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.9em;
-    }
-    .share-weibo { background: #E6162D; }
-    .share-twitter { background: #1DA1F2; }
-    .share-facebook { background: #4267B2; }
-    .share-qq { background: #12B7F5; }
-    .share-wechat { background: #1AAD19; }
-
-    /* 微信弹窗 */
-    #wechat-popup {
-      display:none;
-      position:fixed;
-      top:0; left:0; width:100%; height:100%;
-      background:rgba(0,0,0,0.6);
-      justify-content:center;
-      align-items:center;
-      z-index: 9999;
-    }
-    #wechat-popup .popup-content {
-      background:#fff;
-      padding:20px;
-      border-radius:8px;
-      text-align:center;
-    }
-    #wechat-popup button {
-      margin-top:10px;
-      padding:6px 12px;
-      background:#666;
-      color:#fff;
-      border:none;
-      border-radius:4px;
-      cursor:pointer;
+    .page-counter {
+      font-size: 14px;
+      color: #666;
+      margin: 15px 0;
     }
   </style>
-
-  <!-- 引入二维码库 -->
-  <script src="https://cdn.jsdelivr.net/npm/qrious/dist/qrious.min.js"></script>
 </head>
 <body>
   <a href="../index.html" class="back-link">← 返回新闻列表</a>
 
   <h1 id="title" class="news-title">加载中...</h1>
   <div id="meta" class="news-meta"></div>
-  <div id="views" class="view-count"></div> <!-- 浏览量显示 -->
+
+  <!-- 阅读量显示 -->
+  <div class="page-counter">
+    📖 本文阅读量：<span id="busuanzi_value_page_pv">0</span> 次
+  </div>
+
   <img id="image" class="news-image" src="" alt="" style="display:none" />
   <div id="content" class="news-content"></div>
-
-  <!-- 分享区 -->
-  <div class="share-container">
-    <div class="share-title">📢 分享到：</div>
-    <div class="share-buttons">
-      <a id="share-weibo" class="share-weibo" target="_blank">微博</a>
-      <a id="share-twitter" class="share-twitter" target="_blank">Twitter</a>
-      <a id="share-facebook" class="share-facebook" target="_blank">Facebook</a>
-      <a id="share-qq" class="share-qq" target="_blank">QQ</a>
-      <a id="share-wechat" class="share-wechat">微信</a>
-    </div>
-  </div>
-
-  <!-- 微信二维码弹窗 -->
-  <div id="wechat-popup">
-    <div class="popup-content">
-      <p style="margin-bottom:10px; font-weight:bold;">📱 扫码分享到微信</p>
-      <canvas id="wechat-qrcode"></canvas>
-      <br />
-      <button onclick="document.getElementById('wechat-popup').style.display='none'">关闭</button>
-    </div>
-  </div>
 
   <script>
     function getQueryId() {
@@ -160,7 +90,7 @@
           // 设置页面标题
           document.title = item.title;
 
-          // 设置 OG 标签
+          // 设置 OG 标签（用于 QQ/微信抓取）
           document.querySelector('meta[property="og:title"]').setAttribute('content', item.title);
           document.querySelector('meta[property="og:description"]').setAttribute('content', item.content.substring(0, 80) + "...");
           if (item.image && item.image.trim() !== '') {
@@ -190,46 +120,14 @@
           }
 
           document.getElementById('content').textContent = item.content;
-
-          /* 📊 浏览量统计（LocalStorage 实现） */
-          let viewsKey = "views_" + newsId;
-          let count = localStorage.getItem(viewsKey) || 0;
-          count++;
-          localStorage.setItem(viewsKey, count);
-          document.getElementById('views').textContent = `👁️ 浏览量：${count}`;
-
-          /* 🔗 设置分享链接 */
-          const url = encodeURIComponent(window.location.href);
-          const text = encodeURIComponent(item.title);
-
-          document.getElementById("share-weibo").href =
-            `https://service.weibo.com/share/share.php?title=${text}&url=${url}`;
-          document.getElementById("share-twitter").href =
-            `https://twitter.com/intent/tweet?text=${text}&url=${url}`;
-          document.getElementById("share-facebook").href =
-            `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-          document.getElementById("share-qq").href =
-            `https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${text}&desc=${text}&pics=${encodeURIComponent(item.image || '')}`;
-
-          /* 微信分享（二维码弹窗） */
-          document.getElementById("share-wechat").addEventListener("click", function() {
-            const popup = document.getElementById("wechat-popup");
-            popup.style.display = "flex";
-
-            // 生成二维码
-            const canvas = document.getElementById("wechat-qrcode");
-            canvas.innerHTML = ""; // 清空
-            new QRious({
-              element: canvas,
-              value: window.location.href,
-              size: 200
-            });
-          });
         })
         .catch(() => {
           document.getElementById('title').textContent = '加载失败，请稍后重试';
         });
     }
   </script>
+
+  <!-- Busuanzi 统计脚本 -->
+  <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 </body>
 </html>
