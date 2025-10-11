@@ -787,8 +787,10 @@ function findOptimalPath(start, end, optimizeFor = 'time', excludeAirport = fals
         const stationData = stationsData[stationName];
         return stationData ? stationData.fareZone : null;
     }));
-    let baseFare = 2;
-    let additionalFare = fareZones.size > 1 ? fareZones.size - 2 : 0;
+    let baseFare = 10;
+    //let additionalFare = fareZones.size > 1 ? fareZones.size - 2 : 0;
+    // 额外分区费用（核心修改：跨越>1个区域时固定加10元，否则加0）
+      let additionalFare = fareZones.size > 1 ? 3 : 0;
     let airportFare = usesAirportLine ? 15 : 0;
     let totalFare = baseFare + additionalFare + airportFare;
 
