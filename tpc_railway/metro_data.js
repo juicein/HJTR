@@ -1,4 +1,4 @@
-const metro_name = "地铁";
+const metro_name = "高速道路";
 const metro_name_en = "Lindong Metro";
 
 const metro_logo = "https://wiki.shangxiaoguan.top/images/1/10/%E4%B8%B4%E4%B8%9C%E5%9C%B0%E9%93%81%E6%A0%87%E8%AF%86%E5%89%AA%E6%8E%89%E7%A9%BA%E7%99%BD.png";
