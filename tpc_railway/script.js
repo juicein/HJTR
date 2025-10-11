@@ -967,12 +967,12 @@ function displayRoute(routeInfo) {
 
     // 显示票价和行程信息
     const fareZoneSummary = document.getElementById('fare-zone-summary');
-    let fareText = `<p class="clickable-info" onclick="showFareDetail(${routeInfo.fare.base}, ${routeInfo.fare.additional}, ${routeInfo.fare.airport}, ${routeInfo.fare.total})">票价：${routeInfo.fare.total}元</p>`;
+    let fareText = `<p class="clickable-info" onclick="showFareDetail(${routeInfo.fare.base}, ${routeInfo.fare.additional}, ${routeInfo.fare.airport}, ${routeInfo.fare.total})">价格：${routeInfo.fare.total}元</p>`;
     
     fareZoneSummary.innerHTML = `
         ${fareText}
         <p class="clickable-info" onclick="showTimeDetail(${Math.ceil(actualRunningTime)}, ${totalWaitingTime})">总用时：${Math.ceil(actualRunningTime + totalWaitingTime)}分钟</p>
-        <p>换乘次数：${totalTransfers}次</p>
+        <p>转向次数：${totalTransfers}次</p>
     `;
 
     // 添加鼠标样式
@@ -987,7 +987,7 @@ function displaySegments(segments) {
     
     segments.forEach((segment, index) => {
         const startItem = document.createElement('p');
-        startItem.textContent = `${segment.startStation}站${index === 0 ? ' 出发' : ' 换乘'}`;
+        startItem.textContent = `${segment.startStation}站${index === 0 ? ' 出发' : ' 换'}`;
         startItem.style.fontWeight = index === 0 ? 'bold' : 'normal';
         startItem.className = index === 0 ? 'start' : 'transfer';
         lineSummary.appendChild(startItem);
@@ -1022,7 +1022,7 @@ function displaySegments(segments) {
         const isDownbound = startIndex < endIndex;
         const directionStation = isDownbound ? line.stations[line.stations.length - 1].name : line.stations[0].name;
         
-        lineItem.textContent = `${segment.line} ${directionStation}方向\n  乘坐${segment.stations}站 (${Math.ceil(segment.time)}分钟)`;
+        lineItem.textContent = `${segment.line} ${directionStation}方向\n  开行${segment.stations}出口 (${Math.ceil(segment.time)}分钟)`;
         lineItem.className = 'line-stations';
         lineItem.dataset.lineColor = getLineColorByName(segment.line);
         lineSummary.appendChild(lineItem);
@@ -1062,7 +1062,7 @@ function copyToClipboard() {
     // 获取票价和时间信息
     const fareInfo = fareZoneSummary.innerText.split('\n').filter(line => line.trim()).join('\n');
 
-    const textToCopy = `${selectedRouteType}\n${routeText}\n${fareInfo}\n\n此方案由「雨城通」提供：yct.shangxiaoguan.top\n「临东市」及其相关组织机构均为虚构`;
+    const textToCopy = `${selectedRouteType}\n${routeText}\n${fareInfo}\n\n此方案由「雨城通」提供：yct.shangxiaoguan.top\n及其相关组织机构均为虚构`;
     
     navigator.clipboard.writeText(textToCopy)
         .then(() => {
