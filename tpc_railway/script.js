@@ -790,7 +790,7 @@ function findOptimalPath(start, end, optimizeFor = 'time', excludeAirport = fals
     let baseFare = 10;
     //let additionalFare = fareZones.size > 1 ? fareZones.size - 2 : 0;
     // 额外分区费用（核心修改：跨越>1个区域时固定加10元，否则加0）
-      let additionalFare = fareZones.size > 1 ? 3 : 0;
+      let additionalFare = fareZones.size > 1 ? 3 * fareZones.size : 0;
     let airportFare = usesAirportLine ? 15 : 0;
     let totalFare = baseFare + additionalFare + airportFare;
 
