@@ -10,13 +10,13 @@ const metro_logo = "https://wiki.shangxiaoguan.top/images/1/10/%E4%B8%B4%E4%B8%9
 const lines = [
 
    {
-        name: "会展线",
+        name: "横贯线",
         nameEN: "Line 6",
         color: "#ec6941",
         stations: [
-            { name: "豪金中央", nameEN: "JINYANGDAJIE", coordinates: { x: 300, y: 100 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
-            { name: " 千里马T3航站楼", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 200, y: 350 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
-            { name: "江滨大学", nameEN: "BEITAILU", coordinates: { x: 200, y: 450 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", }
+            { name: "晴海JCT", nameEN: "JINYANGDAJIE", coordinates: { x: 300, y: 400}, fareZone: "中城", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
+            { name: "五角场南", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 200, y: 400 }, fareZone: "中城", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
+            { name: "江滨大学", nameEN: "BEITAILU", coordinates: { x: 100, y: 400 }, fareZone: "中城", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", }
            // { name: "草仓路", nameEN: "CAOCANGLU", coordinates: { x: 300, y: 400 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.4, platformSide: "left", },
          //   { name: "宣庆文化宫", nameEN: "XUANQINGWENHUAGONG", coordinates: { x: 300, y: 500 }, fareZone: "市区", labelOffset: { x: -90, y: -8 }, travelTime: 2, platformSide: "left", },
           //  { name: "青年大街", nameEN: "QINGNIANDAJIE", coordinates: { x: 300, y: 600 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
@@ -26,14 +26,14 @@ const lines = [
     },
 
    {
-        name: "空港线",
+        name: "南北线",
         nameEN: "Line 6",
         color: "#ec6981",
         stations: [
-            { name: "豪金中央", nameEN: "JINYANGDAJIE", coordinates: { x: 300, y: 100 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
-            { name: "空港经济区", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 300, y: 400 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
-          { name: "长安西", nameEN: "BEITAILU", coordinates: { x: 400, y: 500 }, fareZone: "北站", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", }
-           // { name: "草仓路", nameEN: "CAOCANGLU", coordinates: { x: 300, y: 400 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.4, platformSide: "left", },
+            { name: "金融城", nameEN: "JINYANGDAJIE", coordinates: { x: 250, y: 100 }, fareZone: "上城", labelOffset: { x: 8, y: -8 }, travelTime: 3.6, platformSide: "left", },
+            { name: "五角场", nameEN: "RENJIEHUGONGYUAN", coordinates: { x: 300, y: 300 }, fareZone: "中城", labelOffset: { x: 8, y: -8 }, travelTime: 2.2, platformSide: "left", },
+          { name: "晴海JCT", nameEN: "BEITAILU", coordinates: { x: 300, y: 400 }, fareZone: "中城", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", }
+            { name: "城南", nameEN: "CAOCANGLU", coordinates: { x: 300, y: 600 }, fareZone: "下城", labelOffset: { x: 8, y: -8 }, travelTime: 2.4, platformSide: "left", },
          //   { name: "宣庆文化宫", nameEN: "XUANQINGWENHUAGONG", coordinates: { x: 300, y: 500 }, fareZone: "市区", labelOffset: { x: -90, y: -8 }, travelTime: 2, platformSide: "left", },
           //  { name: "青年大街", nameEN: "QINGNIANDAJIE", coordinates: { x: 300, y: 600 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.5, platformSide: "left", },
            // { name: "新阳路", nameEN: "XINYANGLU", coordinates: { x: 300, y: 750 }, fareZone: "市区", labelOffset: { x: 8, y: -8 }, travelTime: 2.6, platformSide: "left", },
