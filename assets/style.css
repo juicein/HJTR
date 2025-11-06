@@ -147,42 +147,50 @@ a {
 
 
 
-/* ====== 顶部栏安全区域支持 ====== */
-html, body {
-  margin: 0;
-  padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  background: var(--bg);
-  color: var(--text-primary);
-}
-
-/* ====== 顶栏总体布局 ====== */
+/* ===== 顶栏总体 ===== */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px 16px;
+  padding: 10px 14px;
   background-color: var(--bg);
   position: sticky;
   top: 0;
-  z-index: 100;
-  transition: background-color 0.3s, color 0.3s;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  box-sizing: border-box;
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
-  box-sizing: border-box;
+  transition: background-color 0.3s, color 0.3s;
 }
 
-/* ===== 左侧 Logo ===== */
+/* ===== 左侧蓝底 Logo 方块 ===== */
 .topbar-left {
   display: flex;
   align-items: center;
 }
 
-.logo {
-  height: 34px;
-  width: auto;
-  border-radius: 8px;
-  object-fit: contain;
+.logo-box {
+  display: flex;
+  align-items: center;
+  background-color: #0055ff; /* 蓝色主色 */
+  border-radius: 12px;
+  padding: 6px 10px;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 6px;
+}
+
+.logo-text {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.3px;
 }
 
 /* ===== 中间搜索框 ===== */
@@ -190,6 +198,8 @@ html, body {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 0; /* 防止溢出屏幕 */
+  padding: 0 8px;
 }
 
 .search-box {
@@ -198,9 +208,9 @@ html, body {
   background-color: var(--search-bg);
   border-radius: 22px;
   padding: 6px 14px;
-  width: 85%;
+  width: 100%;
   max-width: 420px;
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
 }
 
 .search-icon {
@@ -217,7 +227,7 @@ html, body {
   background: none;
   font-size: 15px;
   color: var(--text-primary);
-  min-width: 0; /* 防止在小屏溢出 */
+  min-width: 0;
 }
 
 .search-input::placeholder {
@@ -247,25 +257,11 @@ html, body {
 }
 
 .user-btn img {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
 }
 
-/* ===== 响应式布局优化 ===== */
-@media (max-width: 480px) {
-  .search-box {
-    width: 100%;
-    max-width: none;
-  }
-}
-
-@media (min-width: 1024px) {
-  .topbar {
-    padding: 14px 40px;
-  }
-}
-
-/* ===== 亮 / 暗模式配色 ===== */
+/* ===== 亮暗模式 ===== */
 :root {
   --bg: #ffffff;
   --text-primary: #000000;
@@ -284,4 +280,57 @@ html, body {
     --button-bg: #222;
     --button-hover: #333;
   }
+}
+
+/* ===== 响应式适配 ===== */
+
+/* 小屏幕（手机）优化 */
+@media (max-width: 600px) {
+  .topbar {
+    padding: 8px 10px;
+  }
+
+  .logo-box {
+    padding: 5px 8px;
+    border-radius: 10px;
+  }
+
+  .logo-text {
+    font-size: 14px;
+  }
+
+  .search-box {
+    padding: 5px 10px;
+    max-width: none;
+  }
+
+  .user-btn {
+    padding: 5px;
+  }
+
+  .user-btn img {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* 平板（中屏）优化 */
+@media (min-width: 601px) and (max-width: 1024px) {
+  .search-box {
+    max-width: 480px;
+  }
+}
+
+/* 桌面端 */
+@media (min-width: 1025px) {
+  .search-box {
+    max-width: 520px;
+  }
+}
+
+/* ===== 字体与基础样式 ===== */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  box-sizing: border-box;
 }
