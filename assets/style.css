@@ -147,69 +147,87 @@ a {
 
 
 
-/* 顶栏总体布局 */
+
+/* ===== 顶部栏整体 ===== */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
   background-color: var(--bg);
-  transition: background-color 0.3s, color 0.3s;
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background-color 0.3s, color 0.3s;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
 }
 
-/* 左侧 logo + text */
-.left {
+/* ===== 左侧 Logo + 文本 ===== */
+.topbar-left {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
 .logo {
-  height: 32px;
+  height: 30px;
   width: auto;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .logo-text {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
-/* 中间搜索框 */
-.center {
+/* ===== 中间搜索框 ===== */
+.topbar-center {
   flex: 1;
   display: flex;
   justify-content: center;
 }
 
-.search {
-  width: 80%;
-  max-width: 400px;
-  padding: 8px 14px;
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: var(--search-bg);
   border-radius: 20px;
-  border: none;
-  background-color: var(--input-bg);
-  color: var(--text-primary);
-  font-size: 15px;
-  box-shadow: 0 0 4px rgba(0,0,0,0.08);
+  padding: 6px 12px;
+  width: 80%;
+  max-width: 380px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.08);
 }
 
-.search::placeholder {
+.search-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.5;
+  margin-right: 8px;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: none;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+
+.search-input::placeholder {
   color: var(--placeholder);
 }
 
-/* 右侧用户按钮 */
-.right {
+/* ===== 右侧头像按钮 ===== */
+.topbar-right {
   display: flex;
   align-items: center;
 }
 
-.profile-btn {
+.user-btn {
   background: var(--button-bg);
   border: none;
   border-radius: 50%;
@@ -218,20 +236,20 @@ a {
   transition: background 0.3s;
 }
 
-.profile-btn:hover {
+.user-btn:hover {
   background: var(--button-hover);
 }
 
-.profile-btn img {
+.user-btn img {
   width: 22px;
   height: 22px;
 }
 
-/* -------- 🌙 亮暗模式 -------- */
+/* ===== 亮/暗模式配色 ===== */
 :root {
   --bg: #ffffff;
   --text-primary: #000000;
-  --input-bg: #f2f2f2;
+  --search-bg: #f1f1f1;
   --placeholder: #888;
   --button-bg: #f5f5f5;
   --button-hover: #e3e3e3;
@@ -241,7 +259,7 @@ a {
   :root {
     --bg: #0d0d0d;
     --text-primary: #ffffff;
-    --input-bg: #1e1e1e;
+    --search-bg: #1b1b1b;
     --placeholder: #aaa;
     --button-bg: #222;
     --button-hover: #333;
