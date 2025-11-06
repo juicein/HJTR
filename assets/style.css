@@ -147,22 +147,26 @@ a {
 
 
 
-/* ===== 顶栏总体 ===== */
+
+
+
+
+
+
+/* ===== 顶部栏整体 ===== */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: max(10px, env(safe-area-inset-top)) 16px 10px 16px;
   background-color: var(--bg);
   position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
-  z-index: 999;
-  box-sizing: border-box;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  z-index: 100;
   transition: background-color 0.3s, color 0.3s;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-sizing: border-box;
 }
 
 /* ===== 左侧蓝底 Logo 方块 ===== */
@@ -174,22 +178,22 @@ a {
 .logo-box {
   display: flex;
   align-items: center;
-  background-color: #0055ff; /* 蓝色主色 */
-  border-radius: 12px;
-  padding: 6px 10px;
-  flex-shrink: 0;
+  background-color: #0066ff;
+  border-radius: 10px;
+  padding: 4px 10px 4px 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .logo-icon {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   margin-right: 6px;
 }
 
 .logo-text {
-  color: #ffffff;
+  font-size: 16px;
   font-weight: 700;
-  font-size: 15px;
+  color: #ffffff;
   letter-spacing: 0.3px;
 }
 
@@ -198,25 +202,24 @@ a {
   flex: 1;
   display: flex;
   justify-content: center;
-  min-width: 0; /* 防止溢出屏幕 */
-  padding: 0 8px;
 }
 
 .search-box {
   display: flex;
   align-items: center;
   background-color: var(--search-bg);
-  border-radius: 22px;
-  padding: 6px 14px;
-  width: 100%;
-  max-width: 420px;
-  box-sizing: border-box;
+  border-radius: 20px;
+  padding: 6px 12px;
+  width: 80%;
+  max-width: 380px;
+  box-shadow: 0 0 2px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
 }
 
 .search-icon {
   width: 16px;
   height: 16px;
-  opacity: 0.5;
+  opacity: 0.6;
   margin-right: 8px;
 }
 
@@ -227,11 +230,11 @@ a {
   background: none;
   font-size: 15px;
   color: var(--text-primary);
-  min-width: 0;
 }
 
 .search-input::placeholder {
   color: var(--placeholder);
+  transition: opacity 0.3s;
 }
 
 /* ===== 右侧头像按钮 ===== */
@@ -247,9 +250,6 @@ a {
   padding: 6px;
   cursor: pointer;
   transition: background 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .user-btn:hover {
@@ -261,14 +261,14 @@ a {
   height: 22px;
 }
 
-/* ===== 亮暗模式 ===== */
+/* ===== 亮/暗模式配色 ===== */
 :root {
   --bg: #ffffff;
   --text-primary: #000000;
   --search-bg: #f1f1f1;
-  --placeholder: #8a8a8a;
-  --button-bg: #f3f3f3;
-  --button-hover: #e4e4e4;
+  --placeholder: #888;
+  --button-bg: #f5f5f5;
+  --button-hover: #e3e3e3;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -283,54 +283,46 @@ a {
 }
 
 /* ===== 响应式适配 ===== */
+@media (max-width: 768px) {
+  .search-box {
+    max-width: 200px;
+    padding: 6px 10px;
+  }
 
-/* 小屏幕（手机）优化 */
-@media (max-width: 600px) {
-  .topbar {
-    padding: 8px 10px;
+  .search-input::placeholder {
+    opacity: 0;
+  }
+
+  .logo-text {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-box {
+    width: 36px;
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .search-icon {
+    margin-right: 0;
+  }
+
+  .search-input {
+    display: none;
   }
 
   .logo-box {
-    padding: 5px 8px;
-    border-radius: 10px;
+    padding: 4px 8px;
+  }
+
+  .logo-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .logo-text {
     font-size: 14px;
   }
-
-  .search-box {
-    padding: 5px 10px;
-    max-width: none;
-  }
-
-  .user-btn {
-    padding: 5px;
-  }
-
-  .user-btn img {
-    width: 20px;
-    height: 20px;
-  }
-}
-
-/* 平板（中屏）优化 */
-@media (min-width: 601px) and (max-width: 1024px) {
-  .search-box {
-    max-width: 480px;
-  }
-}
-
-/* 桌面端 */
-@media (min-width: 1025px) {
-  .search-box {
-    max-width: 520px;
-  }
-}
-
-/* ===== 字体与基础样式 ===== */
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-  box-sizing: border-box;
 }
