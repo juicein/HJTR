@@ -152,42 +152,35 @@ a {
 
 
 
-
 /* ===== 顶部栏整体 ===== */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: max(10px, env(safe-area-inset-top)) 16px 10px 16px;
+  padding: 10px 14px;
   background-color: var(--bg);
   position: sticky;
   top: 0;
   z-index: 100;
-  transition: background-color 0.3s, color 0.3s;
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   box-sizing: border-box;
+  max-width: 100%;
 }
 
-/* ===== 左侧蓝底 Logo 方块 ===== */
-.topbar-left {
-  display: flex;
-  align-items: center;
-}
-
+/* ===== 左侧 Logo 方块 + 文本 ===== */
 .logo-box {
   display: flex;
   align-items: center;
   background-color: #0066ff;
   border-radius: 10px;
-  padding: 4px 10px 4px 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 6px 10px;
+  gap: 6px;
 }
 
 .logo-icon {
   width: 22px;
   height: 22px;
-  margin-right: 6px;
 }
 
 .logo-text {
@@ -202,6 +195,7 @@ a {
   flex: 1;
   display: flex;
   justify-content: center;
+  margin: 0 8px;
 }
 
 .search-box {
@@ -210,16 +204,16 @@ a {
   background-color: var(--search-bg);
   border-radius: 20px;
   padding: 6px 12px;
-  width: 80%;
-  max-width: 380px;
+  width: 100%;
+  max-width: 420px;
   box-shadow: 0 0 2px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
+  transition: width 0.3s ease;
 }
 
 .search-icon {
   width: 16px;
   height: 16px;
-  opacity: 0.6;
+  opacity: 0.5;
   margin-right: 8px;
 }
 
@@ -230,11 +224,11 @@ a {
   background: none;
   font-size: 15px;
   color: var(--text-primary);
+  width: 100%;
 }
 
 .search-input::placeholder {
   color: var(--placeholder);
-  transition: opacity 0.3s;
 }
 
 /* ===== 右侧头像按钮 ===== */
@@ -247,7 +241,7 @@ a {
   background: var(--button-bg);
   border: none;
   border-radius: 50%;
-  padding: 6px;
+  padding: 8px;
   cursor: pointer;
   transition: background 0.3s;
 }
@@ -282,47 +276,33 @@ a {
   }
 }
 
-/* ===== 响应式适配 ===== */
+/* ===== 响应式调整：手机优化 ===== */
 @media (max-width: 768px) {
-  .search-box {
-    max-width: 200px;
-    padding: 6px 10px;
-  }
-
-  .search-input::placeholder {
-    opacity: 0;
-  }
-
-  .logo-text {
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .search-box {
-    width: 36px;
-    justify-content: center;
-    padding: 6px;
-  }
-
-  .search-icon {
-    margin-right: 0;
-  }
-
-  .search-input {
-    display: none;
+  .topbar {
+    padding: 8px 10px;
   }
 
   .logo-box {
-    padding: 4px 8px;
+    padding: 5px 8px;
   }
 
-  .logo-icon {
-    width: 20px;
-    height: 20px;
+  .search-box {
+    max-width: 240px; /* 搜索框自动缩短但不隐藏 */
+    padding: 5px 10px;
   }
 
-  .logo-text {
+  .search-input {
     font-size: 14px;
+  }
+
+  .user-btn {
+    padding: 6px;
+  }
+}
+
+/* ===== 平板优化 ===== */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .search-box {
+    max-width: 320px;
   }
 }
