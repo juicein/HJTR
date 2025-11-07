@@ -174,18 +174,18 @@ a {
   align-items: center;
   background-color: #193c7a;
   border-radius: 20px;
-  padding: 5px 8px;
+  padding: 6px 10px;
   gap: 6px;
 }
 
 .logo-icon {
-  width: 29px;
-  height: 29px;
+  width: 22px;
+  height: 22px;
 }
 
 .logo-text {
   font-size: 16px;
-  font-weight: bold;
+  
   font-weight: 1900;
   color: #ffffff;
   letter-spacing: 0.3px;
