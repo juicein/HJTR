@@ -173,8 +173,8 @@ a {
   display: flex;
   align-items: center;
   background-color: #193c7a;
-  border-radius: 10px;
-  padding: 5px 10px;
+  border-radius: 20px;
+  padding: 5px 8px;
   gap: 6px;
 }
 
@@ -186,7 +186,7 @@ a {
 .logo-text {
   font-size: 16px;
   font-weight: bold;
-  font-weight: 1000;
+  font-weight: 1900;
   color: #ffffff;
   letter-spacing: 0.3px;
 }
