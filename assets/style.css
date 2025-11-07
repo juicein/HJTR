@@ -172,15 +172,15 @@ a {
 .logo-box {
   display: flex;
   align-items: center;
-  background-color: #0066ff;
+  background-color: #002147;
   border-radius: 10px;
-  padding: 6px 10px;
+  padding: 5px 10px;
   gap: 6px;
 }
 
 .logo-icon {
-  width: 26px;
-  height: 26px;
+  width: 29px;
+  height: 29px;
 }
 
 .logo-text {
