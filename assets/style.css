@@ -147,27 +147,21 @@ a {
 
 
 
+/* ===== 顶部栏整体 ===== */
 .topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  
-  /* ✅ 关键部分：包括状态栏安全区 */
-  padding: env(safe-area-inset-top) 16px 10px 16px;
-  height: calc(56px + env(safe-area-inset-top));
-
-  background-color: var(--bg); /* ✅ 让状态栏区域和topbar颜色一致 */
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-  transition: background-color 0.3s, color 0.3s;
-}
-
- 
+  padding: 10px 14px;
+  background-color: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-sizing: border-box;
+  max-width: 100%;
+} 
 
 
 /* ===== 左侧 Logo 方块 + 文本 ===== */
