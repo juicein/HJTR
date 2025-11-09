@@ -13,7 +13,7 @@ a {
 }
 
 
-/* ========== 顶栏（新加坡航空风格参考） ========== */
+/* ========== 顶栏（参考） ========== */
 .site-header {
   background-color: #002147;
   color: white;
@@ -150,23 +150,24 @@ a {
 
 
 
-
-
 /* ===== 顶部栏整体 ===== */
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: env(safe-area-inset-top) 16px 10px 16px; /* ✅ 顶部安全区 */
+  height: calc(56px + env(safe-area-inset-top));   /* ✅ 自动加上状态栏高度 */
   background-color: var(--bg);
   position: sticky;
   top: 0;
   z-index: 100;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  transition: background-color 0.3s, color 0.3s;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-sizing: border-box;
-  max-width: 100%;
 }
+
+
 
 /* ===== 左侧 Logo 方块 + 文本 ===== */
 .logo-box {
