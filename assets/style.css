@@ -13,7 +13,7 @@ a {
 }
 
 
-/* ========== 顶栏（参考） ========== */
+/* ========== 顶栏（参考） ==========
 .site-header {
   background-color: #002147;
   color: white;
@@ -34,7 +34,7 @@ a {
 .nav-links a:hover {
   border-bottom: 2px solid #ffcc00;
   padding-bottom: 2px;
-}
+}。     */
 
 /* ========== 预留板块位 ========== */
 .hero-section {
