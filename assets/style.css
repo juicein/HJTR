@@ -1,6 +1,19 @@
-
-
 /* ========== 全局样式 ========== */
+body {
+  margin: 0;
+  font-family: "Microsoft YaHei", sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+
+/* ========== 全局样式 ========== 
 body {
   margin: 0;
   font-family: "Microsoft YaHei", sans-serif;
@@ -11,7 +24,7 @@ a {
   text-decoration: none;
   color: inherit;
 }
-
+*/
 
 /* ========== 顶栏（参考） ==========
 .site-header {
