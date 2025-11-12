@@ -297,9 +297,9 @@ a {
     --placeholder: #aaa;
     --button-bg: #222;
     --button-hover: #333;
+    
     .search-icon,
-  .user-btn img,
-  .logo-icon {
+   .user-btn img {
     filter: invert(1) brightness(1.2) contrast(0.9);
   }
 }
