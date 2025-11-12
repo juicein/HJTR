@@ -267,6 +267,18 @@ a {
   color: var(--text-primary);
 }
 
+
+
+
+
+/* ===== 图标自动变色（使用 filter） ===== */
+.search-icon,
+.user-btn img{
+  transition: filter 0.3s ease;
+}
+
+
+
 /* ===== 亮/暗模式配色 ===== */
 :root {
   --bg: #ffffff;
@@ -285,8 +297,16 @@ a {
     --placeholder: #aaa;
     --button-bg: #222;
     --button-hover: #333;
+    .search-icon,
+  .user-btn img,
+  .logo-icon {
+    filter: invert(1) brightness(1.2) contrast(0.9);
   }
 }
+
+
+
+
 
 /* ===== 响应式调整：手机优化 ===== */
 @media (max-width: 768px) {
