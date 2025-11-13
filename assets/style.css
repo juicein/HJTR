@@ -272,7 +272,7 @@ a {
 
 
 
-/* ===== 基础样式 ===== */
+//* ===== 基础样式 ===== */
 .bbc-footer {
   background-color: var(--footer-bg);
   color: var(--footer-text);
@@ -401,10 +401,6 @@ a {
 .footer-copy a:hover {
   color: var(--footer-link-hover);
 }
-
-
-
-
 
 
 
