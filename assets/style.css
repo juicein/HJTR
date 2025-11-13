@@ -270,7 +270,6 @@ a {
 
 
 
-
 /* ===== 基础样式 ===== */
 .bbc-footer {
   background-color: var(--footer-bg);
@@ -401,6 +400,30 @@ a {
   color: var(--footer-link-hover);
 }
 
+/* ===== 亮 / 暗模式 ===== */
+:root {
+  --footer-bg: #ffffff;
+  --footer-text: #000000;
+  --footer-link: #333333;
+  --footer-link-hover: #000000;
+  --footer-border: #e2e2e2;
+  --footer-copy: #666666;
+  --select-bg: #f1f1f1;
+  --icon-filter: invert(0);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --footer-bg: #0d0d0d;
+    --footer-text: #f5f5f5;
+    --footer-link: #cccccc;
+    --footer-link-hover: #ffffff;
+    --footer-border: #333333;
+    --footer-copy: #aaaaaa;
+    --select-bg: #1b1b1b;
+    --icon-filter: invert(1);
+  }
+}
 
 /* ===== 响应式优化 ===== */
 @media (max-width: 768px) {
@@ -422,7 +445,6 @@ a {
     padding: 0 10px;
   }
 }
-
 
 
 
