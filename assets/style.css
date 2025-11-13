@@ -271,6 +271,103 @@ a {
 
 
 
+.bbc-footer {
+  width: 100%;
+  border-top: 1px solid var(--bbc-border);
+  padding: 40px 5%;
+  background-color: var(--bbc-bg);
+  color: var(--bbc-text);
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.bbc-footer-container {
+  max-width: 1200px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* 顶部BBC logo */
+.bbc-logo img {
+  height: 35px;
+  margin-bottom: 10px;
+}
+
+/* 顶部导航 */
+.bbc-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.bbc-nav a {
+  color: var(--bbc-link);
+  text-decoration: none;
+  font-weight: 500;
+}
+.bbc-nav a:hover {
+  text-decoration: underline;
+}
+
+/* 语言选择 */
+.bbc-lang select {
+  padding: 6px 10px;
+  border: 1px solid var(--bbc-border);
+  border-radius: 4px;
+  background: var(--bbc-bg-light);
+  color: var(--bbc-text);
+  font-size: 14px;
+}
+
+/* 社交媒体 */
+.bbc-social {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bbc-social span {
+  margin-right: 8px;
+  font-weight: 500;
+}
+
+.bbc-social a {
+  color: var(--bbc-link);
+  font-size: 18px;
+  text-decoration: none;
+}
+
+.bbc-social a:hover {
+  color: var(--bbc-accent);
+}
+
+/* 链接区 */
+.bbc-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.bbc-links a {
+  color: var(--bbc-link);
+  text-decoration: none;
+}
+.bbc-links a:hover {
+  text-decoration: underline;
+}
+
+/* 版权信息 */
+.bbc-copy {
+  font-size: 13px;
+  color: var(--bbc-muted);
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
 
 
 
