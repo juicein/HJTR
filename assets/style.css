@@ -271,105 +271,157 @@ a {
 
 
 
+/* ===== 基础样式 ===== */
 .bbc-footer {
-  width: 100%;
-  border-top: 1px solid var(--bbc-border);
-  padding: 40px 5%;
-  background-color: var(--bbc-bg);
-  color: var(--bbc-text);
-  font-family: Arial, sans-serif;
-  font-size: 14px;
+  background-color: var(--footer-bg);
+  color: var(--footer-text);
+  padding: 40px 20px 30px;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  text-align: center;
+  border-top: 1px solid var(--footer-border);
   box-sizing: border-box;
 }
 
-.bbc-footer-container {
-  max-width: 1200px;
-  margin: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
+/* ===== Logo ===== */
+.footer-logo img {
+  width: 90px;
+  height: auto;
+  margin-bottom: 20px;
+  filter: var(--icon-filter);
 }
 
-/* 顶部BBC logo */
-.bbc-logo img {
-  height: 35px;
-  margin-bottom: 10px;
-}
-
-/* 顶部导航 */
-.bbc-nav {
+/* ===== 导航区 ===== */
+.footer-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  justify-content: center;
+  gap: 12px 18px;
+  margin-bottom: 20px;
 }
 
-.bbc-nav a {
-  color: var(--bbc-link);
+.footer-nav a {
+  color: var(--footer-link);
   text-decoration: none;
-  font-weight: 500;
-}
-.bbc-nav a:hover {
-  text-decoration: underline;
+  font-size: 15px;
+  transition: color 0.3s;
 }
 
-/* 语言选择 */
-.bbc-lang select {
-  padding: 6px 10px;
-  border: 1px solid var(--bbc-border);
+.footer-nav a:hover {
+  color: var(--footer-link-hover);
+}
+
+/* ===== 分隔线 ===== */
+.footer-divider {
+  border: none;
+  border-top: 1px solid var(--footer-border);
+  margin: 20px auto;
+  max-width: 900px;
+}
+
+/* ===== 语言 + 社交图标 ===== */
+.footer-social-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.lang-select {
+  background-color: var(--select-bg);
+  color: var(--footer-text);
+  border: 1px solid var(--footer-border);
   border-radius: 4px;
-  background: var(--bbc-bg-light);
-  color: var(--bbc-text);
+  padding: 6px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.footer-social {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footer-social span {
+  font-weight: 500;
   font-size: 14px;
 }
 
-/* 社交媒体 */
-.bbc-social {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.footer-social img {
+  width: 22px;
+  height: 22px;
+  filter: var(--icon-filter);
+  transition: opacity 0.3s;
 }
 
-.bbc-social span {
-  margin-right: 8px;
+.footer-social a:hover img {
+  opacity: 0.7;
+}
+
+/* ===== 底部版权区 ===== */
+.footer-bottom {
+  margin-top: 20px;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
+  margin-bottom: 14px;
+}
+
+.footer-links a {
+  font-size: 13px;
+  color: var(--footer-link);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--footer-link-hover);
+}
+
+.footer-copy {
+  font-size: 12px;
+  color: var(--footer-copy);
+  line-height: 1.6;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.footer-copy a {
+  color: var(--footer-link);
+  text-decoration: none;
   font-weight: 500;
 }
 
-.bbc-social a {
-  color: var(--bbc-link);
-  font-size: 18px;
-  text-decoration: none;
-}
-
-.bbc-social a:hover {
-  color: var(--bbc-accent);
-}
-
-/* 链接区 */
-.bbc-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 20px;
-}
-
-.bbc-links a {
-  color: var(--bbc-link);
-  text-decoration: none;
-}
-.bbc-links a:hover {
-  text-decoration: underline;
-}
-
-/* 版权信息 */
-.bbc-copy {
-  font-size: 13px;
-  color: var(--bbc-muted);
-  line-height: 1.5;
-  margin-top: 10px;
+.footer-copy a:hover {
+  color: var(--footer-link-hover);
 }
 
 
+/* ===== 响应式优化 ===== */
+@media (max-width: 768px) {
+  .footer-nav a {
+    font-size: 14px;
+  }
 
+  .footer-social img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .footer-links {
+    gap: 8px;
+  }
+
+  .footer-copy {
+    font-size: 11.5px;
+    padding: 0 10px;
+  }
+}
 
 
 
@@ -390,6 +442,14 @@ a {
   --placeholder: #888;
   --button-bg: #f5f5f5;
   --button-hover: #e3e3e3;
+
+    --footer-bg: #ffffff;
+  --footer-text: #000000;
+  --footer-link: #333333;
+  --footer-link-hover: #000000;
+  --footer-border: #e2e2e2;
+  --footer-copy: #666666;
+  --select-bg: #f1f1f1;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -400,7 +460,14 @@ a {
     --placeholder: #aaa;
     --button-bg: #222;
     --button-hover: #333;
-    
+
+        --footer-bg: #0d0d0d;
+    --footer-text: #f5f5f5;
+    --footer-link: #cccccc;
+    --footer-link-hover: #ffffff;
+    --footer-border: #333333;
+    --footer-copy: #aaaaaa;
+    --select-bg: #1b1b1b;
     .search-icon,
    .user-btn img {
     filter: invert(1) brightness(1.2) contrast(0.9);
