@@ -160,6 +160,116 @@ a {
 
 
 
+
+/* ======================
+   页面布局基础
+======================
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  margin: 0;
+  font-family: "SF Pro Display", "PingFang SC", sans-serif;
+} */
+
+/* ======================
+   菜单容器（第一张图片风格）
+====================== */
+.menu-wrapper {
+  padding: 20px;
+  max-width: 900px;
+  margin: auto;
+}
+
+.menu-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.menu-container {
+  background: var(--menu-bg);
+  border-radius: var(--menu-radius);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  overflow-x: auto;
+  gap: 10px;
+}
+
+/* ======================
+   菜单 item（图标 + 文字）
+====================== */
+.menu-unit {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--menu-radius);
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--menu-item-bg);
+  cursor: pointer;
+  transition: 0.25s;
+  white-space: nowrap;
+}
+
+.menu-item img {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  object-fit: contain;
+}
+
+.menu-item:hover {
+  background: var(--menu-item-hover);
+}
+
+.menu-item.active {
+  background: var(--menu-item-active-bg);
+  color: var(--menu-item-active-text);
+}
+
+/* ======================
+   显示全部按钮
+====================== */
+.show-all-btn {
+  padding: 8px 14px;
+  background: transparent;
+  border-radius: var(--menu-radius);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.25s;
+}
+
+.show-all-btn:hover {
+  background: var(--menu-item-hover);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* ===== 顶部栏整体 ===== */
 .topbar {
   display: flex;
