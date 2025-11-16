@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>上传新闻</title>
+<style>
+body { font-family: Arial; padding: 20px; }
+input, textarea, select { width: 100%; margin-top: 10px; padding: 10px; }
+button { padding: 10px; margin-top: 20px; width: 100%; }
+</style>
+</head>
+<body>
+
+<h2>上传新闻</h2>
+
+<input id="title" placeholder="标题">
+<textarea id="content" rows="6" placeholder="内容"></textarea>
+
+<input id="image" placeholder="图片链接（可选）">
+<button onclick="uploadImage()">上传图片到图床</button>
+
+<input id="date" value="">
+<input id="author" placeholder="作者">
+<input id="link" placeholder="新闻原始链接">
+
+<label>选择 Location：</label>
+<select id="location">
+  <option>地铁运营</option>
+  <option>北联</option>
+  <option>万方公交</option>
+  <option>城市资讯</option>
+</select>
+
+<button onclick="submitNews()">提交新闻</button>
+
+<script>
+// 写入当前时间
+document.getElementById("date").value =
+  new Date().toLocaleString('zh-CN', {month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit"});
+
+
+// 图床上传 imgbb
+function uploadImage() {
+    let fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
+
+    fileInput.onchange = async function() {
+        let file = fileInput.files[0];
+        let form = new FormData();
+        form.append("image", file);
+
+        let res = await fetch("https://api.imgbb.com/1/upload?key=你的_imgbb_API_KEY", {
+            method: "POST",
+            body: form
+        });
+
+        let json = await res.json();
+        document.getElementById("image").value = json.data.url;
+    };
+    fileInput.click();
+}
+
+
+// 提交新闻 → GitHub Actions
+async function submitNews() {
+    let news = {
+        title: title.value,
+        content: content.value,
+        image: image.value,
+        date: date.value,
+        author: author.value,
+        link: link.value,
+        location: location.value
+    };
+
+    await fetch("https://api.github.com/repos/你的用户名/你的仓库/dispatches", {
+        method: "POST",
+        headers: {
+            "Accept": "application/vnd.github+json",
+            "Authorization": "Bearer 你的_GitHub_Token"
+        },
+        body: JSON.stringify({
+            event_type: "add_news",
+            client_payload: {
+                json: JSON.stringify(news)
+            }
+        })
+    });
+
+    alert("上传成功！");
+}
+</script>
+
+</body>
+</html>
