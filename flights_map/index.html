@@ -1,68 +1,32 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>航路实时地图 · flights_map</title>
-  <link rel="stylesheet" href="./style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>航班实时地图</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- 使用 Leaflet 地图（轻量、可拖拽缩放） -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">航路可视化</div>
-    <div class="controls">
-      <label class="dark-toggle">
-        <input id="darkToggle" type="checkbox" />
-        夜间
-      </label>
-    </div>
-  </header>
 
-  <main class="container">
-    <aside class="side">
-      <section class="filter">
-        <input id="searchId" placeholder="按航班 ID 或 航班号 搜索 (例如 DF1728 / HA1610)" />
-        <button id="btnApply">查看</button>
-        <div class="note">数据：<code>/data/flight_data.txt</code> · 机场库：<code>/data/airports.json</code></div>
-        <div style="margin-top:8px;">
-          <label><input type="checkbox" id="showAirportNames" checked> 显示机场名称</label><br/>
-          <label><input type="checkbox" id="showAirportCodes" checked> 显示三字码（代码）</label>
-        </div>
-      </section>
+  <!-- 顶部工具栏 -->
+  <div id="toolbar">
+    <label class="switch">
+      <input type="checkbox" id="toggleFlightNo">
+      <span class="slider"></span> 显示航班号
+    </label>
+  </div>
 
-      <section class="flight-list" id="flightList">
-        <!-- JS 填充 -->
-      </section>
-    </aside>
+  <!-- 地图容器 -->
+  <div id="map"></div>
 
-    <section class="map-area">
-      <div class="map-header">
-        <h2 id="mapTitle">航路地图</h2>
-        <div id="mapStatus" class="map-status">等待加载…</div>
-      </div>
+  <!-- 航班信息卡片 -->
+  <div id="infoCard" class="hidden"></div>
 
-      <div class="map-wrap">
-        <svg id="worldSvg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-          <g id="continents" opacity="0.12">
-            <path d="M60,200 C140,140 260,120 360,160 C460,200 520,320 420,360 C320,400 160,360 80,300 Z" />
-            <path d="M700,80 C820,60 940,80 1040,140 C1120,190 1100,300 980,320 C860,340 760,300 700,220 Z" />
-            <path d="M420,420 C520,430 620,500 740,470 C860,440 920,360 820,340 C720,320 600,360 520,380 Z" />
-          </g>
-        </svg>
-
-        <canvas id="mapCanvas" aria-label="航路地图画布"></canvas>
-      </div>
-
-      <div class="legend">
-        <div><span class="leg-line leg-dash"></span> 飞行航线（虚线）</div>
-        <div><span class="leg-dot"></span> 飞机当前位置（仅显示“飞行中”的航班或被聚焦航班）</div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div>Powered by GitHub Pages · 数据文件：<code>/data/flight_data.txt</code> / <code>/data/airports.json</code></div>
-  </footer>
-
-  <script src="./script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
