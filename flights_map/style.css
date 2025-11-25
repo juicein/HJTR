@@ -1,58 +1,94 @@
-:root{
-  --bg: #f6f8fb;
-  --card:#ffffff;
-  --text:#111;
-  --muted:#666;
-  --accent:#0b66c2;
-  --map-bg:#e6eef9;
+:root {
+  color-scheme: light dark;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --text-color: #000;
 }
 
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg: #0b0f14;
-    --card:#061018;
-    --text:#e6eef9;
-    --muted:#99a0aa;
-    --accent:#59a7ff;
-    --map-bg:#04121a;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-bg: rgba(0, 0, 0, 0.75);
+    --text-color: #fff;
   }
 }
 
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter, "PingFang SC", "Noto Sans", sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(0,0,0,0.02));border-bottom:1px solid rgba(0,0,0,0.06)}
-.brand{font-weight:600}
-.controls{display:flex;gap:10px;align-items:center}
-.dark-toggle{font-size:13px;color:var(--muted)}
-
-.container{display:flex;gap:18px;padding:20px;align-items:flex-start;min-height:calc(100vh - 140px)}
-.side{width:320px;max-height:calc(100vh - 160px);overflow:auto;padding:12px;background:var(--card);border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
-.map-area{flex:1;display:flex;flex-direction:column;gap:10px}
-.map-header{display:flex;justify-content:space-between;align-items:center}
-.map-wrap{position:relative;background:var(--map-bg);border-radius:10px;overflow:hidden;min-height:460px;display:flex;align-items:stretch}
-#worldSvg{position:absolute;left:0;top:0;width:100%;height:100%}
-#worldSvg path{fill:var(--accent);opacity:0.06}
-#mapCanvas{position:absolute;left:0;top:0;width:100%;height:100%}
-
-/* airport styling in legend */
-.flight-list .flight-card{padding:10px;border-radius:6px;margin-bottom:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.01));border:1px solid rgba(0,0,0,0.04)}
-.flight-card h4{margin:0;font-size:14px}
-.flight-meta{font-size:12px;color:var(--muted);margin-top:6px}
-.flight-status{margin-top:8px;font-weight:600}
-
-.legend{margin-top:8px;font-size:13px;color:var(--muted);display:flex;gap:16px;align-items:center}
-.leg-line{display:inline-block;width:40px;height:2px;border-bottom:2px dashed var(--muted);vertical-align:middle}
-.leg-dot{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--accent);vertical-align:middle}
-
-.map-status{font-size:13px;color:var(--muted)}
-.note{font-size:12px;color:var(--muted);margin-top:10px}
-.footer{padding:18px;text-align:center;font-size:13px;color:var(--muted);border-top:1px solid rgba(0,0,0,0.04);margin-top:18px}
-
-/* small responsive */
-@media (max-width:900px){
-  .container{flex-direction:column}
-  .side{width:auto;order:2}
-  .map-area{order:1}
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text-color);
 }
 
-/* airport marker - drawn on canvas but add optional CSS fallback if needed */
+#toolbar {
+  padding: 10px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  position: absolute;
+  z-index: 9999;
+  left: 10px;
+  top: 10px;
+  border-radius: 10px;
+}
+
+/* Switch 按钮 */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 55px;
+  height: 28px;
+}
+.switch input {
+  display: none;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: gray;
+  transition: 0.4s;
+  border-radius: 28px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px; width: 20px;
+  left: 4px; bottom: 4px;
+  background: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background: #2196F3;
+}
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+#map {
+  width: 100%;
+  height: 100vh;
+}
+
+/* 航班信息卡片 */
+#infoCard {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: 90%;
+  transform: translateX(-50%);
+  background: var(--card-bg);
+  color: var(--text-color);
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+}
+.hidden {
+  display: none;
+}
+
+.flight-label {
+  font-size: 12px;
+  padding: 2px 4px;
+  background: var(--card-bg);
+  border-radius: 5px;
+}
