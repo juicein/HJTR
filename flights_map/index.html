@@ -1,32 +1,35 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>航班实时地图</title>
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- 使用 Leaflet 地图（轻量、可拖拽缩放） -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>豪金航空 航班地图</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="map"></div>
+    
+    <div id="control-panel" class="control-panel">
+        <div id="info-board" class="info-board">
+            <h2>航班状态</h2>
+            <p id="flight-status">正在加载...</p>
+        </div>
+        
+        <div class="control-group">
+            <label for="toggle-flight-number">显示航班号</label>
+            <input type="checkbox" id="toggle-flight-number">
+        </div>
 
-  <!-- 顶部工具栏 -->
-  <div id="toolbar">
-    <label class="switch">
-      <input type="checkbox" id="toggleFlightNo">
-      <span class="slider"></span> 显示航班号
-    </label>
-  </div>
+        <div id="flight-detail-card" class="detail-card hidden">
+            </div>
+    </div>
 
-  <!-- 地图容器 -->
-  <div id="map"></div>
-
-  <!-- 航班信息卡片 -->
-  <div id="infoCard" class="hidden"></div>
-
-  <script src="script.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20n6cT9T+S34z6zW423/rblt2Y+9L53Hj3hNwp7eozGk="
+     crossorigin=""></script>
+    <script src="script.js"></script>
 </body>
 </html>
