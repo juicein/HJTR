@@ -12,8 +12,7 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- 顶部工具栏（搜索 + 按钮） -->
+  <!-- 顶栏（搜索 + 控件） -->
   <div id="topBar" class="top-bar">
     <div class="left">
       <button class="btn ghost" id="btn-sidebar-toggle">☰</button>
@@ -41,8 +40,6 @@
         <span class="slider"></span>
       </label>
       <span class="small-label">显示机场标注</span>
-
-      <button class="btn ghost" id="btn-only-filter">仅显示 URL 指定航班</button>
     </div>
   </div>
 
@@ -58,19 +55,39 @@
         <button class="btn ghost" id="btn-settings">设置</button>
       </div>
     </div>
-    <div id="flightList" class="flight-list"></div>
+
+    <div class="settings-panel">
+      <div><b>地图类型</b></div>
+      <div style="margin:8px 0">
+        <label><input type="radio" name="mapMode" value="tiles" id="mapModeTiles"> 真实地图（Leaflet 瓦片）</label><br>
+        <label><input type="radio" name="mapMode" value="abstract" id="mapModeAbstract"> 抽象投影地图</label>
+      </div>
+
+      <div style="margin-top:10px"><b>开关（会保存）</b></div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <label><input type="checkbox" id="chkOnlyFiltered"> 仅显示 URL 指定航班</label>
+        <label>自动刷新间隔（秒）： <input id="refreshInterval" type="number" min="10" value="180" style="width:80px"></label>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn primary" id="btn-save-settings">保存设置</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div id="flightList" class="flight-list"></div>
+    </div>
   </aside>
 
-  <!-- 底部上拉（手机） -->
+  <!-- 移动底部上拉（手机） -->
   <div id="mobilePanel" class="mobile-panel hidden">
     <div class="mobile-handle">↑ 航班列表</div>
     <div id="mobileList" class="flight-list"></div>
   </div>
 
-  <!-- 航班信息卡（底部居中）-->
+  <!-- 航班信息卡片 -->
   <div id="infoCard" class="info-card hidden"></div>
 
-  <!-- 小提示（Toast） -->
+  <!-- toast -->
   <div id="toast" class="toast hidden"></div>
 
   <script src="script.js"></script>
