@@ -3,78 +3,85 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>航班实时地图（抽象世界）</title>
-
-  <link rel="stylesheet" href="style.css" />
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <title>抽象航班地图 — 豪金航空示例</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- 顶部搜索 + 标题 -->
+  <!-- 顶部搜索栏 -->
   <header id="topbar">
-    <div class="brand">
-      <img src="" alt="" id="logo" />
-      <div>
-        <div class="title">航班实时地图</div>
-        <div class="subtitle">抽象世界 · 东八区时间</div>
+    <div class="left">
+      <div id="brand">🛩️ <strong>航班地图</strong></div>
+      <div id="searchWrap">
+        <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 机场名 / 注册号 (示例 HA1610 / BAY / 千里马 / DF1729)" />
+        <button class="btn ghost" id="searchBtn">搜索</button>
+        <button class="btn secondary" id="clearSearch">清除</button>
       </div>
     </div>
-
-    <div class="searchWrap">
-      <input id="searchInput" placeholder="搜索 航班号 / 三字码 / 机场名 / 注册号" />
-      <button class="btn primary" id="searchBtn">搜索</button>
-      <button class="btn ghost" id="clearSearch">清除</button>
-    </div>
-
-    <div class="topControls">
-      <label class="switch">
-        <input type="checkbox" id="toggleFlightNo">
-        <span class="slider"></span>
-      </label>
-      <span class="small">显示航班号</span>
+    <div class="right">
+      <a class="btn primary" href="#" id="openSettings">设置</a>
     </div>
   </header>
 
-  <!-- 主容器：侧边栏 + 地图 -->
-  <div id="app">
-    <aside id="sidepanel" class="collapsed">
-      <div class="panelHeader">
-        <h3>设置 & 航班列表</h3>
-        <button id="togglePanel" class="btn secondary">⋯</button>
+  <!-- 主地图区域 -->
+  <main id="mapArea">
+    <!-- SVG 抽象世界图（你可以替换 path，让大陆形状更抽象或更精细） -->
+    <div id="map">
+      <svg id="worldSvg" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
+        <!-- 背景 -->
+        <rect width="100%" height="100%" fill="hsl(210 20% 95%)"></rect>
+
+        <!-- 抽象大陆（简单示例路径）        -->
+        <g id="continents" fill="hsl(30 30% 90%)" stroke="hsl(30 20% 70%)" stroke-width="1">
+          <path d="M80,200 C160,90 320,80 420,160 C520,240 700,220 820,120 L900,90 L930,200 C880,240 760,260 680,300 C560,360 380,350 200,300 C120,280 80,260 80,200Z" />
+          <path d="M120,420 C200,380 300,360 380,400 C460,440 620,460 760,420 C820,400 860,420 880,470 L840,520 C740,560 600,560 480,540 C340,520 200,500 120,470 Z" />
+        </g>
+
+        <!-- 动态容器（机场、航线、飞机） -->
+        <g id="airportsLayer"></g>
+        <g id="routesLayer"></g>
+        <g id="planesLayer"></g>
+      </svg>
+    </div>
+
+    <!-- 信息卡片（底部） -->
+    <div id="infoCard" class="hidden"></div>
+
+    <!-- 侧边栏（桌面/平板） -->
+    <aside id="sideBar" class="collapsed">
+      <div class="sideHeader">
+        <h3>设置与航班列表</h3>
+        <button class="btn ghost" id="closeSidebar">关闭</button>
       </div>
 
-      <section class="settings">
-        <h4>显示设置</h4>
-        <label><input type="checkbox" id="showAirportLabels"> 显示机场名称与三字码</label>
-        <label><input type="checkbox" id="singleFlightModeToggle"> 启用单航班模式（URL 覆盖）</label>
-        <label>自动刷新间隔（秒）: <input id="refreshInterval" type="number" min="10" value="180" /></label>
-        <label><input type="checkbox" id="showNearbyFlights"> 显示屏幕范围内航班列表</label>
-      </section>
+      <div class="sideSection">
+        <h4>显示选项</h4>
+        <label><input type="checkbox" id="optShowFlightNo"> 在飞机旁显示航班号</label>
+        <label><input type="checkbox" id="optShowAirportLabel"> 显示机场标签</label>
+        <label><input type="checkbox" id="optOnlySingleMode"> URL 单航班模式（后台开关）</label>
+      </div>
 
-      <section class="flightList">
-        <h4>当前屏幕航班</h4>
-        <div id="listContainer">（加载中）</div>
-      </section>
+      <div class="sideSection">
+        <h4>自动刷新</h4>
+        <label>启用自动刷新：<input type="checkbox" id="optAutoRefresh"></label>
+        <label>间隔（秒）：<input type="number" id="refreshInterval" min="10" step="10" /></label>
+        <button class="btn secondary" id="applyRefresh">应用</button>
+      </div>
 
-      <section class="footerActions">
-        <button class="btn ghost" id="centerAll">重置视图</button>
-        <button class="btn secondary" id="toggleDark">切换深色模式</button>
-      </section>
+      <div class="sideSection">
+        <h4>当前航班（视口或全部）</h4>
+        <div id="flightList" class="flight-list"></div>
+      </div>
     </aside>
 
-    <main id="mapArea">
-      <div id="map"></div>
-      <!-- info card -->
-      <div id="infoCard" class="hidden"></div>
-      <!-- mobile bottom drawer -->
-      <div id="mobileDrawer" class="hidden">
-        <div id="mobileHandle">↑ 航班信息</div>
-        <div id="mobileContent"></div>
-      </div>
-    </main>
-  </div>
+    <!-- 手机端上拉设置栏 -->
+    <div id="mobilePanel" class="hidden collapsed">
+      <div id="mobileHandle">↑</div>
+      <div id="mobileContent"></div>
+    </div>
 
-  <script src="script.js"></script>
+  </main>
+
+  <!-- 资源与脚本 -->
+  <script src="script.js" defer></script>
 </body>
 </html>
