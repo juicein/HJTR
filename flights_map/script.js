@@ -1,402 +1,629 @@
-// ---------- 配置 ----------
+// /flights_map/script.js
+// Enhanced flight map script
+// - supports cross-day +#n# offsets
+// - search, focus, highlight, hide-other-flights (backend switch)
+// - plane icons rotate toward destination (SVG inline)
+// - FR24-like info card with progress & prev/next by regNo
+
+/* ======================== CONFIG ======================== */
+
+// whether searching a flight should hide other flights on the map
+const HIDE_OTHER_FLIGHTS_ON_SEARCH = true;
+
+// refresh interval (ms)
+const REFRESH_INTERVAL = 30 * 1000;
+
+// data paths
 const DATA_FLIGHTS = '/data/flight_data.txt';
 const DATA_AIRPORTS = '/data/airports.json';
 
-// Leaflet 初始化（确保 container 在 DOM ready 后可用）
+/* ======================== MAP INIT ======================== */
+
+// ensure the map container is present
+if (!document.getElementById('map')) {
+  console.error('Map container #map not found in DOM.');
+}
+
 const map = L.map('map', { worldCopyJump: true, minZoom: 2 }).setView([30, 90], 3);
 
-// OSM 切片（简约底图）。若你希望“无国界轮廓”风格，可以替换为自制无标签切片或灰色瓦片。
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+// Use protocol-relative tile URL to avoid mixed-content issues
+L.tileLayer('//{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 8,
   attribution: ''
 }).addTo(map);
 
-// 修复桌面空白：Leaflet 有时需要手动刷新尺寸
-setTimeout(()=>map.invalidateSize(), 300);
+// sometimes Leaflet needs to recalc size on some desktop layouts
+setTimeout(() => map.invalidateSize(), 300);
 
-// 全局 state
-let airportDB = {}; // object keyed by code
-let flights = [];   // parsed flight objects
-let markers = {};   // flight markers keyed by flightNo
-let airportMarkers = {}; // airport markers keyed by code
-let polyLines = {};
+/* ======================== STATE ======================== */
+
+let airportDB = {};   // normalized: { CODE: {name,code,lat,lon,...} }
+let flights = [];     // parsed flight objects
+let flightMarkers = {}; // keyed by flight flightNo (Leaflet marker)
+let flightPolylines = {}; // keyed by flightNo
+let airportMarkers = {}; // keyed by airport code
 let showFlightNo = localStorage.getItem('showFlightNo') === 'true';
-
-// DOM
 const searchInput = document.getElementById('searchInput');
-const toggleFlightNo = document.getElementById('toggleFlightNo');
+const toggleFlightNoElem = document.getElementById('toggleFlightNo');
+const showAirportNamesElem = document.getElementById('showAirportNames');
+const showAirportCodesElem = document.getElementById('showAirportCodes');
 const flightListEl = document.getElementById('flightList');
 const infoCard = document.getElementById('infoCard');
-const showAirportNames = document.getElementById('showAirportNames');
-const showAirportCodes = document.getElementById('showAirportCodes');
 
-// helpers
-const weekdayMap = {SUN:0,MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6};
-function timeToMinutes(t){ const [h,m]=t.split(':').map(Number); return h*60 + m; }
-function getQueryParam(){ return new URLSearchParams(location.search).get('flights_map'); }
+/* ======================== UTILITIES ======================== */
 
-// parse flight line robustly (support #+n#跨日)
-function parseFlightLine(line){
-  if(!line) return null;
-  try{
+// parse HH:MM (allow H:MM etc.) into minutes since 00:00
+function timeToMinutes(t) {
+  if (!t) return null;
+  const parts = String(t).trim().split(':').map(s => parseInt(s, 10));
+  if (parts.length < 2 || Number.isNaN(parts[0]) || Number.isNaN(parts[1])) return null;
+  return parts[0] * 60 + parts[1];
+}
+
+// parse flight line with support for #+n# (day offset)
+function parseFlightLine(line) {
+  if (!line || typeof line !== 'string') return null;
+  try {
     const raw = line.trim();
-    const flightNo = (raw.match(/【([^】]+)】/)||[,''])[1] || '';
-    const aircraft = (raw.match(/〔([^〕]+)〕/)||[,''])[1] || '';
-    const airline = (raw.match(/『([^』]+)』/)||[,''])[1] || '';
-    const daysStr = (raw.match(/«([^»]+)»/)||[,''])[1] || '';
-    const days = daysStr ? daysStr.split(',').map(s=>s.trim()) : [];
-    // segments pattern: 《Place出发》{hh:mm}#+n#@...
-    const segRegex = /《([^》]+?)》\{([0-2]?\d:[0-5]\d)\}#\+?([0-9]+)#@[^@]*@/g;
-    let segs=[], m;
-    while((m=segRegex.exec(raw))!==null){
-      const placeText = m[1]; const time = m[2]; const dayOffset = parseInt(m[3]||'0',10) || 0;
-      const airport = placeText.replace(/出发|到达|到达站|出发站/g,'').trim();
-      segs.push({airport, time, dayOffset});
+    // flightNo
+    const flightNo = (raw.match(/【([^】]+)】/) || [null, ''])[1] || '';
+    // machine / aircraft
+    const aircraft = (raw.match(/〔([^〕]+)〕/) || [null, ''])[1] || '';
+    const airline = (raw.match(/『([^』]+)』/) || [null, ''])[1] || '';
+    const daysStr = (raw.match(/«([^»]+)»/) || [null, ''])[1] || '';
+    const days = daysStr ? daysStr.split(',').map(s => s.trim()) : [];
+    // segments extraction: we handle both dep and arr segments
+    // pattern matches: 《Place出发》{HH:MM}#+n#@T...
+    const segRegex = /《([^》]+?)》\{([0-2]?\d:[0-5]\d)\}#\+?([0-9]+)?#@[^@]*@/g;
+    let segs = [], m;
+    while ((m = segRegex.exec(raw)) !== null) {
+      const placeText = m[1];
+      const time = m[2];
+      const dayOffset = m[3] ? parseInt(m[3], 10) : 0;
+      const airportName = placeText.replace(/出发|到达|到达站|出发站/g, '').trim();
+      segs.push({ airport: airportName, time: time, dayOffset: dayOffset });
     }
     const dep = segs[0] || null;
     const arr = segs[1] || null;
-    const priceEco = (raw.match(/§([^§]+)§/)||[,''])[1] || '';
-    const priceBiz = (raw.match(/θ([^θ]+)θ/)||[,''])[1] || '';
-    const special = (raw.match(/△([^△]+)△/)||[,''])[1] || '';
-    const regNo = (raw.match(/<([^>]+)>/)||[,''])[1] || '';
-    return { raw, flightNo, aircraft, airline, days, dep, arr, priceEco, priceBiz, special, regNo };
-  }catch(e){ console.error('parseFlightLine',e,line); return null; }
-}
-
-// load airports (expect object keyed by code)
-async function loadAirports(){
-  const res = await fetch(DATA_AIRPORTS, {cache:'no-cache'});
-  const json = await res.json();
-  // Accept either array or object: normalize to object keyed by code
-  if(Array.isArray(json)){
-    airportDB = {};
-    json.forEach(a=>{
-      if(!a.code) return;
-      airportDB[a.code.toUpperCase()] = a;
-      // ensure aliases exist
-      a.aliases = a.aliases || [];
-    });
-  }else{
-    // already object keyed
-    airportDB = {};
-    Object.keys(json).forEach(k=>{
-      airportDB[k.toUpperCase()] = json[k];
-      airportDB[k.toUpperCase()].aliases = airportDB[k.toUpperCase()].aliases || [];
-    });
+    const priceEco = (raw.match(/§([^§]+)§/) || [null, ''])[1] || '';
+    const priceBiz = (raw.match(/θ([^θ]+)θ/) || [null, ''])[1] || '';
+    const special = (raw.match(/△([^△]+)△/) || [null, ''])[1] || '';
+    const regNo = (raw.match(/<([^>]+)>/) || [null, ''])[1] || '';
+    // also capture id pattern if different
+    const id = regNo || ((raw.match(/<([^>]+)>/)||[])[1] || '');
+    return {
+      raw, flightNo, aircraft, airline, days,
+      dep, arr, priceEco, priceBiz, special, regNo, id
+    };
+  } catch (e) {
+    console.error('parseFlightLine error', e, line);
+    return null;
   }
 }
 
-// find airport by name/alias/code (case-insensitive)
-function findAirportByName(name){
-  if(!name) return null;
-  const s = name.trim().toLowerCase();
-  // try code exact
-  if(airportDB[s.toUpperCase()]) return airportDB[s.toUpperCase()];
-  for(const code in airportDB){
+// Normalize airport DB: support array or object
+function normalizeAirportDB(json) {
+  const out = {};
+  if (Array.isArray(json)) {
+    json.forEach(a => {
+      if (!a.code) return;
+      out[a.code.toUpperCase()] = {
+        name: a.name,
+        code: a.code.toUpperCase(),
+        lat: a.lat,
+        lon: a.lon,
+        aliases: a.aliases || [],
+        level: a.level || null,
+        runways: a.runways || null
+      };
+    });
+  } else if (json && typeof json === 'object') {
+    // assume keyed by code
+    Object.keys(json).forEach(k => {
+      const a = json[k];
+      out[(a.code || k).toUpperCase()] = {
+        name: a.name,
+        code: (a.code || k).toUpperCase(),
+        lat: a.lat,
+        lon: a.lon,
+        aliases: a.aliases || [],
+        level: a.level || null,
+        runways: a.runways || null
+      };
+    });
+  }
+  return out;
+}
+
+// find airport by various keys: code, name or alias (case-insensitive)
+function findAirport(query) {
+  if (!query) return null;
+  const q = String(query).trim().toLowerCase();
+  // exact code
+  if (airportDB[q.toUpperCase()]) return airportDB[q.toUpperCase()];
+  // scan names and aliases
+  for (const code in airportDB) {
     const a = airportDB[code];
-    if((a.name && a.name.toLowerCase().includes(s)) || (a.code && a.code.toLowerCase()===s)) return a;
-    if(a.aliases && a.aliases.some(x=>x.toLowerCase().includes(s))) return a;
+    if ((a.name && a.name.toLowerCase().includes(q)) ||
+        (a.code && a.code.toLowerCase() === q) ||
+        (a.aliases && a.aliases.some(x => x.toLowerCase().includes(q)))) {
+      return a;
+    }
   }
   return null;
 }
 
-// find flights by flightNo or regNo
-function findFlightsByQuery(q){
-  const s = q.trim().toLowerCase();
-  if(!s) return [];
-  return flights.filter(f=>{
-    if(f.flightNo && f.flightNo.toLowerCase().includes(s)) return true;
-    if(f.regNo && f.regNo.toLowerCase().includes(s)) return true;
-    // also match dep/arr airport codes/names
-    if(f.dep && f.dep.airport && f.dep.airport.toLowerCase().includes(s)) return true;
-    if(f.arr && f.arr.airport && f.arr.airport.toLowerCase().includes(s)) return true;
+// search flights by flightNo, regNo, dep/arr airport names or codes (fuzzy)
+function searchFlights(query) {
+  if (!query) return [];
+  const q = query.trim().toLowerCase();
+  return flights.filter(f => {
+    if (f.flightNo && f.flightNo.toLowerCase().includes(q)) return true;
+    if (f.regNo && f.regNo.toLowerCase().includes(q)) return true;
+    if (f.dep && f.dep.airport && f.dep.airport.toLowerCase().includes(q)) return true;
+    if (f.arr && f.arr.airport && f.arr.airport.toLowerCase().includes(q)) return true;
     return false;
   });
 }
 
-// draw airport markers (with CSS via divIcon)
-function drawAirports(){
+// compute bearing from A to B (degrees)
+function computeBearing(lat1, lon1, lat2, lon2) {
+  const toRad = Math.PI / 180, toDeg = 180 / Math.PI;
+  const φ1 = lat1 * toRad, φ2 = lat2 * toRad;
+  const Δλ = (lon2 - lon1) * toRad;
+  const y = Math.sin(Δλ) * Math.cos(φ2);
+  const x = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+  const θ = Math.atan2(y, x);
+  return (θ * toDeg + 360) % 360;
+}
+
+// build Date from base date and hh:mm and addDays offsets
+function makeDateTime(base, hhmm, addDays = 0) {
+  // base is Date object
+  const parts = String(hhmm).split(':').map(s => parseInt(s, 10));
+  const hh = parts[0] || 0, mm = parts[1] || 0;
+  const d = new Date(base.getFullYear(), base.getMonth(), base.getDate(), hh, mm, 0, 0);
+  if (addDays) d.setDate(d.getDate() + addDays);
+  return d;
+}
+
+// fraction between two Date objects (0..1)
+function fracBetween(now, start, end) {
+  const total = end - start;
+  if (total <= 0) return 0;
+  return Math.min(1, Math.max(0, (now - start) / total));
+}
+
+// format time string from Date
+function formatDateTime(d) {
+  if (!d) return '--:--';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0') + ' ' + String(d.getHours()).padStart(2, '0') + ':' +
+         String(d.getMinutes()).padStart(2, '0');
+}
+
+/* ======================== LOADING DATA ======================== */
+
+async function loadAirports() {
+  try {
+    const res = await fetch(DATA_AIRPORTS, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('无法加载 airports.json: ' + res.status);
+    const json = await res.json();
+    airportDB = normalizeAirportDB(json);
+    console.log('[flights_map] airports loaded:', Object.keys(airportDB).length);
+  } catch (e) {
+    console.error('loadAirports error', e);
+    airportDB = {};
+  }
+}
+
+async function loadFlights() {
+  try {
+    const res = await fetch(DATA_FLIGHTS, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('无法加载 flight_data.txt: ' + res.status);
+    const txt = await res.text();
+    const lines = txt.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    flights = lines.map(parseFlightLine).filter(Boolean);
+    console.log('[flights_map] flights loaded:', flights.length);
+  } catch (e) {
+    console.error('loadFlights error', e);
+    flights = [];
+  }
+}
+
+/* ======================== DRAW AIRPORTS ======================== */
+
+function drawAirports() {
   // clear existing
   Object.values(airportMarkers).forEach(m => map.removeLayer(m));
   airportMarkers = {};
-  Object.keys(airportDB).forEach(code=>{
+
+  Object.keys(airportDB).forEach(code => {
     const a = airportDB[code];
-    if(!a.lat || !a.lon) return;
-    const el = L.divIcon({
+    if (!a || a.lat == null || a.lon == null) return;
+
+    // create a divIcon that looks like concentric circles
+    const html = `
+      <div class="airport-marker-outer" style="display:flex;align-items:center;justify-content:center;">
+        <div class="airport-marker-inner" style="width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 6px rgba(0,0,0,0.25);"></div>
+      </div>
+    `;
+    const icon = L.divIcon({
+      html: html,
       className: 'airport-marker',
-      html: `<div class="airport-marker" title="${a.name} (${a.code})"></div>`,
-      iconSize: [16,16],
-      iconAnchor: [8,8]
+      iconSize: [16, 16],
+      iconAnchor: [8, 8]
     });
-    const mk = L.marker([a.lat, a.lon], {icon:el}).addTo(map);
-    mk.on('click', ()=> showAirportCard(a));
+
+    const mk = L.marker([a.lat, a.lon], { icon }).addTo(map);
+    mk.on('click', () => showAirportCard(a));
     airportMarkers[code] = mk;
-    // optionally show label if checkbox on
-    if(showAirportNames.checked || showAirportCodes.checked){
-      const txt = (showAirportNames.checked? a.name : '') + (showAirportCodes.checked? ' ' + a.code : '');
-      if(txt.trim()){
-        L.tooltip({permanent:true, direction:'right', className:'flight-label'}).setContent(txt).setLatLng([a.lat, a.lon]).addTo(map);
-      }
+
+    // show inline label (not a popup) if toggles enabled
+    const labelParts = [];
+    if (showAirportNamesElem && showAirportNamesElem.checked) labelParts.push(a.name);
+    if (showAirportCodesElem && showAirportCodesElem.checked) labelParts.push(a.code);
+    const label = labelParts.join(' ');
+    if (label) {
+      const tooltip = L.tooltip({
+        permanent: true,
+        direction: 'right',
+        className: 'flight-label'
+      }).setContent(label).setLatLng([a.lat, a.lon]);
+      tooltip.addTo(map);
     }
   });
 }
 
-// create plane SVG icon (data URI) rotated automatically by Leaflet's rotation handling via CSS transform
-function planeIconSvg(color='rgba(11,102,194,1)'){
-  // simple plane SVG path - compact and rotate-able
-  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='-18 -18 36 36'><g transform='scale(1)'><path d='M0-10 L6 0 L0 -2 L-6 0 Z' fill='${color}' stroke='#fff' stroke-width='0.8' /></g></svg>`;
-  return 'data:image/svg+xml;base64,' + btoa(svg);
+/* ======================== DRAW FLIGHTS ======================== */
+
+// helper to build runtime info (dep/arr Date objects and status)
+function buildFlightRuntime(flight) {
+  const base = new Date(); // base date = today
+  // default nulls
+  let depDate = null, arrDate = null;
+  if (flight.dep && flight.dep.time) {
+    depDate = makeDateTime(base, flight.dep.time, flight.dep.dayOffset || 0);
+  }
+  if (flight.arr && flight.arr.time) {
+    arrDate = makeDateTime(base, flight.arr.time, flight.arr.dayOffset || 0);
+    // if arr earlier than dep and arr dayOffset not set, assume next day
+    if (depDate && arrDate < depDate && !(flight.arr.dayOffset && flight.arr.dayOffset > 0)) {
+      arrDate.setDate(arrDate.getDate() + 1);
+    }
+  }
+  // status
+  const now = new Date();
+  let status = 'no-service-today';
+  if (flight.days && flight.days.length) {
+    const wk = now.getDay();
+    const runToday = flight.days.some(t => {
+      const map = {SUN:0,MON:1,TUE:2,WED:3,THU:4,FRI:5,SAT:6};
+      return map[(t||'').toUpperCase()] === wk;
+    });
+    if (runToday) {
+      if (depDate && now < depDate) status = 'preparing';
+      else if (depDate && arrDate && now >= depDate && now <= arrDate) status = 'in-flight';
+      else status = 'arrived';
+    } else {
+      status = 'no-service-today';
+    }
+  } else {
+    // if no days defined assume daily
+    if (depDate && arrDate) {
+      if (now < depDate) status = 'preparing';
+      else if (now >= depDate && now <= arrDate) status = 'in-flight';
+      else status = 'arrived';
+    }
+  }
+
+  // progress
+  let progress = 0;
+  if (status === 'in-flight' && depDate && arrDate) {
+    progress = fracBetween(new Date(), depDate, arrDate);
+  } else {
+    if (status === 'arrived') progress = 1;
+    else progress = 0;
+  }
+
+  return { depDate, arrDate, status, progress };
 }
 
-// draw flights (in-flight or focused)
-function drawFlights(filterId=null){
-  // clear previous markers and polylines
-  Object.values(markers).forEach(m=>map.removeLayer(m));
-  Object.values(polyLines).forEach(p=>map.removeLayer(p));
-  markers = {}; polyLines = {};
+function clearFlightsFromMap() {
+  Object.values(flightMarkers).forEach(m => map.removeLayer(m));
+  Object.values(flightPolylines).forEach(p => map.removeLayer(p));
+  flightMarkers = {};
+  flightPolylines = {};
+}
+
+function drawFlights(options = {}) {
+  // options:
+  //  focusId: string (flightNo or regNo or id)
+  //  hideOthers: boolean
+  const focusId = options.focusId ? String(options.focusId).toLowerCase() : null;
+  const hideOthers = options.hideOthers === true;
+
+  clearFlightsFromMap();
 
   const now = new Date();
 
-  // build items with status and progress for each flight
-  const items = flights.map(f=>{
-    // compute dep/arr Date based on today and dayOffset flags
-    const base = new Date();
-    let depDate = null, arrDate = null;
-    if(f.dep && f.dep.time){
-      depDate = makeDateTime(base, f.dep.time, f.dep.dayOffset || 0);
+  flights.forEach(f => {
+    // find airports
+    const depName = f.dep ? f.dep.airport : null;
+    const arrName = f.arr ? f.arr.airport : null;
+    const depAirport = findAirport(depName) || null;
+    const arrAirport = findAirport(arrName) || null;
+    if (!depAirport || !arrAirport) {
+      // cannot draw route without both airports
+      return;
     }
-    if(f.arr && f.arr.time){
-      arrDate = makeDateTime(base, f.arr.time, f.arr.dayOffset || 0);
-      // if arr earlier than dep and dayOffset not provided, treat as next day
-      if(depDate && arrDate < depDate && !(f.arr.dayOffset && f.arr.dayOffset>0)) arrDate.setDate(arrDate.getDate()+1);
+
+    // compute runtime
+    const runtime = buildFlightRuntime(f);
+    const status = runtime.status;
+    const progress = runtime.progress;
+
+    // if focused only show that flight (if hideOthers true)
+    if (focusId) {
+      const idLower = focusId.toLowerCase();
+      const isMatch = (f.flightNo && f.flightNo.toLowerCase() === idLower) ||
+                      (f.regNo && f.regNo.toLowerCase() === idLower) ||
+                      ((f.id || '').toLowerCase() === idLower);
+      if (!isMatch && hideOthers && HIDE_OTHER_FLIGHTS_ON_SEARCH) {
+        // skip drawing this non-focused flight
+        return;
+      }
     }
-    let status='no-service-today', progress=0;
-    // if days specified, check runs today
-    if(f.days && f.days.length){
-      const d = base.getDay();
-      const run = f.days.some(t=> weekdayMap[t.toUpperCase()] === d);
-      if(run){
-        if(depDate && now < depDate) status='preparing';
-        else if(depDate && arrDate && now >= depDate && now <= arrDate){ status='in-flight'; progress = fracBetween(now,depDate,arrDate); }
-        else status='arrived';
-      }else status='no-service-today';
+
+    // draw polyline (full route) but style depends on focus / status
+    const pl = L.polyline([[depAirport.lat, depAirport.lon], [arrAirport.lat, arrAirport.lon]], {
+      color: (focusId && ((f.flightNo && f.flightNo.toLowerCase() === focusId) || (f.regNo && f.regNo.toLowerCase() === focusId))) ? '#ff4d4f' : '#ff8c00',
+      weight: (focusId && ((f.flightNo && f.flightNo.toLowerCase() === focusId) || (f.regNo && f.regNo.toLowerCase() === focusId))) ? 4 : 2,
+      opacity: (status === 'in-flight' || (focusId && (f.flightNo && f.flightNo.toLowerCase() === focusId))) ? 1 : 0.45,
+      dashArray: '6 6'
+    }).addTo(map);
+    flightPolylines[f.flightNo] = pl;
+
+    // compute position for in-flight or for focused flight (even if not in flight)
+    let lat, lon;
+    if (status === 'in-flight') {
+      lat = depAirport.lat + (arrAirport.lat - depAirport.lat) * progress;
+      lon = depAirport.lon + (arrAirport.lon - depAirport.lon) * progress;
+    } else if (focusId) {
+      // if focused and not in-flight, position at dep if preparing, at arr if arrived
+      if (status === 'preparing') {
+        lat = depAirport.lat; lon = depAirport.lon;
+      } else if (status === 'arrived') {
+        lat = arrAirport.lat; lon = arrAirport.lon;
+      } else {
+        lat = depAirport.lat; lon = depAirport.lon;
+      }
+    } else {
+      // by default we only draw in-flight aircraft on the map (to reduce clutter)
+      if (status !== 'in-flight') {
+        // skip drawing marker
+        return;
+      } else {
+        lat = depAirport.lat + (arrAirport.lat - depAirport.lat) * progress;
+        lon = depAirport.lon + (arrAirport.lon - depAirport.lon) * progress;
+      }
     }
-    return { flight: f, depDate, arrDate, status, progress };
-  });
 
-  // choose visible flights
-  let visible = items.filter(it => it.status === 'in-flight');
-  if(filterId){
-    const idu = filterId.toLowerCase();
-    const focus = items.filter(it => (it.flight.flightNo && it.flight.flightNo.toLowerCase()===idu) || (it.flight.regNo && it.flight.regNo.toLowerCase()===idu) || (it.flight.id && it.flight.id.toLowerCase()===idu));
-    if(focus.length) visible = focus;
-  }
+    // compute bearing to rotate airplane
+    const angle = computeBearing(depAirport.lat, depAirport.lon, arrAirport.lat, arrAirport.lon);
 
-  visible.forEach(it=>{
-    const f = it.flight;
-    const depA = findAirportByName(f.dep?.airport || f.dep?.airportName || f.dep?.airportCode || '');
-    const arrA = findAirportByName(f.arr?.airport || f.arr?.airportName || f.arr?.airportCode || '');
-    // but our parseFlightLine stores f.dep.airport as airport name; convert using findAirportByName
-    const depAirport = findAirportByName(f.dep?.airport || f.dep?.airport);
-    const arrAirport = findAirportByName(f.arr?.airport || f.arr?.airport);
-    if(!depAirport || !arrAirport) return;
-
-    // add polyline
-    const line = L.polyline([[depAirport.lat, depAirport.lon],[arrAirport.lat, arrAirport.lon]], {color:'#ff8c00', weight:2, dashArray:'6 6'}).addTo(map);
-    polyLines[f.flightNo] = line;
-
-    // compute position along line
-    const ratio = it.progress;
-    const lat = depAirport.lat + (arrAirport.lat - depAirport.lat) * ratio;
-    const lon = depAirport.lon + (arrAirport.lon - depAirport.lon) * ratio;
-
-    // compute angle for rotation (bearing)
-    const angle = bearing(depAirport.lat, depAirport.lon, arrAirport.lat, arrAirport.lon);
-
-    // plane icon
-    const svgData = planeIconSvg('#1e90ff'); // you can change color
-    const icon = L.icon({ iconUrl: svgData, iconSize:[32,32], iconAnchor:[16,16] });
-
-    const mk = L.marker([lat, lon], { icon, rotationAngle: angle /* for leaflet-rotatedmarker plugin if available */ }).addTo(map);
-    mk.flight = f;
-    mk.on('click', ()=> showFlightCard(f, it, depAirport, arrAirport));
-    markers[f.flightNo] = mk;
-
-    // show tooltip label if user enabled
-    if(toggleFlightNo.checked){
-      mk.bindTooltip(f.flightNo, {permanent:true, direction:'right', className:'flight-label'}).openTooltip();
-    }
-  });
-
-  // ensure airports also drawn
-  drawAirports();
-  renderFlightList(items);
-}
-
-// render flight list on side
-function renderFlightList(items){
-  flightListEl.innerHTML = '';
-  items.forEach(it=>{
-    const f = it.flight;
-    const div = document.createElement('div');
-    div.className = 'flight-card';
-    const depTime = f.dep? `${f.dep.time}${f.dep.dayOffset? (' (+'+f.dep.dayOffset+')'):''}` : '--';
-    const arrTime = f.arr? `${f.arr.time}${f.arr.dayOffset? (' (+'+f.arr.dayOffset+')'):''}` : '--';
-    div.innerHTML = `<h4>${f.flightNo} ${f.airline || ''} <span style="float:right;color:var(--muted)">${f.regNo? f.regNo : ''}</span></h4>
-      <div class="flight-meta">${f.dep? f.dep.airport : '--'} → ${f.arr? f.arr.airport : '--'} · ${depTime} → ${arrTime}</div>
-      <div class="flight-meta">机型：${f.aircraft || '—'}</div>
-      <div class="flight-status">${it.status}</div>`;
-    div.addEventListener('click', ()=>{
-      // zoom to flight polyline if exists
-      const pl = polyLines[f.flightNo];
-      if(pl) map.fitBounds(pl.getBounds(), {padding:[80,80]});
+    // create an SVG data URI plane icon rotated via inline style on <img>
+    const planeSvg = createPlaneSvgDataUri('#1e90ff'); // color can be customized
+    const planeHtml = `<img src="${planeSvg}" style="width:28px;height:28px;transform:rotate(${angle}deg);transform-origin:center center;" />`;
+    const icon = L.divIcon({
+      html: planeHtml,
+      className: 'plane-div-icon',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
     });
-    flightListEl.appendChild(div);
+
+    const marker = L.marker([lat, lon], { icon }).addTo(map);
+    marker.flight = f;
+    marker.runtime = runtime;
+    marker.on('click', () => {
+      focusFlightOnMap(f);
+      showFlightInfoCard(f, runtime, depAirport, arrAirport);
+    });
+
+    // optionally show label
+    if (showFlightNoElem && showFlightNoElem.checked) {
+      marker.bindTooltip(f.flightNo, { permanent: true, direction: 'right', className: 'flight-label' }).openTooltip();
+    }
+
+    flightMarkers[f.flightNo] = marker;
   });
 }
+
+/* ======================== SEARCH & FOCUS ======================== */
+
+// focus flight: center map, highlight polyline, optionally hide other flights
+function focusFlightOnMap(flight, options = { hideOthers: HIDE_OTHER_FLIGHTS_ON_SEARCH }) {
+  if (!flight) return;
+  // find corresponding polyline
+  const pl = flightPolylines[flight.flightNo];
+  if (pl) {
+    map.fitBounds(pl.getBounds(), { padding: [80, 80] });
+  } else {
+    // fallback: center to dep airport
+    const dep = findAirport(flight.dep.airport);
+    if (dep) map.panTo([dep.lat, dep.lon]);
+  }
+  // redraw flights with focus
+  drawFlights({ focusId: flight.flightNo, hideOthers: options.hideOthers });
+}
+
+// create plane svg data URI (simple stylized plane)
+function createPlaneSvgDataUri(color = '#1e90ff') {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='-12 -12 24 24'><g fill='${color}'><path d='M0-9 L4 0 L0 -2 L-4 0 Z' /></g></svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(svg);
+}
+
+// handle search action (query may be flightNo, regNo, airport code/name)
+function handleSearch(query) {
+  if (!query || !query.trim()) return;
+  const q = query.trim();
+  // try flights first
+  const matches = searchFlights(q);
+  if (matches.length > 0) {
+    // take first match, focus it
+    const f = matches[0];
+    focusFlightOnMap(f, { hideOthers: HIDE_OTHER_FLIGHTS_ON_SEARCH });
+    // show info card
+    const runtime = buildFlightRuntime(f);
+    const depAirport = findAirport(f.dep.airport);
+    const arrAirport = findAirport(f.arr.airport);
+    showFlightInfoCard(f, runtime, depAirport, arrAirport);
+    return;
+  }
+  // try airport
+  const ap = findAirport(q);
+  if (ap) {
+    map.panTo([ap.lat, ap.lon]);
+    showAirportCard(ap);
+    return;
+  }
+  alert('未找到匹配的航班或机场 (' + q + ')');
+}
+
+/* ======================== INFO CARDS ======================== */
 
 // show flight info card (FR24-like)
-function showFlightCard(f, item, depA, arrA){
-  // find other flights by same regNo to show prev/next
-  const reg = f.regNo;
-  const siblings = reg ? flights.filter(x=>x.regNo && x.regNo === reg) : [];
-
-  // build times (ISO-like)
-  const depDate = item.depDate ? item.depDate.toLocaleString() : '--';
-  const arrDate = item.arrDate ? item.arrDate.toLocaleString() : '--';
-  const progressPct = Math.round(item.progress * 100);
-
-  let html = `<div class="title">${f.flightNo} · ${f.airline || ''}</div>`;
-  html += `<div class="meta">机型: ${f.aircraft || '—'} · 注册号: ${f.regNo || '—'}</div>`;
-  html += `<div style="margin-top:8px;"><b>起飞：</b> ${depA.name} (${depA.code}) · ${depDate}</div>`;
-  html += `<div><b>到达：</b> ${arrA.name} (${arrA.code}) · ${arrDate}</div>`;
-  html += `<div style="margin-top:8px;"><b>进度：</b> ${progressPct}%</div>`;
-  html += `<div class="progress-wrap" style="margin-top:6px"><div class="progress" style="width:${progressPct}%"></div></div>`;
-  if(siblings.length>1){
-    html += `<div style="margin-top:8px;color:var(--muted)">相同注册号航班 (${reg}) 共 ${siblings.length} 条</div>`;
+function showFlightInfoCard(flight, runtime, depAirport, arrAirport) {
+  const depDate = runtime.depDate;
+  const arrDate = runtime.arrDate;
+  const progressPct = Math.round(runtime.progress * 100);
+  // siblings by regNo
+  const siblings = flight.regNo ? flights.filter(x => x.regNo && x.regNo === flight.regNo) : [];
+  let html = '';
+  html += `<div class="title">${flight.flightNo} ${flight.airline || ''}</div>`;
+  html += `<div class="meta">机型：${flight.aircraft || '—'} · 注册号：${flight.regNo || '—'}</div>`;
+  html += `<div style="margin-top:8px"><b>起飞：</b> ${depAirport ? depAirport.name + ' (' + depAirport.code + ')' : (flight.dep ? flight.dep.airport : '--')} · ${depDate ? formatDateTime(depDate) : '--'}</div>`;
+  html += `<div><b>到达：</b> ${arrAirport ? arrAirport.name + ' (' + arrAirport.code + ')' : (flight.arr ? flight.arr.airport : '--')} · ${arrDate ? formatDateTime(arrDate) : '--'}</div>`;
+  html += `<div style="margin-top:10px"><b>进度：</b> ${progressPct}%</div>`;
+  html += `<div class="progress-wrap" style="margin-top:6px"><div class="progress" style="width:${progressPct}%;height:8px;border-radius:6px;background:linear-gradient(90deg,var(--accent),#2fd3ff);"></div></div>`;
+  if (siblings.length > 1) {
+    html += `<div style="margin-top:8px;color:var(--muted);font-size:12px">同注册号航班：${siblings.map(s => s.flightNo).join(', ')}</div>`;
   }
-  html += `<div style="margin-top:8px;color:var(--muted);font-size:12px">经济：${f.priceEco||'—'} · 商务：${f.priceBiz||'—'} · 头等：${f.special||'—'}</div>`;
+  html += `<div style="margin-top:8px;color:var(--muted);font-size:12px">经济：${flight.priceEco || '—'} · 商务：${flight.priceBiz || '—'} · 头等：${flight.special || '—'}</div>`;
 
   infoCard.innerHTML = html;
   infoCard.classList.remove('hidden');
 }
 
 // show airport card
-function showAirportCard(a){
-  let html = `<div class="title">${a.name} (${a.code})</div>`;
-  if(a.level) html += `<div class="meta">等级：${a.level}</div>`;
-  if(a.runways) html += `<div class="meta">跑道：${a.runways}</div>`;
+function showAirportCard(ap) {
+  if (!ap) return;
+  let html = `<div class="title">${ap.name} (${ap.code})</div>`;
+  if (ap.level) html += `<div class="meta">等级：${ap.level}</div>`;
+  if (ap.runways != null) html += `<div class="meta">跑道：${ap.runways}</div>`;
   infoCard.innerHTML = html;
   infoCard.classList.remove('hidden');
 }
 
-// hide info card on map click
-map.on('click', ()=> infoCard.classList.add('hidden'));
+/* ======================== UI BINDINGS ======================== */
 
-// compute bearing between two lat/lon
-function bearing(lat1, lon1, lat2, lon2){
-  const toRad = Math.PI/180, toDeg = 180/Math.PI;
-  const y = Math.sin((lon2-lon1)*toRad) * Math.cos(lat2*toRad);
-  const x = Math.cos(lat1*toRad)*Math.sin(lat2*toRad) - Math.sin(lat1*toRad)*Math.cos(lat2*toRad)*Math.cos((lon2-lon1)*toRad);
-  return (Math.atan2(y,x)*toDeg + 360) % 360;
-}
-
-// date helpers
-function makeDateTime(baseDate, hhmm, addDays=0){
-  const [hh, mm] = hhmm.split(':').map(s=>parseInt(s,10));
-  const d = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), hh, mm, 0, 0);
-  if(addDays) d.setDate(d.getDate() + addDays);
-  return d;
-}
-function fracBetween(now, dep, arr){ const total = arr - dep; if(total<=0) return 0; return Math.min(1,Math.max(0,(now-dep)/total)); }
-
-// ---------- load flights ----------
-async function loadFlights(){
-  const res = await fetch(DATA_FLIGHTS, {cache:'no-cache'});
-  const txt = await res.text();
-  flights = txt.split(/\r?\n/).map(parseFlightLine).filter(Boolean);
-  // normalize fields: ensure f.dep.airport / f.arr.airport are set
-  flights.forEach(f=>{
-    if(f.dep && f.dep.airport===undefined && f.dep.airportName) f.dep.airport = f.dep.airportName;
-    // map f.dep.airport field names if various formats exist; we assume parseFlightLine sets .dep.airport
-  });
-}
-
-// ---------- SEARCH ----------
-function initSearch(){
-  searchInput.addEventListener('keydown', (e)=>{
-    if(e.key==='Enter'){
-      doSearch(searchInput.value.trim());
+// top search input
+if (searchInput) {
+  searchInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      handleSearch(searchInput.value);
     }
   });
 }
-function doSearch(q){
-  if(!q) return;
-  const results = findFlightsByQuery(q);
-  if(results.length>0){
-    // focus first result
-    const f = results[0];
-    // fit bounds if polyline exists else fly to airport
-    const dep = findAirportByName(f.dep.airport);
-    const arr = findAirportByName(f.arr.airport);
-    if(dep && arr){
-      map.fitBounds([[dep.lat,dep.lon],[arr.lat,arr.lon]], {padding:[80,80]});
-    }else if(dep){
-      map.panTo([dep.lat,dep.lon]);
-    }
-    // open info card for first result
-    // find item with same flightNo
-    const item = { flight: f, depDate: makeDateTime(new Date(), f.dep.time, f.dep.dayOffset || 0), arrDate: makeDateTime(new Date(), f.arr.time, f.arr.dayOffset || 0), status:'in-flight', progress:0.4 };
-    showFlightCard(f, item, dep || {name:f.dep.airport, code:''}, arr || {name:f.arr.airport, code:''});
-    // highlight marker if exists
-  }else{
-    // try match airport
-    const ap = findAirportByName(q);
-    if(ap) {
-      map.panTo([ap.lat, ap.lon]);
-      showAirportCard(ap);
-    } else {
-      alert('未找到匹配的航班或机场');
-    }
-  }
+
+// toggle flight number labels
+if (toggleFlightNoElem) {
+  toggleFlightNoElem.checked = showFlightNo;
+  toggleFlightNoElem.addEventListener('change', () => {
+    showFlightNo = toggleFlightNoElem.checked;
+    localStorage.setItem('showFlightNo', showFlightNo);
+    // redraw so markers update labels
+    drawFlights();
+  });
 }
 
-// ---------- UI bindings ----------
-toggleFlightNo.checked = showFlightNo;
-toggleFlightNo.addEventListener('change', ()=>{
-  showFlightNo = toggleFlightNo.checked;
-  localStorage.setItem('showFlightNo', showFlightNo);
-  drawFlights(getQueryParam());
+// airport label toggles
+if (showAirportNamesElem) {
+  showAirportNamesElem.addEventListener('change', () => drawAirports());
+}
+if (showAirportCodesElem) {
+  showAirportCodesElem.addEventListener('change', () => drawAirports());
+}
+
+// hide info card when clicking map
+map.on('click', () => {
+  if (infoCard) infoCard.classList.add('hidden');
 });
 
-// search input init
-initSearch();
-document.getElementById('searchInput').value = '';
+/* ======================== BOOT & REFRESH ======================== */
 
-// airport labels toggles
-showAirportNames.addEventListener('change', ()=> drawAirports());
-showAirportCodes.addEventListener('change', ()=> drawAirports());
-
-// main init
-async function init(){
+async function boot() {
   await loadAirports();
   await loadFlights();
-  // initial draw
   drawAirports();
-  drawFlights(getQueryParam());
-  // if url param present, focus and zoom to flight
-  const q = getQueryParam();
-  if(q){
-    // center on matched flight
-    const matches = findFlightsByQuery(q);
-    if(matches.length){
-      const f = matches[0];
-      const dep = findAirportByName(f.dep.airport);
-      const arr = findAirportByName(f.arr.airport);
-      if(dep && arr) map.fitBounds([[dep.lat,dep.lon],[arr.lat,arr.lon]], {padding:[80,80]});
+  drawFlights();
+
+  // if URL param present, auto-focus
+  const q = new URLSearchParams(location.search).get('flights_map') || null;
+  if (q) {
+    // try to find match
+    const candidates = searchFlights(q);
+    if (candidates.length > 0) {
+      const target = candidates[0];
+      focusFlightOnMap(target, { hideOthers: HIDE_OTHER_FLIGHTS_ON_SEARCH });
+      const runtime = buildFlightRuntime(target);
+      const dep = findAirport(target.dep.airport);
+      const arr = findAirport(target.arr.airport);
+      showFlightInfoCard(target, runtime, dep, arr);
     }
   }
-  // periodic refresh (optional)
-  setInterval(()=> drawFlights(getQueryParam()), 30*1000);
+
+  // periodic refresh
+  setInterval(() => {
+    // reload flights periodically (optional: you may prefer only recalculating positions)
+    loadFlights().then(() => {
+      drawAirports();
+      drawFlights();
+    });
+  }, REFRESH_INTERVAL);
 }
-init();
+
+boot();
+
+/* ======================== SEARCH HELPERS (used by UI) ======================== */
+
+function findAirport(q) { return findAirportByAny(q); }
+
+// internal: find airport by code/name/alias
+function findAirportByAny(q) {
+  if (!q) return null;
+  const s = String(q).trim().toLowerCase();
+  // try direct code
+  if (airportDB[s.toUpperCase()]) return airportDB[s.toUpperCase()];
+  // scan
+  for (const k in airportDB) {
+    const a = airportDB[k];
+    if ((a.name && a.name.toLowerCase().includes(s)) ||
+        (a.code && a.code.toLowerCase() === s) ||
+        (a.aliases && a.aliases.some(x => x.toLowerCase().includes(s)))) {
+      return a;
+    }
+  }
+  return null;
+}
+function searchFlights(q) {
+  if (!q) return [];
+  const s = String(q).trim().toLowerCase();
+  return flights.filter(f => {
+    if (f.flightNo && f.flightNo.toLowerCase().includes(s)) return true;
+    if (f.regNo && f.regNo.toLowerCase().includes(s)) return true;
+    if (f.dep && f.dep.airport && f.dep.airport.toLowerCase().includes(s)) return true;
+    if (f.arr && f.arr.airport && f.arr.airport.toLowerCase().includes(s)) return true;
+    return false;
+  });
+}
