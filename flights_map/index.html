@@ -5,54 +5,73 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>航班实时地图</title>
 
-  <link rel="stylesheet" href="style.css" />
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- 顶部工具栏（含搜索） -->
-  <div id="toolbar">
+
+  <!-- 顶部工具栏（搜索 + 按钮） -->
+  <div id="topBar" class="top-bar">
     <div class="left">
-      <div id="logo">FlightMap</div>
-      <div id="searchBox">
-        <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 机场名 / 注册号（示例 HA1721 / PVG / 拜科努尔 / DF1729）" />
-        <button id="searchBtn">搜索</button>
-        <button id="clearSearch">清除</button>
+      <button class="btn ghost" id="btn-sidebar-toggle">☰</button>
+      <div class="brand">
+        <div class="brand-logo"></div>
+        <div class="brand-text">航班实时地图</div>
       </div>
     </div>
 
+    <div class="search-wrapper">
+      <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 机场名 / 注册号（示例 DF1729）" />
+      <button class="btn primary" id="searchBtn">搜索</button>
+      <button class="btn ghost" id="clearSearchBtn">清除</button>
+    </div>
+
     <div class="right">
-      <label class="small">机场标签
-        <input type="checkbox" id="toggleAirportLabels" />
+      <label class="switch small">
+        <input type="checkbox" id="toggleFlightNo">
+        <span class="slider"></span>
       </label>
-      <label class="small">显示航班号
-        <input type="checkbox" id="toggleFlightNo" />
+      <span class="small-label">显示航班号</span>
+
+      <label class="switch small">
+        <input type="checkbox" id="toggleAirportLabels">
+        <span class="slider"></span>
       </label>
-      <label class="small">单航班模式（URL优先）
-        <input type="checkbox" id="toggleSingleMode" />
-      </label>
-      <label class="small">自动刷新(秒)
-        <input id="refreshSeconds" type="number" min="10" step="10" value="180" />
-      </label>
-      <button id="btnRefresh">手动刷新</button>
+      <span class="small-label">显示机场标注</span>
+
+      <button class="btn ghost" id="btn-only-filter">仅显示 URL 指定航班</button>
     </div>
   </div>
 
   <!-- 地图 -->
   <div id="map"></div>
 
-  <!-- 机票/机场信息卡（手机上拉栏或桌面右侧面板）-->
-  <div id="sidePanel" class="panel-closed">
-    <div id="panelHeader">
-      <span id="panelTitle">航班信息</span>
-      <button id="panelToggle">∨</button>
+  <!-- 侧栏（大屏） -->
+  <aside id="sidebar" class="sidebar hidden">
+    <div class="sidebar-header">
+      <h3>当前航班</h3>
+      <div class="controls">
+        <button class="btn secondary" id="btn-refresh">刷新</button>
+        <button class="btn ghost" id="btn-settings">设置</button>
+      </div>
     </div>
-    <div id="panelBody"></div>
+    <div id="flightList" class="flight-list"></div>
+  </aside>
+
+  <!-- 底部上拉（手机） -->
+  <div id="mobilePanel" class="mobile-panel hidden">
+    <div class="mobile-handle">↑ 航班列表</div>
+    <div id="mobileList" class="flight-list"></div>
   </div>
 
-  <!-- 航班详细卡片（底部中央） -->
-  <div id="infoCard" class="hidden"></div>
+  <!-- 航班信息卡（底部居中）-->
+  <div id="infoCard" class="info-card hidden"></div>
+
+  <!-- 小提示（Toast） -->
+  <div id="toast" class="toast hidden"></div>
 
   <script src="script.js"></script>
 </body>
