@@ -1,66 +1,134 @@
-/* ========== 基础 & 响应 ========== */
-:root{
-  --bg:#f6f8fb; --card:#ffffff; --text:#111; --muted:#666; --accent:#0b66c2;
+:root {
+  --card-bg: rgba(255,255,255,0.92);
+  --text-color: #222;
+  --accent: #ff8a00;
 }
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#071018; --card:#061018; --text:#e6eef9; --muted:#99a0aa; --accent:#59a7ff; }
-}
-html,body{height:100%;margin:0;font-family:Inter, "PingFang SC", "Noto Sans", sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
-a{color:var(--accent)}
-
-/* topbar */
-.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,0.04);position:relative;z-index:1200}
-.brand{font-weight:700}
-.search-wrap{display:flex;gap:8px;align-items:center}
-#searchInput{width:480px;padding:8px 12px;border-radius:18px;border:1px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.9)}
-#btnSearch{padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:white;cursor:pointer}
-
-/* switch */
-.switch{display:inline-flex;align-items:center;gap:8px}
-.switch input{display:none}
-.switch .slider{width:48px;height:26px;background:#ccc;border-radius:26px;position:relative;display:inline-block}
-.switch .slider:after{content:'';position:absolute;left:4px;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s}
-.switch input:checked + .slider{background:var(--accent)}
-.switch input:checked + .slider:after{transform:translateX(22px)}
-.switch .label-text{font-size:13px;color:var(--muted)}
-
-/* main layout */
-.main{display:flex;height:calc(100% - 64px);overflow:hidden}
-.sidebar{width:350px;background:var(--card);padding:12px;border-right:1px solid rgba(0,0,0,0.04);box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);overflow:auto}
-.map-area{flex:1;position:relative}
-.map{width:100%;height:100%}
-
-/* side content */
-.side-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.side-controls{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;font-size:13px;color:var(--muted)}
-.flight-list{display:flex;flex-direction:column;gap:8px}
-.flight-card{padding:10px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.02));border:1px solid rgba(0,0,0,0.04)}
-.flight-card h4{margin:0;font-size:14px}
-.flight-meta{font-size:12px;color:var(--muted);margin-top:6px}
-.flight-status{margin-top:8px;font-weight:600}
-
-/* airport marker css via divIcon - we style inner html */
-.leaflet-container .airport-marker-outer{display:flex;align-items:center;justify-content:center}
-.airport-marker-inner{width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 6px rgba(11,102,194,0.25)}
-.leaflet-tooltip.flight-label{background:transparent;border:none;box-shadow:none;color:var(--text);font-weight:500}
-
-/* plane marker label tooltip style */
-.flight-label{background:rgba(255,255,255,0.95);padding:2px 6px;border-radius:6px;border:1px solid #eee}
-
-/* info card (FR24-like) */
-.info-card{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:1400;min-width:280px;max-width:420px;background:var(--card);color:var(--text);border-radius:12px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,0.25)}
-.info-card .title{font-weight:700;font-size:16px;margin-bottom:6px}
-.info-card .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
-.progress-wrap{height:8px;background:rgba(0,0,0,0.06);border-radius:6px;overflow:hidden}
-.progress{height:100%;background:linear-gradient(90deg,var(--accent),#2fd3ff);width:0%}
-
-/* responsive: mobile layout -> sidebar becomes bottom pull-up */
-@media (max-width:900px){
-  .sidebar{position:fixed;left:0;right:0;bottom:0;height:42%;width:100%;transform:translateY(100%);transition:transform .28s;z-index:1300;border-top-left-radius:12px;border-top-right-radius:12px}
-  .sidebar.open{transform:translateY(0)}
-  .hide-mobile{display:none}
-  #searchInput{width:200px}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-bg: rgba(18,18,18,0.8);
+    --text-color: #eee;
+  }
 }
 
-/* small tweaks */
-.hidden{display:none}
+* { box-sizing: border-box; font-family: "Segoe UI", Roboto, Arial; }
+
+body, html { height: 100%; margin: 0; color: var(--text-color); }
+
+#map { width: 100%; height: 100vh; }
+
+/* 顶部工具栏 */
+#toolbar {
+  position: absolute;
+  left: 10px; right: 10px; top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+  padding: 8px 12px;
+  border-radius: 10px;
+  z-index: 9999;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+#toolbar .left { display:flex; align-items:center; gap:12px; }
+#logo { font-weight:700; font-size:16px; color:var(--accent); margin-right:6px; }
+#searchBox { display:flex; gap:6px; align-items:center; }
+#searchBox input { width:420px; max-width:40vw; padding:8px 10px; border-radius:8px; border:1px solid #ddd; }
+#searchBox button { padding:8px 10px; border-radius:8px; border: none; background:var(--accent); color:#fff; cursor:pointer; }
+
+#toolbar .right { display:flex; gap:8px; align-items:center; }
+#toolbar .small { font-size:12px; display:flex; gap:6px; align-items:center; }
+
+/* infoCard bottom */
+#infoCard {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 420px;
+  width: calc(100% - 40px);
+  background: var(--card-bg);
+  padding: 14px;
+  border-radius: 12px;
+  z-index: 9998;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.18);
+  backdrop-filter: blur(6px);
+}
+.hidden { display: none; }
+
+/* flight label tooltip look */
+.flight-label {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* 机场同心圆图标（使用 DivIcon） */
+.airport-marker {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  position: relative;
+}
+.airport-marker .outer {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.18);
+  background: rgba(255,255,255,0.9);
+  transform: translate(-50%,-50%);
+  position: absolute; left:50%; top:50%;
+}
+.airport-marker .inner {
+  width: 8px; height: 8px; border-radius:50%;
+  background: var(--accent);
+  position: absolute; left:50%; top:50%; transform: translate(-50%,-50%);
+}
+
+/* 机场标签（像谷歌地图） */
+.airport-label {
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--card-bg);
+  margin-left: 8px;
+  display: inline-block;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+}
+
+/* 侧边面板（平板/大屏与手机上拉栏）*/
+#sidePanel {
+  position: absolute;
+  right: 12px;
+  top: 80px;
+  width: 320px;
+  max-height: 70vh;
+  background: var(--card-bg);
+  border-radius: 10px;
+  overflow: hidden;
+  z-index: 9998;
+  transition: transform .25s ease;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.16);
+}
+#sidePanel.panel-closed { transform: translateX(95%); width: 55px; }
+#panelHeader { display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid rgba(0,0,0,0.05); }
+#panelBody { padding:10px; overflow:auto; max-height: calc(70vh - 48px); }
+.flight-card {
+  padding:10px; border-radius:8px; margin-bottom:8px;
+  background: rgba(255,255,255,0.7);
+}
+
+/* 布局在小屏（手机）时改为底部上拉栏 */
+@media (max-width: 700px) {
+  #toolbar { left: 6px; right: 6px; top: 6px; padding:6px; }
+  #searchBox input { width: 160px; }
+  #sidePanel { left: 6px; right: 6px; bottom: 0; top: auto; transform: translateY(70%); width: auto; border-radius: 12px 12px 0 0; }
+  #sidePanel.panel-closed { transform: translateY(82%); width: auto; }
+  #panelHeader { cursor: pointer; }
+}
+
+/* 飞机图标内图片样式调整（便于旋转）*/
+.leaflet-marker-icon img.plane-icon {
+  width: 32px; height: 32px; display:block;
+}
