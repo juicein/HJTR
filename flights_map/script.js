@@ -1,363 +1,515 @@
-// =================== 配置 ===================
-// 默认每次从后端/文件更新时间（毫秒）。你可以编辑这里来调整自动刷新间隔（默认 3 分钟）
-const DEFAULT_REFRESH_INTERVAL = 3 * 60 * 1000; // 3 minutes
-// 平滑动画参数（控制飞机每秒帧数）
-const ANIMATION_FPS = 20;
+// =================== 配置（可修改） ===================
+const DEFAULT_REFRESH_INTERVAL = 3 * 60 * 1000; // 默认 3 分钟
+const ANIMATION_STEP_MS = 1000 / 20; // 平滑动画帧：20 FPS
+const EAST8_OFFSET = 8 * 60; // minutes offset for UTC+8
 
-// 后台开关（localStorage 存储）
-let showOnlyFiltered = localStorage.getItem("showOnlyFiltered") === "true";
-
-// ============ 地图初始化 ============
-const map = L.map('map', { worldCopyJump: true, minZoom: 2 }).setView([30, 90], 3);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 7,
-}).addTo(map);
-
+// =================== 全局状态 ===================
+let map = null;
+let useAbstractMap = false; // 可由侧栏开关设置（localStorage 保存）
 let airportDB = [];
-let flights = [];            // 解析出的航班列表
-let markers = {};            // flightNo -> marker (divIcon)
-let polyLines = {};          // flightNo -> polyline
-let airportMarkers = [];     // 用于机场图标清理
+let flights = []; // 解析后
+let markers = {}; // flightKey -> marker
+let polylines = {}; // flightKey -> polyline
+let airportMarkers = []; // airport marker array for cleanup
 let showFlightNo = localStorage.getItem("showFlightNo") === "true";
 let showAirportLabels = localStorage.getItem("showAirportLabels") === "true";
-
-// 用于动画：保存每个航班的上一位置与目标位置
-const animState = {};
-
-// 自动刷新定时器
-let refreshTimer = null;
+let showOnlyFiltered = localStorage.getItem("showOnlyFiltered") === "true";
 let refreshInterval = Number(localStorage.getItem("refreshInterval")) || DEFAULT_REFRESH_INTERVAL;
+let animRequest = null;
+let lastRenderTime = 0;
+let targetPositions = {}; // flightKey -> {lat,lng}
 
-// =================== 辅助函数 ===================
-function timeToMinutes(t){
-  // t like "09:10" or "0:30"
-  const [h,m] = t.split(":").map(s=>Number(s));
-  return h*60 + m;
-}
-function minutesToTime(m){
-  const hh = Math.floor(m/60) % 24;
-  const mm = m % 60;
-  return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
-}
-function showToast(text, ms=2000){
-  const t = document.getElementById("toast");
-  t.textContent = text;
-  t.classList.remove("hidden");
-  clearTimeout(t._t);
-  t._t = setTimeout(()=>t.classList.add("hidden"), ms);
-}
-function getFlightIDFromURL(){
-  return new URLSearchParams(location.search).get("flights_map");
-}
+// =================== init map (Leaflet) ===================
+function initMap(){
+  map = L.map('map', { worldCopyJump: true, minZoom: 2 }).setView([30, 90], 3);
 
-// 计算两点的初始航向（度），用于图标旋转
-function bearing(lat1,lng1,lat2,lng2){
-  const toRad = Math.PI/180, toDeg = 180/Math.PI;
-  lat1 *= toRad; lat2 *= toRad; const dLon = (lng2-lng1)*toRad;
-  const y = Math.sin(dLon)*Math.cos(lat2);
-  const x = Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
-  const brng = Math.atan2(y,x)*toDeg;
-  return (brng+360)%360;
+  // tile layer (default)
+  const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 7 });
+  osm.addTo(map);
+
+  // prepare abstract overlay as imageOverlay (SVG data URL) covering world bounds [-90..90 lat?]. We'll use bounds [[90,-180],[ -90,180]]
+  const svg = buildAbstractWorldSVG();
+  const svgUrl = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  window._abstractOverlay = L.imageOverlay(svgUrl, [[90,-180],[-90,180]], {interactive:false});
+
+  // UI: switch radio status from saved
+  const mode = localStorage.getItem("mapMode") || "tiles";
+  setMapMode(mode);
+
+  // map events
+  map.on('click', ()=> {
+    // click to hide info card
+    document.getElementById("infoCard").classList.add("hidden");
+  });
 }
 
-// parse a single flight raw block (the regex in original was brittle) 
-function parseFlightLine(line){
-  // We'll extract:
-  // flightNo between 【 】, aircraft between 〔 〕, airline between 『 』,
-  // dep airport in 《...出发》 with {time} and +#n#, arr similar, registration in <...>
-  const out = {};
-  try{
-    const flightNoMatch = line.match(/【([^】]+)】/);
-    if(flightNoMatch) out.flightNo = flightNoMatch[1].trim();
+// build a simple abstract world SVG (very simplified continent shapes; purely decorative, covers full lon/lat bounds)
+function buildAbstractWorldSVG(){
+  // Note: shapes are simplified stylized blobs — sufficient for abstract look.
+  // Fill is transparent gold-ish stroke in new-airline style.
+  // Because we place this image overlay in bounds [[90,-180],[-90,180]], Leaflet will stretch it as equirectangular.
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1000" viewBox="0 0 2000 1000">
+    <rect width="100%" height="100%" fill="#f4f8ff"/>
+    <g fill="#cfe9ff" stroke="#b7dbff" stroke-width="2" transform="scale(1)">
+      <!-- Very rough continent blobs (abstract) -->
+      <path d="M200 220 C 260 160, 360 140, 460 180 C 560 220, 640 320, 720 360 C 820 400, 900 420, 980 380 C 1080 340, 1160 300, 1250 320 C 1340 340, 1400 420, 1480 500 C 1520 540, 1580 600, 1660 620 C 1720 640, 1780 700, 1860 740 L1860 840 L140 840 L140 740 C160 700,180 620,200 520 C210 460,220 360,200 320 Z"/>
+      <path d="M80 520 C120 460,160 400,220 380 C260 360,320 360,360 400 C400 440,420 520,420 580 C420 640,380 700,320 720 C260 740,160 740,120 680 C100 640,80 580,80 520 Z"/>
+      <path d="M1200 120 C1240 140,1280 160,1320 180 C1360 200,1400 240,1460 260 C1500 280,1560 300,1600 320 C1640 340,1680 380,1720 420 C1760 460,1800 520,1820 560 L1820 680 L1200 680 C1180 600,1180 520,1200 460 C1220 420,1240 300,1200 240 Z"/>
+    </g>
+    <!-- stylized grid lines -->
+    <g stroke="#e8f1ff" stroke-width="1" opacity="0.6">
+      <path d="M0 200 L2000 200"/>
+      <path d="M0 400 L2000 400"/>
+      <path d="M0 600 L2000 600"/>
+    </g>
+  </svg>
+  `;
+  return svg;
+}
 
-    const aircraftMatch = line.match(/〔([^〕]+)〕/);
-    if(aircraftMatch) out.aircraft = aircraftMatch[1].trim();
+// set map mode: "tiles" or "abstract"
+function setMapMode(mode){
+  useAbstractMap = (mode === "abstract");
+  localStorage.setItem("mapMode", mode);
+  // remove existing layers except base container
+  map.eachLayer(layer=>{
+    // keep only tile if tiles mode, or add overlay if abstract
+  });
+  // Clear all base layers and re-add according to mode:
+  map.eachLayer(layer=>{
+    map.removeLayer(layer);
+  });
+  if(useAbstractMap){
+    // add a neutral plain background (no tiles) and the abstract overlay
+    const empty = L.tileLayer('', {noWrap:true});
+    empty.addTo(map);
+    window._abstractOverlay.addTo(map);
+  }else{
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 7 }).addTo(map);
+  }
+  // redraw airports/markers (they rely on map object)
+  renderAirports();
+  renderFlights(getFlightIDFromURL());
+}
 
-    const airlineMatch = line.match(/『([^』]+)』/);
-    if(airlineMatch) out.airline = airlineMatch[1].trim();
+// =================== utility: east-8 "now" ===================
+function nowInE8(){
+  // return Date object adjusted to UTC+8 representing current instant in that timezone
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset()*60000;
+  const e8 = new Date(utcMs + EAST8_OFFSET*60000);
+  return e8;
+}
+// create Date in East8 timezone for current day with given hh:mm and dayOffset (n days from today)
+function east8DateForTime(hhmm, plusDays){
+  const [hh,mm] = hhmm.split(":").map(s=>Number(s));
+  const base = nowInE8();
+  const year = base.getFullYear(), month = base.getMonth(), day = base.getDate();
+  // construct an East8-local time as UTC ms by computing UTC ms for the given local time
+  // Create a Date object in UTC representing the same instant: Date.UTC(year,month,day+plusDays,hh,mm) - shift by 8h
+  const utcMs = Date.UTC(year, month, day + (plusDays||0), hh, mm, 0) - (EAST8_OFFSET*60000);
+  return new Date(utcMs);
+}
 
-    // registration / id inside <...>
-    const regMatch = line.match(/<([^>]+)>/);
-    if(regMatch) out.registration = regMatch[1].trim();
+// parse raw flights from text; supports multi-segment (multiple '出发'/'到达' pairs)
+function parseFlightData(raw){
+  const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  const out = [];
+  for(const line of lines){
+    const f = { raw: line, segments: [] };
+    // flightNo
+    const mNo = line.match(/【([^】]+)】/);
+    if(mNo) f.flightNo = mNo[1].trim();
 
-    // departure block
-    const depMatch = line.match(/《([^》]+?)出发》\{([^}]+)\}#\+?(\d+)#@([^@]+)@/);
-    if(depMatch){
-      out.dep = depMatch[1].trim();
-      out.depTime = depMatch[2].trim(); // "0:30" or "09:10"
-      out.depPlus = Number(depMatch[3]||0); // day offset
-      out.depTerminal = depMatch[4].trim();
-    } else {
-      // fallback: try simpler
-      const d = line.match(/《([^》]+?)出发》\{([^}]+)\}/);
-      if(d){ out.dep = d[1].trim(); out.depTime = d[2].trim(); out.depPlus = 0; }
+    // aircraft
+    const mAc = line.match(/〔([^〕]+)〕/);
+    if(mAc) f.aircraft = mAc[1].trim();
+
+    // airline
+    const mAir = line.match(/『([^』]+)』/);
+    if(mAir) f.airline = mAir[1].trim();
+
+    // registration id inside <>
+    const mReg = line.match(/<([^>]+)>/);
+    if(mReg) f.registration = mReg[1].trim();
+
+    // days in « »
+    const mDays = line.match(/«([^»]+)»/);
+    if(mDays) f.days = mDays[1].split(",").map(s=>s.trim());
+
+    // fares optional
+    const mEco = line.match(/§([^§]+)§/);
+    if(mEco) f.economy = mEco[1].trim();
+    const mBiz = line.match(/θ([^θ]+)θ/);
+    if(mBiz) f.business = mBiz[1].trim();
+
+    // extract all departure/arrival pairs
+    // use global regex to find 《...出发》{time}#+n#@...@ and 《...到达》{time}#+n#@...@
+    const segRegex = /《([^》]+?)出发》\{([^}]+)\}#\+?(\d+)#@([^@]+)@|《([^》]+?)到达》\{([^}]+)\}#\+?(\d+)#@([^@]+)@/g;
+    // We'll manually parse by searching for '出发' then nearest following '到达'
+    try{
+      // Find indices of "《...出发》{time}#+n#@...@" occurrences
+      const depRegex = /《([^》]+?)出发》\{([^}]+)\}#\+?(\d+)#@([^@]+)@/g;
+      const arrRegex = /《([^》]+?)到达》\{([^}]+)\}#\+?(\d+)#@([^@]+)@/g;
+      const depMatches = [...line.matchAll(depRegex)];
+      const arrMatches = [...line.matchAll(arrRegex)];
+      // pair them in order: assume same count or arr may follow
+      const count = Math.max(depMatches.length, arrMatches.length);
+      for(let i=0;i<count;i++){
+        const d = depMatches[i];
+        const a = arrMatches[i];
+        if(d && a){
+          const seg = {
+            dep: d[1].trim(),
+            depTime: d[2].trim(),
+            depPlus: Number(d[3]||0),
+            depTerminal: d[4].trim(),
+            arr: a[1].trim(),
+            arrTime: a[2].trim(),
+            arrPlus: Number(a[3]||0),
+            arrTerminal: a[4].trim()
+          };
+          f.segments.push(seg);
+        } else if(d && !a){
+          // incomplete pair: only departure found
+          const seg = {
+            dep: d[1].trim(),
+            depTime: d[2].trim(),
+            depPlus: Number(d[3]||0),
+            depTerminal: d[4].trim(),
+            arr: null, arrTime: null, arrPlus:0, arrTerminal:null
+          };
+          f.segments.push(seg);
+        } else if(!d && a){
+          // only arrival (rare)
+          const seg = {
+            dep: null, depTime: null, depPlus:0, depTerminal:null,
+            arr: a[1].trim(),
+            arrTime: a[2].trim(),
+            arrPlus: Number(a[3]||0),
+            arrTerminal: a[4].trim()
+          };
+          f.segments.push(seg);
+        }
+      }
+      // If no structured matches (older format), attempt simple fallback
+      if(f.segments.length === 0){
+        const simple = line.match(/《([^》]+?)出发》\{([^}]+)\}[\s\S]*?《([^》]+?)到达》\{([^}]+)\}/);
+        if(simple){
+          f.segments.push({
+            dep: simple[1].trim(), depTime: simple[2].trim(), depPlus:0,
+            arr: simple[3].trim(), arrTime: simple[4].trim(), arrPlus:0
+          });
+        }
+      }
+    }catch(e){
+      console.warn("segment parse error", e, line);
     }
 
-    // arrival block
-    const arrMatch = line.match(/《([^》]+?)到达》\{([^}]+)\}#\+?(\d+)#@([^@]+)@/);
-    if(arrMatch){
-      out.arr = arrMatch[1].trim();
-      out.arrTime = arrMatch[2].trim();
-      out.arrPlus = Number(arrMatch[3]||0);
-      out.arrTerminal = arrMatch[4].trim();
-    } else {
-      const a = line.match(/《([^》]+?)到达》\{([^}]+)\}/);
-      if(a){ out.arr = a[1].trim(); out.arrTime = a[2].trim(); out.arrPlus = 0; }
-    }
-
-    // days of week or schedule in «...»
-    const days = line.match(/«([^»]+)»/);
-    if(days) out.days = days[1].split(",").map(s=>s.trim());
-
-    // fares (optional) keep raw
-    const priceMatch = line.match(/§([^§]+)§/);
-    if(priceMatch) out.economy = priceMatch[1].trim();
-    const bizMatch = line.match(/θ([^θ]+)θ/);
-    if(bizMatch) out.business = bizMatch[1].trim();
-
-    // store raw
-    out.raw = line;
-  }catch(e){
-    console.warn("parse error",e,line);
+    out.push(f);
   }
   return out;
 }
 
-// parse whole text
-function parseFlightData(raw){
-  const lines = raw.split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
-  return lines.map(parseFlightLine);
-}
-
-// 搜索机场数据库（支持 code / name / aliases / partial match）
+// =================== airport lookup (by name or code or alias) ===================
 function airportByName(name){
   if(!name) return null;
-  name = name.toLowerCase().trim();
+  const n = name.toLowerCase().trim();
   for(const ap of airportDB){
-    if((ap.name && ap.name.toLowerCase() === name) || (ap.code && ap.code.toLowerCase() === name)) return ap;
+    if((ap.code && ap.code.toLowerCase() === n) || (ap.name && ap.name.toLowerCase() === n)) return ap;
   }
-  // partial and aliases
   for(const ap of airportDB){
-    if((ap.name && ap.name.toLowerCase().includes(name)) || (ap.aliases && ap.aliases.some(a=>a.toLowerCase().includes(name))) || (ap.code && ap.code.toLowerCase().includes(name))) return ap;
+    if(ap.name && ap.name.toLowerCase().includes(n)) return ap;
+    if(ap.aliases && ap.aliases.some(a=>a.toLowerCase().includes(n))) return ap;
+    if(ap.code && ap.code.toLowerCase().includes(n)) return ap;
   }
   return null;
 }
 
-// =================== 渲染机场 ===================
+// =================== parsing + rendering ===================
+function loadData(){
+  // airports
+  fetch("data/airports.json").then(r=>r.json()).then(data=>{
+    airportDB = data;
+    renderAirports();
+  }).catch(e=>{
+    console.error("加载 airports.json 失败", e);
+    airportDB = [];
+  });
+
+  // flights
+  fetch("data/flight_data.txt").then(r=>r.text()).then(txt=>{
+    flights = parseFlightData(txt);
+    // render
+    renderFlights(getFlightIDFromURL());
+  }).catch(e=>{
+    console.error("加载 flight_data.txt 失败", e);
+    flights = [];
+  });
+
+  // start auto refresh
+  startAutoRefresh();
+  startAnimationLoop();
+}
+
+// compute bearing (degrees) from lat1/lng1 to lat2/lng2
+function bearing(lat1,lng1,lat2,lng2){
+  const toRad = Math.PI/180, toDeg = 180/Math.PI;
+  const φ1 = lat1*toRad, φ2 = lat2*toRad;
+  const Δλ = (lng2-lng1)*toRad;
+  const y = Math.sin(Δλ)*Math.cos(φ2);
+  const x = Math.cos(φ1)*Math.sin(φ2)-Math.sin(φ1)*Math.cos(φ2)*Math.cos(Δλ);
+  return (Math.atan2(y,x)*toDeg + 360) % 360;
+}
+
+// returns current status of a flight: {status: 'notoday'|'preparing'|'inflight'|'arrived', segmentIndex, depDate, arrDate, ratio}
+function flightStatusAndPosition(f){
+  // find segment that matches today/day offsets and schedule
+  // For each segment compute depDate and arrDate in East8 timezone based on plus offsets (use east8DateForTime)
+  const eNow = nowInE8();
+  const weekday = eNow.toLocaleString('en-US', {weekday:'short'}).toUpperCase(); // e.g., "MON"
+  // check schedule days: if f.days exists, confirm today
+  if(f.days && f.days.length>0 && f.days.indexOf(weekday) === -1){
+    // not running today
+    return {status:'notoday', segmentIndex:null};
+  }
+
+  for(let i=0;i<f.segments.length;i++){
+    const seg = f.segments[i];
+    if(!seg.depTime || !seg.arrTime) continue; // incomplete, skip
+    const depDate = east8DateForTime(seg.depTime, seg.depPlus || 0);
+    let arrDate = east8DateForTime(seg.arrTime, seg.arrPlus || 0);
+    // sometimes arr <= dep -> increment arr day
+    if(arrDate.getTime() <= depDate.getTime()) arrDate = new Date(arrDate.getTime() + 24*3600*1000);
+
+    if(eNow.getTime() < depDate.getTime()){
+      // preparing (before takeoff)
+      return {status:'preparing', segmentIndex:i, depDate, arrDate, ratio:0};
+    } else if(eNow.getTime() >= depDate.getTime() && eNow.getTime() <= arrDate.getTime()){
+      const ratio = (eNow.getTime() - depDate.getTime())/(arrDate.getTime() - depDate.getTime());
+      return {status:'inflight', segmentIndex:i, depDate, arrDate, ratio};
+    } else {
+      // after this segment; continue to next segment (could be multi-segment)
+      continue;
+    }
+  }
+  // if we reach here, all segments are passed -> arrived
+  const last = f.segments[f.segments.length-1];
+  if(last && last.arrTime){
+    const arrDate = east8DateForTime(last.arrTime, last.arrPlus || 0);
+    // ensure arrDate > dep maybe adjust
+    return {status:'arrived', segmentIndex: f.segments.length -1, depDate: null, arrDate, ratio:1};
+  }
+  return {status:'unknown', segmentIndex:null};
+}
+
+// render airports
 function renderAirports(){
-  // clear old
-  for(const m of airportMarkers) map.removeLayer(m);
+  // clear existing
+  airportMarkers.forEach(m=>map.removeLayer(m));
   airportMarkers = [];
 
   for(const ap of airportDB){
-    const el = document.createElement("div");
-    el.className = "airport-wrapper";
-    el.innerHTML = `
+    // create divIcon with concentric circle & label
+    const html = `<div class="airport-wrapper">
       <div class="airport-icon" title="${ap.name}">
         <div class="outer"></div>
         <div style="width:8px;height:8px;border-radius:50%;background:${getComputedStyle(document.documentElement).getPropertyValue('--primary')||'#1D4886'}"></div>
       </div>
       <div class="airport-label">${ap.code}</div>
-    `;
-    const divIcon = L.divIcon({
-      className: "airport-divicon",
-      html: el.outerHTML,
-      iconSize: [120,28],
-      iconAnchor: [6,6]
-    });
-    const mk = L.marker([ap.lat, ap.lng], { icon: divIcon, interactive: true }).addTo(map);
-
-    // 点击弹信息
-    mk.on("click", ()=> showAirportCard(ap));
+    </div>`;
+    const icon = L.divIcon({ className: 'airport-divicon', html, iconSize: [100,24], iconAnchor:[8,8]});
+    const mk = L.marker([ap.lat, ap.lng], { icon }).addTo(map);
+    mk.on('click', ()=> showAirportCard(ap));
     airportMarkers.push(mk);
 
-    // 控制是否显示标签文本（把 label DOM 的 display 用 CSS 或属性控制）
-    const labelNode = mk.getElement();
-    if(labelNode){
-      const lbl = labelNode.querySelector(".airport-label");
-      if(lbl) lbl.style.display = showAirportLabels ? "inline" : "none";
+    // show/hide label
+    const el = mk.getElement();
+    if(el){
+      const lbl = el.querySelector('.airport-label');
+      if(lbl) lbl.style.display = showAirportLabels ? 'inline' : 'none';
     }
   }
 }
 
-// =================== 渲染航班（主） ===================
+// render flights
 function renderFlights(filterID=null){
-  // remove existing
-  for(const k in markers) {
-    try{ map.removeLayer(markers[k]); }catch(e){}
-  }
-  for(const k in polyLines) {
-    try{ map.removeLayer(polyLines[k]); }catch(e){}
-  }
-  markers = {}; polyLines = {};
+  // clear old markers/polylines
+  Object.values(markers).forEach(m=>map.removeLayer(m));
+  Object.values(polylines).forEach(p=>map.removeLayer(p));
+  markers = {}; polylines = {}; targetPositions = {};
 
-  const now = new Date();
+  const filter = filterID ? filterID.toUpperCase() : null;
+  const eNow = nowInE8();
 
   flights.forEach(f=>{
-    // apply filter by URL if requested
-    if(filterID && showOnlyFiltered && f.registration && f.registration.toUpperCase() !== filterID.toUpperCase()) return;
-    if(filterID && showOnlyFiltered && f.flightNo && f.flightNo.toUpperCase() !== filterID.toUpperCase()) return;
-    if(filterID && !showOnlyFiltered){
-      // if not strictly hiding others, we still allow showing the filtered (handled below)
+    // if filter and showOnlyFiltered: hide others
+    if(filter && showOnlyFiltered){
+      // match by flightNo or registration or id (id might be same as registration or flightNo)
+      const matches = (f.flightNo && f.flightNo.toUpperCase() === filter) ||
+                      (f.registration && f.registration.toUpperCase() === filter) ||
+                      (f.raw && f.raw.toUpperCase().includes(filter));
+      if(!matches) return;
+    } else if(filter){
+      // not hiding others, but we will still highlight matched later
     }
 
-    // find airports
-    const depA = airportByName(f.dep);
-    const arrA = airportByName(f.arr);
-    if(!depA || !arrA) return;
-
-    // 计算起飞/到达实际 Date 对象（依据当天或跨日 "+" 标识）
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    // dep date/time
-    const [dh,dm] = f.depTime.split(":").map(s=>Number(s));
-    const depDate = new Date(today.getTime() + (f.depPlus||0)*24*3600*1000);
-    depDate.setHours(dh,dm,0,0);
-    const [ah,am] = f.arrTime.split(":").map(s=>Number(s));
-    const arrDate = new Date(today.getTime() + (f.arrPlus||0)*24*3600*1000);
-    arrDate.setHours(ah,am,0,0);
-
-    // if arrival < departure (maybe due to +0 but next day) fix:
-    if(arrDate <= depDate) arrDate.setDate(arrDate.getDate() + 1);
-
-    // 判断是否应显示（“飞行中才显示”逻辑：现在介于 dep 和 arr 之间）
-    const nowMs = now.getTime();
-    if(!(nowMs >= depDate.getTime() && nowMs <= arrDate.getTime())){
-      // we still may want to include flights near real-time; for now preserve original "only in-flight" behavior
+    // Determine status
+    const st = flightStatusAndPosition(f);
+    if(st.status === 'notoday' || st.status === 'unknown') {
+      // not show if not operating today (user requested that)
       return;
     }
 
-    // 计算进度 ratio
-    const ratio = (nowMs - depDate.getTime()) / (arrDate.getTime() - depDate.getTime());
-    const lat = depA.lat + (arrA.lat - depA.lat) * ratio;
-    const lng = depA.lng + (arrA.lng - depA.lng) * ratio;
+    if(st.status === 'preparing'){
+      // you asked: if preparing or arrived, do not show on map — user requested: only flying shown
+      // But you said you may want preparating/arrived to display if single-flight mode; so only show 'preparing' when filterID equals this flight
+      const fid = filter;
+      const matches = fid && ((f.flightNo && f.flightNo.toUpperCase() === fid) || (f.registration && f.registration.toUpperCase() === fid) || (f.raw && f.raw.toUpperCase().includes(fid)));
+      if(!matches){
+        return;
+      }
+      // else show as special (on-ground)
+    }
 
-    // polyline (route)
-    const line = L.polyline([[depA.lat, depA.lng],[arrA.lat, arrA.lng]], {
-      color: "#FAA43A", weight: 2, dashArray: "6 6", opacity: 0.9
-    }).addTo(map);
-    polyLines[f.flightNo] = line;
+    // For inflight or when matched by filter, compute position
+    const segIdx = st.segmentIndex;
+    if(segIdx == null) return;
+    const seg = f.segments[segIdx];
+    const depAirport = airportByName(seg.dep);
+    const arrAirport = airportByName(seg.arr);
+    if(!depAirport || !arrAirport){
+      // if airport unknown, skip rendering.
+      return;
+    }
 
-    // compute bearing for icon rotation
-    const ang = bearing(depA.lat, depA.lng, arrA.lat, arrA.lng);
+    // compute position along great circle? We'll linearly interpolate lat/lng (sufficient for visualization)
+    const ratio = st.ratio || 0;
+    const lat = depAirport.lat + (arrAirport.lat - depAirport.lat) * ratio;
+    const lng = depAirport.lng + (arrAirport.lng - depAirport.lng) * ratio;
 
-    // Create divIcon for plane with rotation (so png can be rotated)
-    const planeSvg = `
-      <div class="plane-icon" style="transform:rotate(${ang}deg);">
-        <img src="https://i.imgur.com/4bZtV3y.png" style="width:32px;height:32px;display:block;transform:translate(-50%,-50%);"/>
-      </div>`;
-    const divIcon = L.divIcon({
-      className: "plane-div-icon",
-      html: planeSvg,
-      iconSize: [32,32],
-      iconAnchor: [16,16]
-    });
+    // draw polyline for the whole route (all segments of flight)
+    // For multi-segment, draw lines between segment endpoints
+    const coords = [];
+    for(const s of f.segments){
+      const da = airportByName(s.dep);
+      const aa = airportByName(s.arr);
+      if(da) coords.push([da.lat, da.lng]);
+      if(aa) coords.push([aa.lat, aa.lng]);
+    }
+    // remove duplicates
+    const uniqCoords = coords.filter((c,i,arr)=> i===0 || (c[0] !== arr[i-1][0] || c[1] !== arr[i-1][1]));
+    const line = L.polyline(uniqCoords, { color: '#FAA43A', weight: 2, dashArray:'6 6', opacity: 0.9 }).addTo(map);
+    polylines[f.flightNo + (f.registration || '')] = line;
 
-    const mk = L.marker([lat,lng], { icon: divIcon, zIndexOffset: 500 }).addTo(map);
+    // plane icon (divIcon) rotated: default PNG points up (north). rotate by bearing.
+    const ang = bearing(depAirport.lat, depAirport.lng, arrAirport.lat, arrAirport.lng);
+    const imgSrc = "https://i.imgur.com/4bZtV3y.png"; // replaceable
+    const planeHtml = `<div style="transform:rotate(${ang}deg);"><img src="${imgSrc}" style="width:34px;height:34px;display:block;"/></div>`;
+    const divIcon = L.divIcon({ className: 'plane-div-icon', html: planeHtml, iconSize:[34,34], iconAnchor:[17,17]});
+    const mk = L.marker([lat, lng], { icon: divIcon, zIndexOffset:500 }).addTo(map);
     mk.flight = f;
-    mk.depA = depA; mk.arrA = arrA;
+    mk.segmentIndex = segIdx;
+    mk.depAirport = depAirport;
+    mk.arrAirport = arrAirport;
     mk.ratio = ratio;
     mk.angle = ang;
 
-    mk.on("click", ()=> showInfoCard(f, depA, arrA, depDate, arrDate, ratio));
-
-    // optional permanent label
-    if(showFlightNo){
-      mk.bindTooltip(f.flightNo, {permanent:true, direction:"right", className:"flight-label"});
+    // tooltip flight no
+    if(showFlightNo && f.flightNo){
+      mk.bindTooltip(f.flightNo, {permanent:true, direction:'right', className:'flight-label'});
     }
 
-    markers[f.flightNo] = mk;
+    mk.on('click', ()=> showInfoCard(f, segIdx));
 
-    // store animation state
-    animState[f.flightNo] = {
-      marker: mk,
-      targetLat: lat,
-      targetLng: lng,
-      lastUpdate: Date.now()
-    };
+    markers[f.flightNo + (f.registration || '')] = mk;
+    targetPositions[f.flightNo + (f.registration || '')] = { lat, lng, ang };
   });
 
-  // update sidebars/lists
+  // update sidebar lists
   refreshFlightLists();
 }
 
-// =================== 航班与机场信息卡 ===================
-function showInfoCard(f, depA, arrA, depDate, arrDate, ratio){
-  const card = document.getElementById("infoCard");
-  // format dates with day offset
-  const depStr = `${depA.name} (${depA.code}) — ${depDate.toLocaleString()}`;
-  const arrStr = `${arrA.name} (${arrA.code}) — ${arrDate.toLocaleString()}`;
-  const reg = f.registration || "—";
-  const progPct = Math.max(0, Math.min(100, Math.round(ratio*100)));
+// show flight info card
+function showInfoCard(f, segIdx){
+  const card = document.getElementById('infoCard');
+  const seg = f.segments[segIdx];
+  const st = flightStatusAndPosition(f);
+  const depAirport = airportByName(seg.dep);
+  const arrAirport = airportByName(seg.arr);
+  const depDate = st.depDate || east8DateForTime(seg.depTime, seg.depPlus || 0);
+  const arrDate = st.arrDate || east8DateForTime(seg.arrTime, seg.arrPlus || 0);
+  const reg = f.registration || '—';
+  const percent = Math.max(0, Math.min(100, Math.round((st.ratio||0)*100)));
+
   card.innerHTML = `
-    <h3>${f.flightNo} · ${f.airline || ""}</h3>
+    <h3>${f.flightNo || '—'} · ${f.airline || ''}</h3>
     <div class="info-row">
       <div>
         <div class="info-sub"><b>起飞</b></div>
-        <div>${depStr}</div>
+        <div>${depAirport ? depAirport.name + ' ('+depAirport.code+')' : seg.dep || '—'} ${formatE8(depDate)}</div>
       </div>
       <div>
         <div class="info-sub"><b>到达</b></div>
-        <div>${arrStr}</div>
+        <div>${arrAirport ? arrAirport.name + ' ('+arrAirport.code+')' : seg.arr || '—'} ${formatE8(arrDate)}</div>
       </div>
     </div>
-    <div style="margin-top:10px">
-      <div class="info-sub">机型：${f.aircraft || "—"} · 注册号：${reg}</div>
-      <div class="info-sub">航班进度：${progPct}%</div>
+    <div style="margin-top:8px">
+      <div class="info-sub">机型：${f.aircraft || '—'} · 注册号：${reg}</div>
+      <div class="info-sub">航班进度：${percent}%</div>
       <div class="prog" style="height:8px;margin-top:6px;background:#e6eefb;border-radius:6px;overflow:hidden">
-        <i style="display:block;height:100%;width:${progPct}%;background:var(--accent)"></i>
+        <i style="display:block;height:100%;width:${percent}%;background:var(--accent)"></i>
       </div>
     </div>
-    <div style="margin-top:10px;font-size:13px;color:var(--muted)">点击“查找前后序航程”可在后台查找同注册号或同航班系列的上下行记录。</div>
     <div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn ghost" id="btn-find-related">查找前后序航程</button>
-      <button class="btn primary" id="btn-zoom-flight">聚焦航班</button>
+      <button class="btn ghost" id="btn-related">查找前后序航程</button>
+      <button class="btn primary" id="btn-zoom">聚焦航班</button>
     </div>
   `;
-  card.classList.remove("hidden");
+  card.classList.remove('hidden');
 
-  document.getElementById("btn-zoom-flight").addEventListener("click", ()=>{
-    const mk = Object.values(markers).find(m=>m.flight && m.flight.flightNo === f.flightNo);
-    if(mk) map.setView(mk.getLatLng(), Math.max(map.getZoom(),6));
-  });
-  document.getElementById("btn-find-related").addEventListener("click", ()=>{
-    // 通过 registration 查找同注册的其他记录
-    if(!f.registration){
-      showToast("无注册号，无法查找。");
-      return;
-    }
+  document.getElementById('btn-zoom').onclick = ()=>{
+    // zoom to flight marker if present
+    const key = f.flightNo + (f.registration || '');
+    const mk = markers[key];
+    if(mk) map.setView(mk.getLatLng(), 6);
+  };
+  document.getElementById('btn-related').onclick = ()=>{
+    if(!f.registration) return showToast('无注册号，无法查找前后序航程');
     const regs = flights.filter(x=>x.registration && x.registration === f.registration);
-    if(regs.length<=1){
-      showToast("未找到前后序航程记录。");
-      return;
-    }
-    // 弹出结果到侧栏
-    const flightList = document.getElementById("flightList");
-    flightList.innerHTML = regs.map(r=>`<div class="flight-card"><b>${r.flightNo}</b><div class="meta">${r.airline||""} ${r.aircraft||""}</div></div>`).join("");
-    document.getElementById("sidebar").classList.remove("hidden");
-  });
+    if(regs.length <= 1) return showToast('未找到前后序航程');
+    // show in sidebar
+    const flightList = document.getElementById('flightList');
+    flightList.innerHTML = regs.map(r=>`<div class="flight-card"><b>${r.flightNo}</b><div class="meta">${r.airline||''} ${r.aircraft||''}</div></div>`).join('');
+    document.getElementById('sidebar').classList.remove('hidden');
+  };
 }
 
-function showAirportCard(ap){
-  const card = document.getElementById("infoCard");
-  card.innerHTML = `
-    <h3>${ap.name} (${ap.code})</h3>
-    ${ap.level?`<div class="info-sub">机场等级：${ap.level}</div>`:""}
-    ${ap.runways?`<div class="info-sub">跑道：${ap.runways}</div>`:""}
-  `;
-  card.classList.remove("hidden");
+// format date in East8 timezone as string
+function formatE8(d){
+  if(!d) return '';
+  const opts = { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' };
+  // We must display d in East8. d is a Date object representing UTC ms; to properly format in E8, compute offset.
+  const utcMs = d.getTime();
+  const e8 = new Date(utcMs + EAST8_OFFSET*60000);
+  // get components
+  const Y = e8.getFullYear(), M = String(e8.getMonth()+1).padStart(2,'0'), D = String(e8.getDate()).padStart(2,'0');
+  const hh = String(e8.getHours()).padStart(2,'0'), mm = String(e8.getMinutes()).padStart(2,'0');
+  return `${Y}-${M}-${D} ${hh}:${mm} (UTC+8)`;
 }
 
-// =================== 列表/侧栏刷新 ===================
+// refresh flight lists in sidebar and mobile
 function refreshFlightLists(){
-  const flightList = document.getElementById("flightList");
-  const mobileList = document.getElementById("mobileList");
+  const flightList = document.getElementById('flightList');
+  const mobileList = document.getElementById('mobileList');
   const entries = Object.values(markers).map(mk=>{
     const f = mk.flight;
     const percent = Math.round((mk.ratio||0)*100);
-    return { flightNo: f.flightNo, airline: f.airline, dep: f.dep, arr: f.arr, percent };
+    return { flightNo: f.flightNo, airline: f.airline, dep: mk.depAirport ? mk.depAirport.code : (f.segments[0] ? f.segments[0].dep : ''), arr: mk.arrAirport? mk.arrAirport.code : (f.segments[0]? f.segments[0].arr : ''), percent };
   }).sort((a,b)=>a.percent - b.percent);
 
-  if(entries.length===0){
+  if(entries.length === 0){
     flightList.innerHTML = `<div style="color:var(--muted);padding:12px">当前无显示航班（或不在飞行时间范围内）。</div>`;
     mobileList.innerHTML = flightList.innerHTML;
     return;
@@ -365,206 +517,217 @@ function refreshFlightLists(){
 
   flightList.innerHTML = entries.map(e=>`
     <div class="flight-card" data-flight="${e.flightNo}">
-      <div><b>${e.flightNo}</b> · <span class="meta">${e.airline || ""}</span></div>
+      <div><b>${e.flightNo}</b> · <span class="meta">${e.airline || ''}</span></div>
       <div class="meta">${e.dep} → ${e.arr}</div>
       <div class="prog"><i style="width:${e.percent}%;"></i></div>
     </div>
-  `).join("");
-
+  `).join('');
   mobileList.innerHTML = flightList.innerHTML;
 
-  // click handlers
-  for(const el of flightList.querySelectorAll(".flight-card")){
-    el.addEventListener("click", ()=>{
-      const fn = el.getAttribute("data-flight");
-      const mk = markers[fn];
-      if(mk){
+  // attach click handlers
+  [...flightList.querySelectorAll('.flight-card')].forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const fn = el.getAttribute('data-flight');
+      // find marker
+      const key = Object.keys(markers).find(k=>k.includes(fn));
+      if(key && markers[key]){
+        const mk = markers[key];
         map.setView(mk.getLatLng(), Math.max(map.getZoom(),6));
-        showInfoCard(mk.flight, mk.depA, mk.arrA, /*we don't have depDate/arrDate here*/ new Date(), new Date(Date.now()+1000), mk.ratio||0);
+        showInfoCard(mk.flight, mk.segmentIndex);
       }
     });
-  }
+  });
 }
 
-// =================== 搜索 ===================
+// search
 function doSearch(txt){
-  txt = (txt||"").trim();
-  if(!txt) return showToast("请输入搜索内容");
-  // search flights by flightNo / registration / airport code / airport name
-  const hitFlights = flights.filter(f=>{
-    if((f.flightNo && f.flightNo.toLowerCase().includes(txt.toLowerCase())) || (f.registration && f.registration.toLowerCase().includes(txt.toLowerCase()))) return true;
-    if(f.dep && f.dep.toLowerCase().includes(txt.toLowerCase())) return true;
-    if(f.arr && f.arr.toLowerCase().includes(txt.toLowerCase())) return true;
+  txt = (txt||'').trim();
+  if(!txt) return showToast('请输入搜索内容');
+  const q = txt.toLowerCase();
+
+  // search flights
+  const hits = flights.filter(f=>{
+    if(f.flightNo && f.flightNo.toLowerCase().includes(q)) return true;
+    if(f.registration && f.registration.toLowerCase().includes(q)) return true;
+    // search dep/arr airport names or codes
+    for(const s of f.segments){
+      if(s.dep && s.dep.toLowerCase().includes(q)) return true;
+      if(s.arr && s.arr.toLowerCase().includes(q)) return true;
+    }
     return false;
   });
-  if(hitFlights.length>0){
-    // focus first hit and show only these on map (temporarily)
-    const primary = hitFlights[0];
-    // center map on primary route midpoint
-    const depA = airportByName(primary.dep);
-    const arrA = airportByName(primary.arr);
-    if(depA && arrA){
-      const lat = (depA.lat + arrA.lat)/2;
-      const lng = (depA.lng + arrA.lng)/2;
-      map.setView([lat,lng], 5);
-    }
-    // optionally hide non-search markers: we'll just highlight matched ones by opening their info
-    // open info for first matched that has a marker
-    const mk = Object.values(markers).find(m=>m.flight && (m.flight.flightNo === primary.flightNo || m.flight.registration === primary.registration));
-    if(mk){
-      showInfoCard(mk.flight, mk.depA, mk.arrA, new Date(), new Date(), mk.ratio || 0);
+
+  if(hits.length>0){
+    const first = hits[0];
+    // try to focus marker
+    const key = Object.keys(markers).find(k => (markers[k].flight && markers[k].flight.flightNo === first.flightNo) || (markers[k].flight && markers[k].flight.registration === first.registration));
+    if(key && markers[key]){
+      map.setView(markers[key].getLatLng(), 6);
+      showInfoCard(markers[key].flight, markers[key].segmentIndex);
+      return;
     } else {
-      showToast("搜索到数据但当前不在显示范围或不在飞行时间范围内。");
+      // maybe airports search
+      const ap = airportDB.find(a => a.code && a.code.toLowerCase() === q) || airportByName(txt);
+      if(ap){
+        map.setView([ap.lat, ap.lng], 6);
+        showAirportCard(ap);
+        return;
+      }
+      showToast('搜索到数据但当前不在显示航班或非飞行时刻');
+      return;
     }
   } else {
-    // maybe it's an airport code/name — center map to that airport
-    const ap = airportByName(txt);
+    // maybe airport
+    const ap = airportDB.find(a => a.code && a.code.toLowerCase() === q) || airportByName(txt);
     if(ap){
       map.setView([ap.lat, ap.lng], 6);
       showAirportCard(ap);
       return;
     }
-    showToast("未找到匹配项");
+    showToast('未找到匹配项');
   }
 }
 
-// =================== 动画循环（平滑） ===================
-let animFrame = null;
-function animatePlanes(){
-  const now = Date.now();
-  for(const key in animState){
-    const st = animState[key];
-    if(!st.marker) continue;
-    // target positions are updated on each renderFlights call; but to simulate continuous motion we nudge marker slightly
-    // For simplicity we won't compute new target here; this function can be expanded to interpolate between last and next positions.
-    // We'll do a tiny idle floating to keep things smooth.
-    // (You can later update st.targetLat/targetLng when you fetch new data)
-    // no-op for now
-  }
-  animFrame = requestAnimationFrame(animatePlanes);
-}
-
-// =================== 加载数据 ================
-async function loadData(){
-  // airports
-  try{
-    airportDB = await fetch("data/airports.json").then(r=>r.json());
-  }catch(e){
-    console.error("加载 airports.json 失败", e);
-    airportDB = [];
-  }
-
-  // flight lines
-  try{
-    const txt = await fetch("data/flight_data.txt").then(r=>r.text());
-    flights = parseFlightData(txt);
-  }catch(e){
-    console.error("加载 flight_data.txt 失败", e);
-    flights = [];
-  }
-
-  renderAirports();
-
-  const filterID = getFlightIDFromURL();
-  // if URL param provided, consider centering and optionally only show that flight
-  if(filterID){
-    // if showOnlyFiltered true: we will only render that flight
-    renderFlights(filterID);
-    if(showOnlyFiltered){
-      showToast(`仅显示：${filterID}`);
-    } else {
-      // still render all and try to focus the flight if present
-      renderFlights(null);
-      // find marker after rendering
-      setTimeout(()=>{
-        const mk = Object.values(markers).find(m=> (m.flight && (m.flight.flightNo && m.flight.flightNo.toUpperCase()===filterID.toUpperCase())) || (m.flight && m.flight.registration && m.flight.registration.toUpperCase()===filterID.toUpperCase()));
-        if(mk) map.setView(mk.getLatLng(),6);
-      }, 300);
-    }
-  }else{
-    renderFlights();
-  }
-
-  // start animate loop and refresh timer
-  if(!animFrame) animFrame = requestAnimationFrame(animatePlanes);
-  startAutoRefresh();
-}
-
-// 自动刷新（拉取数据并重新渲染）。注意：你可以改为从 API 获取实时定位（ADS-B），这里是从本地文件重载示例。
-async function refreshAll(){
-  console.log("refreshing data...");
-  try{
-    const txt = await fetch("data/flight_data.txt", {cache:"no-store"}).then(r=>r.text());
-    flights = parseFlightData(txt);
-    // re-render
-    const filterID = getFlightIDFromURL();
-    renderFlights(filterID);
-    renderAirports();
-  }catch(e){
-    console.error(e);
-  }
-}
-
+// start auto-refresh
+let refreshTimer = null;
 function startAutoRefresh(){
   if(refreshTimer) clearInterval(refreshTimer);
   refreshTimer = setInterval(()=> {
-    refreshAll();
+    doRefresh();
   }, refreshInterval);
 }
 
-// =========== 事件绑定和初始化 UI ===========
+// refresh (reload flights file and rerender)
+function doRefresh(){
+  fetch('data/flight_data.txt', {cache:'no-store'}).then(r=>r.text()).then(txt=>{
+    flights = parseFlightData(txt);
+    renderFlights(getFlightIDFromURL());
+    renderAirports();
+  }).catch(e=>{
+    console.error('refresh failed', e);
+  });
+}
+
+// animation loop (smoothly move existing markers toward targetPositions)
+function animate(){
+  const now = Date.now();
+  const dt = now - lastRenderTime;
+  lastRenderTime = now;
+  const keys = Object.keys(targetPositions);
+  for(const k of keys){
+    const tgt = targetPositions[k];
+    const mk = markers[k];
+    if(!mk) continue;
+    // current
+    const cur = mk.getLatLng();
+    // linear interpolate with factor
+    const factor = 0.12; // smoothing factor (tweakable)
+    const newLat = cur.lat + (tgt.lat - cur.lat) * factor;
+    const newLng = cur.lng + (tgt.lng - cur.lng) * factor;
+    const newAng = tgt.ang; // immediate rotate to target angle
+    mk.setLatLng([newLat, newLng]);
+    // rotate DOM img if exists
+    const el = mk.getElement();
+    if(el){
+      const img = el.querySelector('img');
+      if(img){
+        img.style.transform = `rotate(${newAng}deg)`;
+      }
+    }
+  }
+  animRequest = requestAnimationFrame(animate);
+}
+
+function startAnimationLoop(){
+  if(!animRequest) animRequest = requestAnimationFrame(animate);
+}
+
+// show airport card
+function showAirportCard(ap){
+  const card = document.getElementById('infoCard');
+  card.innerHTML = `
+    <h3>${ap.name} (${ap.code})</h3>
+    ${ap.level?`<div class="info-sub">机场等级：${ap.level}</div>`:""}
+    ${ap.runways?`<div class="info-sub">跑道数量：${ap.runways}</div>`:""}
+  `;
+  card.classList.remove('hidden');
+}
+
+// toast
+function showToast(txt,ms=2000){
+  const t = document.getElementById('toast');
+  t.textContent = txt;
+  t.classList.remove('hidden');
+  clearTimeout(t._t);
+  t._t = setTimeout(()=> t.classList.add('hidden'), ms);
+}
+
+// parse URL param
+function getFlightIDFromURL(){
+  const id = new URLSearchParams(location.search).get('flights_map') || new URLSearchParams(location.search).get('id');
+  return id;
+}
+
+// ========== UI init ============
 function initToolbar(){
-  // flight no toggle
-  const chk = document.getElementById("toggleFlightNo");
-  chk.checked = showFlightNo;
-  chk.addEventListener("change", ()=>{
-    showFlightNo = chk.checked;
-    localStorage.setItem("showFlightNo", showFlightNo);
-    // rebind tooltips
+  // load saved toggles
+  document.getElementById('toggleFlightNo').checked = showFlightNo;
+  document.getElementById('toggleAirportLabels').checked = showAirportLabels;
+  document.getElementById('mapModeTiles').checked = (localStorage.getItem('mapMode') || 'tiles') === 'tiles';
+  document.getElementById('mapModeAbstract').checked = (localStorage.getItem('mapMode') || 'tiles') === 'abstract';
+  document.getElementById('chkOnlyFiltered').checked = showOnlyFiltered;
+  document.getElementById('refreshInterval').value = Math.round(refreshInterval/1000);
+
+  document.getElementById('toggleFlightNo').addEventListener('change', (e)=>{
+    showFlightNo = e.target.checked;
+    localStorage.setItem('showFlightNo', showFlightNo);
     renderFlights(getFlightIDFromURL());
   });
-
-  const chkAp = document.getElementById("toggleAirportLabels");
-  chkAp.checked = showAirportLabels;
-  chkAp.addEventListener("change", ()=>{
-    showAirportLabels = chkAp.checked;
-    localStorage.setItem("showAirportLabels", showAirportLabels);
-    // re-render airports to show/hide labels
+  document.getElementById('toggleAirportLabels').addEventListener('change', (e)=>{
+    showAirportLabels = e.target.checked;
+    localStorage.setItem('showAirportLabels', showAirportLabels);
     renderAirports();
   });
 
   // search
-  document.getElementById("searchBtn").addEventListener("click", ()=> doSearch(document.getElementById("searchInput").value));
-  document.getElementById("searchInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doSearch(e.target.value); });
-  document.getElementById("clearSearchBtn").addEventListener("click", ()=>{ document.getElementById("searchInput").value=""; renderFlights(getFlightIDFromURL()); });
-
-  // sidebar toggle
-  document.getElementById("btn-sidebar-toggle").addEventListener("click", ()=>{
-    document.getElementById("sidebar").classList.toggle("hidden");
-  });
-
-  // toggle only filtered (backend switch)
-  const btnOnly = document.getElementById("btn-only-filter");
-  btnOnly.textContent = showOnlyFiltered ? "仅显示 URL 航班：已开" : "仅显示 URL 指定航班";
-  btnOnly.addEventListener("click", ()=>{
-    showOnlyFiltered = !showOnlyFiltered;
-    localStorage.setItem("showOnlyFiltered", showOnlyFiltered);
-    btnOnly.textContent = showOnlyFiltered ? "仅显示 URL 航班：已开" : "仅显示 URL 指定航班";
+  document.getElementById('searchBtn').addEventListener('click', ()=> doSearch(document.getElementById('searchInput').value));
+  document.getElementById('searchInput').addEventListener('keydown', (e)=> { if(e.key === 'Enter') doSearch(e.target.value); });
+  document.getElementById('clearSearchBtn').addEventListener('click', ()=> {
+    document.getElementById('searchInput').value = '';
     renderFlights(getFlightIDFromURL());
   });
 
-  // refresh btn
-  document.getElementById("btn-refresh").addEventListener("click", ()=> refreshAll());
+  // sidebar toggle
+  document.getElementById('btn-sidebar-toggle').addEventListener('click', ()=>{
+    document.getElementById('sidebar').classList.toggle('hidden');
+  });
+
+  // map mode radio
+  document.getElementById('mapModeTiles').addEventListener('change', ()=> {
+    if(document.getElementById('mapModeTiles').checked) setMapMode('tiles');
+  });
+  document.getElementById('mapModeAbstract').addEventListener('change', ()=> {
+    if(document.getElementById('mapModeAbstract').checked) setMapMode('abstract');
+  });
+
+  // settings save
+  document.getElementById('btn-save-settings').addEventListener('click', ()=>{
+    showOnlyFiltered = document.getElementById('chkOnlyFiltered').checked;
+    localStorage.setItem('showOnlyFiltered', showOnlyFiltered);
+    const sec = Number(document.getElementById('refreshInterval').value) || 180;
+    refreshInterval = sec * 1000;
+    localStorage.setItem('refreshInterval', refreshInterval);
+    startAutoRefresh();
+    showToast('设置已保存');
+    renderFlights(getFlightIDFromURL());
+  });
+
+  document.getElementById('btn-refresh').addEventListener('click', ()=> doRefresh());
 }
 
-// =================== 启动入口 ===================
-initToolbar();
-loadData();
-
-// =============== 备注与扩展说明 ===============
-// 1) airplane PNG 替换：把你自己的图片替换 script 中 planeSvg 的 img src 即可。
-// 2) 如果要更精确的“飞机指向目的地方向并真正旋转图片”，建议使用 Leaflet-RotatedMarker 插件或将图片做成 SVG，并在 divIcon 中以 transform: rotate() 旋转（当前已用 transform:rotate(angle)）
-// 3) URL 单航班模式：例如 ?flights_map=DF1729 会尝试匹配 flightNo 或 registration，配合侧边 btn 可以选择是否隐藏其他航班（后台开关为 localStorage showOnlyFiltered）
-// 4) 定时刷新间隔可以通过修改 DEFAULT_REFRESH_INTERVAL 或将 refreshInterval 存入 localStorage 在 startAutoRefresh() 中使用
-// 5) 你提到要在机票卡片显示“查找前后序航程”，脚本中提供了基本的通过 registration 查找同注册号航班的示例（在 infoCard 的按钮中）
-// 6) 若要将数据换成实时 ADS-B/ API（例如 Flightradar24 API），你需要服务器端代理并替换 fetch("data/flight_data.txt") 为你的 API。（Flightradar24 提供商业 API，详情见他们的介绍）。 [oai_citation:1‡Flightradar24](https://www.flightradar24.com/blog/b2b/flightradar24-api/?utm_source=chatgpt.com)
+// ========== startup ============
+window.addEventListener('load', ()=>{
+  initMap();
+  initToolbar();
+  loadData();
+});
