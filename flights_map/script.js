@@ -1,585 +1,596 @@
-// ============ 全局配置 ============
-const REFRESH_INTERVAL_SECONDS = 3 * 60; // 3分钟刷新一次 (可调)
-const ANIMATION_FPS = 30; // 动画帧率
-const ANIMATION_INTERVAL = 1000 / ANIMATION_FPS; // 每帧毫秒数
-let refreshTimer = null; // 刷新计时器
-let animationFrameId = null; // 动画帧 ID
+/* ===========================
+   主脚本 — 抽象航班地图（单页）
+   说明：把本文件和 index.html、style.css、airports.json、flight_data.txt 放在同一目录运行（例如用静态服务器）。
+   =========================== */
 
-// ============ 初始化地图 ============
-// 使用一个抽象的坐标范围来模拟世界地图
-const map = L.map('map', { worldCopyJump: true, minZoom: 2 }).setView([35, 90], 3);
+/* ====== 配置 ====== */
+const AUTO_REFRESH_DEFAULT_MS = 180000; // 默认3分钟（可在侧栏修改）
+const SMOOTH_ANIMATION_FPS = 60; // 平滑动画帧率目标
+const PLANE_ICON_URL = "https://i.imgur.com/4bZtV3y.png"; // 临时飞机图标 (你可以换成你的PNG)
+const USE_URL_SINGLE_MODE_BY_DEFAULT = true; // 如需默认只显示 URL 指定单航班，保留 true
 
-// 简约底图（无国界）
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 7,
-  attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-}).addTo(map);
-
-// 全局变量
-let airportDB = {};
-let flights = [];
-let markers = {}; // 飞机标记
-let airportMarkers = {}; // 机场标记
-let polyLines = {};
+/* 状态存储 */
+let airports = [];       // 从 airports.json 读取的机场数据（含 x,y）
+let flights = [];        // 解析后的航班数组
+let planesState = {};    // 飞机运行时状态（position, target, progress）
+let refreshTimer = null;
+let rafId = null;
+let autoRefreshEnabled = true;
+let refreshIntervalMs = AUTO_REFRESH_DEFAULT_MS;
 let showFlightNo = localStorage.getItem("showFlightNo") === "true";
 let showAirportLabel = localStorage.getItem("showAirportLabel") === "true";
-let enableSingleFlightMode = true; // URL单航班模式默认开启
+let onlySingleMode = localStorage.getItem("onlySingleMode") === "true";
 
-// ============ 数据结构与工具函数 ============
+/* SVG Elements */
+const svg = document.getElementById("worldSvg");
+const airportsLayer = document.getElementById("airportsLayer");
+const routesLayer = document.getElementById("routesLayer");
+const planesLayer = document.getElementById("planesLayer");
+const infoCard = document.getElementById("infoCard");
 
-// 机场数据结构（模拟您提供的新结构）
-// 注意：实际项目中，您需要确保您的 airports.json 是正确的。
-// 这里的 `airportDB` 最终会是 `{ "BAY": {...}, "QLM": {...} }` 的结构
-// 详情请看最后机场数据说明。
+/* DOM controls */
+const optShowFlightNo = document.getElementById("optShowFlightNo");
+const optShowAirportLabel = document.getElementById("optShowAirportLabel");
+const optAutoRefresh = document.getElementById("optAutoRefresh");
+const refreshIntervalInput = document.getElementById("refreshInterval");
+const flightListEl = document.getElementById("flightList");
+const openSettingsBtn = document.getElementById("openSettings");
+const sideBar = document.getElementById("sideBar");
+const closeSidebarBtn = document.getElementById("closeSidebar");
+const mobilePanel = document.getElementById("mobilePanel");
+const mobileHandle = document.getElementById("mobileHandle");
+const mobileContent = document.getElementById("mobileContent");
+const searchInput = document.getElementById("searchInput");
+const searchBtn = document.getElementById("searchBtn");
+const clearSearchBtn = document.getElementById("clearSearch");
 
-/**
- * 将时间字符串 HH:MM 转换为以午夜开始的分钟数 (东八区时间)
- * @param {string} t - 时间字符串 "HH:MM"
- * @returns {number} 分钟数
- */
-function timeToMinutes(t) { 
-  const [h, m] = t.split(":").map(Number); 
-  return h * 60 + m; 
+/* URL 参数读取 */
+function getFlightIDFromURL(){ return new URLSearchParams(location.search).get("flights_map"); }
+
+/* ====== 初始化入口 ====== */
+async function init(){
+  // 恢复设定
+  optShowFlightNo.checked = showFlightNo;
+  optShowAirportLabel.checked = showAirportLabel;
+  optAutoRefresh.checked = autoRefreshEnabled;
+  refreshIntervalInput.value = refreshIntervalMs/1000;
+  optShowFlightNo.addEventListener("change", ()=>{ showFlightNo = optShowFlightNo.checked; localStorage.setItem("showFlightNo", showFlightNo); renderAll();});
+  optShowAirportLabel.addEventListener("change", ()=>{ showAirportLabel = optShowAirportLabel.checked; localStorage.setItem("showAirportLabel", showAirportLabel); renderAll();});
+  optAutoRefresh.addEventListener("change", ()=>{ autoRefreshEnabled = optAutoRefresh.checked; setAutoRefresh();});
+  document.getElementById("applyRefresh").addEventListener("click", ()=>{ refreshIntervalMs = Math.max(10000, Number(refreshIntervalInput.value)*1000); setAutoRefresh(); });
+
+  openSettingsBtn.addEventListener("click", ()=>{ sideBar.classList.remove("collapsed"); });
+  closeSidebarBtn.addEventListener("click", ()=>{ sideBar.classList.add("collapsed"); });
+
+  mobileHandle.addEventListener("click", ()=>{ mobilePanel.classList.toggle("collapsed"); });
+
+  searchBtn.addEventListener("click", ()=>{ doSearch(searchInput.value.trim()); });
+  clearSearchBtn.addEventListener("click", ()=>{ searchInput.value=""; renderAll(); });
+  searchInput.addEventListener("keydown", (e)=>{ if(e.key === "Enter") searchBtn.click() });
+
+  // 读取机场与航班数据
+  await loadAirportData();
+  await loadFlightData(); // 解析文本文件
+
+  // 初次渲染
+  renderAll();
+  populateFlightList();
+
+  // 自动刷新
+  setAutoRefresh();
+  // 启动动画循环
+  startAnimationLoop();
 }
 
-/**
- * 根据名称、三字码或别名查找机场
- * @param {string} name - 机场名称、三字码或别名
- * @returns {object|null} 机场对象
- */
-function airportByName(name) {
-  const query = name.toUpperCase();
-  for (let code in airportDB) {
-    const ap = airportDB[code];
-    if (code === query || ap.name === name || ap.city === name || (ap.aliases && ap.aliases.includes(name))) {
-      return ap;
-    }
+/* ====== 数据加载 ====== */
+async function loadAirportData(){
+  // 请把 airports.json 放在同目录下
+  try{
+    const res = await fetch("./airports.json");
+    airports = await res.json();
+    // normalize: ensure x,y in 0..1000/0..600 (SVG viewbox)
+    airports.forEach(a=>{
+      if(typeof a.x !== "number"){ a.x = a.lon ? (a.lon%360+360)%360/360*1000 : Math.random()*900+50; }
+      if(typeof a.y !== "number"){ a.y = a.lat ? (90 - a.lat)/180*600 : Math.random()*400+100; }
+      // normalize aliases array
+      if(!Array.isArray(a.aliases)) a.aliases = a.aliases ? [a.aliases] : [];
+    });
+  }catch(err){
+    console.error("加载 airports.json 失败：",err);
+    airports = [];
   }
-  return null;
 }
 
-/**
- * 从 URL 获取航班 ID
- * @returns {string|null} 航班 ID
- */
-function getFlightIDFromURL() { 
-  if (!enableSingleFlightMode) return null;
-  return new URLSearchParams(location.search).get("flights_map"); 
+async function loadFlightData(){
+  try{
+    const txt = await fetch("./flight_data.txt").then(r=>r.text());
+    flights = parseFlightData(txt);
+    // 保存原始 originalText for dedupe/reference
+    flights.forEach(f=> f._raw = f._raw || f.rawText || "");
+    // init planesState for flights currently flying
+    flights.forEach(f=>{
+      planesState[f.flightNo] = planesState[f.flightNo] || {progress:0, x:0, y:0, heading:0};
+    });
+  }catch(err){
+    console.error("加载 flight_data.txt 失败：", err);
+    flights = [];
+  }
 }
 
-// ============ 数据加载与解析 ============
+/* ====== 解析航班原始格式 ======
+   支持格式类似：
+   【HA1608】〈〉«MON,TUE...»〔波音737-800〕『豪金航空』《拜科努尔出发》{0:30}#+0#@T1航站楼@《上海到达》{11:20}#+0#@T1航站楼@ §1150元§θ3100元θ △8888元△<DF1729>《航班结束》
+   说明：
+   - 星期字段在 «...»，包含 MON,TUE...（大写或小写）
+   - 跨日由 #+1# 表示，#+0# 表示同日（默认为0）
+   - 前后序航班以 <> 包围
+   - 提取机型、航空公司、起降、时间、航班ID（尖括号里的）
+*/
+function parseFlightData(raw){
+  const out = [];
+  const lines = raw.split("\n").map(s=>s.trim()).filter(Boolean);
+  for(let rawLine of lines){
+    // attempt to extract flightNo between 【】
+    const flightNoMatch = rawLine.match(/【(.*?)】/);
+    const flightNo = flightNoMatch ? flightNoMatch[1].trim() : null;
+    // weekdays
+    const dowMatch = rawLine.match(/«([^»]+)»/);
+    const weekdayStr = dowMatch ? dowMatch[1].trim() : "";
+    const weekdays = weekdayStr ? weekdayStr.split(",").map(s=>s.trim().toUpperCase()) : [];
+    // aircraft
+    const acMatch = rawLine.match(/〔([^〕]+)〕/);
+    const aircraft = acMatch ? acMatch[1].trim() : "";
+    // airline
+    const airlineMatch = rawLine.match(/『([^』]+)』/);
+    const airline = airlineMatch ? airlineMatch[1].trim() : "";
+    // departure
+    const depMatch = rawLine.match(/《([^》]+)出发》\{([^}]*)\}([^\s#@<{<]*)/);
+    const dep = depMatch ? depMatch[1].trim() : "";
+    const depTime = depMatch ? depMatch[2].trim() : "";
+    const depCross = rawLine.includes("#{+1#}") ? 1 : ( (rawLine.includes("#+1#")) ? 1 : 0 );
+    // arrival
+    const arrMatch = rawLine.match(/《([^》]+)到达》\{([^}]*)\}([^\s#@<{<]*)/);
+    const arr = arrMatch ? arrMatch[1].trim() : "";
+    const arrTime = arrMatch ? arrMatch[2].trim() : "";
+    // cross day detection better: search #+1# near arrival
+    const arrCrossMatch = rawLine.match(/到达\}([^#]*)#\+(\d)#/);
+    const arrCross = arrCrossMatch ? Number(arrCrossMatch[1] ? arrCrossMatch[1].match(/\+(\d)/) && arrCrossMatch[1] : (arrCrossMatch[2] || 0)) : (rawLine.includes("#+1#") ? 1 : 0);
+    // price / misc ignored
+    // tail / registration in <>
+    const regMatch = rawLine.match(/<([^>]+)>/g);
+    let id = null;
+    if(regMatch && regMatch.length>0){
+      // pick last one as next-flight id maybe; but pick first as registration if format like <DF1729>
+      id = regMatch[0].replace(/[<>]/g,"");
+    }
+    // previous/next segment id if present (we'll collect all)
+    const segIds = (rawLine.match(/<([^>]+)>/g) || []).map(s=>s.replace(/[<>]/g,""));
 
-async function loadData() {
-  // 假设 airports.json 是一个数组，我们需要转换成以 code 为键的对象
-  const rawAirports = await fetch("../data/airports.json").then(r => r.json());
-  airportDB = rawAirports.reduce((acc, ap) => {
-    acc[ap.code] = ap;
-    return acc;
-  }, {});
+    // days-of-week normalization: accept MON/TUE/WED/THU/FRI/SAT/SUN or Chinese names
+    const days = weekdays.map(d=>{
+      const dd = d.toUpperCase();
+      const map = {MON:"MON",TUE:"TUE",WED:"WED",THU:"THU",FRI:"FRI",SAT:"SAT",SUN:"SUN",
+                   "MONDAY":"MON","TUESDAY":"TUE","WEDNESDAY":"WED","THURSDAY":"THU","FRIDAY":"FRI","SATURDAY":"SAT","SUNDAY":"SUN",
+                   "周一":"MON","周二":"TUE","周三":"WED","周四":"THU","周五":"FRI","周六":"SAT","周日":"SUN",
+                   "星期一":"MON","星期二":"TUE","星期三":"WED","星期四":"THU","星期五":"FRI","星期六":"SAT","星期日":"SUN"};
+      return map[dd]||dd;
+    });
 
-  const txt = await fetch("../data/flight_data.txt").then(r => r.text());
-  flights = parseFlightData(txt);
-
-  initToolbar();
-  startRenderLoop();
-  map.on('moveend', updateVisibleFlightsList); // 移动地图后更新列表
-}
-
-/**
- * 解析航班原始格式，包括新字段
- * 【HA1608】〈〉«MON,TUE,WED,THU,FRI,SAT,SUN»〔波音737-800〕『豪金航空』《拜科努尔出发》{0:30}#+0#@T1航站楼@《上海到达》{11:20}#+0#@T1航站楼@ §1150元§θ3100元θ △8888元△<DF1729>《航班结束》
- */
-function parseFlightData(raw) {
-  const list = [];
-  const reg = /【(.*?)】\s*〈(.*?)〉\s*«(.*?)»\s*〔(.*?)〕\s*『(.*?)』\s*《(.*?)出发》\s*\{(.*?)\}\s*#(\+?\d)#\s*@.*?@\s*《(.*?)到达》\s*\{(.*?)\}\s*#(\+?\d)#\s*@.*?@\s*.*?<([^>]+)>/g;
-  let m;
-  while ((m = reg.exec(raw)) !== null) {
-    list.push({
-      flightNo: m[1], // HA1608
-      regNo: m[2] || 'N/A', // 注册号，这里可能为空，需注意
-      days: m[3], // 星期几
-      aircraft: m[4], // 机型
-      airline: m[5], // 航空公司
-      dep: m[6], // 拜科努尔
-      depTime: m[7], // 0:30
-      depCrossDay: parseInt(m[8]), // 0 (出发跨日)
-      arr: m[9], // 上海
-      arrTime: m[10], // 11:20
-      arrCrossDay: parseInt(m[11]), // 0 (到达跨日)
-      prevNextFlight: m[12] // 前后续航班 ID
+    out.push({
+      rawText: rawLine,
+      flightNo,
+      weekdays: days,
+      aircraft,
+      airline,
+      dep, depTime, depCross,
+      arr, arrTime, arrCross,
+      ids: segIds,
+      id,
     });
   }
-  return list;
+  return out;
 }
 
-// ============ 渲染核心逻辑 ============
-
-/**
- * 计算当前时间在指定时区（东八区）下的分钟数
- * @returns {number} 东八区当天的分钟数 (0-1439)
- */
-function getBeijingTimeMinutes() {
-  const now = new Date();
-  // UTC时间 + 8小时 (8 * 60 = 480 分钟)
-  const utcMinutes = now.getUTCHours() * 60 + now.getUTCMinutes();
-  const beijingMinutes = (utcMinutes + 480) % 1440;
-  return beijingMinutes;
+/* ====== 日期与时间帮助函数 ====== */
+function nowInBeijing() {
+  // 东八区时间（你要求按照东八区时间设计）
+  const d = new Date();
+  // compute offset to UTC and then shift to UTC+8
+  const utc = d.getTime() + (d.getTimezoneOffset()*60000);
+  const beijing = new Date(utc + 3600000*8);
+  return beijing;
+}
+function hhmmToMinutes(t){
+  if(!t) return null;
+  const m = t.split(":").map(Number);
+  return m[0]*60 + (m[1]||0);
+}
+function minutesToHHMM(min){
+  const hh = Math.floor(min/60)%24;
+  const mm = Math.floor(min%60);
+  return String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0");
+}
+function dayOfWeekStr(dateObj){
+  // return MON,TUE...
+  const arr = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+  return arr[dateObj.getUTCDay()];
 }
 
-/**
- * 计算飞机位置和飞行状态
- * @param {object} f - 航班对象
- * @param {object} depA - 出发机场
- * @param {object} arrA - 到达机场
- * @param {number} nowMin - 当前东八区分钟数
- * @returns {object|null} 包含 lat, lng, ratio, status 的对象，或 null
- */
-function calculateFlightPosition(f, depA, arrA, nowMin) {
-  const today = new Date();
-  const currentDayOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][today.getDay()];
-  
-  if (!f.days.includes(currentDayOfWeek)) {
-    return { status: "NO_FLIGHT", ratio: 0 };
-  }
-
-  const depMin = timeToMinutes(f.depTime);
-  const arrMin = timeToMinutes(f.arrTime) + f.arrCrossDay * 1440; // 考虑跨日
-  
-  let flightDuration = arrMin - depMin;
-  if (flightDuration <= 0) flightDuration += 1440; // 确保时间为正，处理午夜前后出发到达的情况
-
-  let elapsedMinutes = nowMin - depMin;
-  // 核心逻辑：如果 elapsedMinutes < 0 (今天还没到出发时间)，则已到达/准备 (取决于跨日)
-  // 如果 elapsedMinutes > flightDuration，则已到达
-  
-  // 修正跨日出发：如果现在是凌晨但起飞是昨晚，elapsedMinutes会是负数
-  if (elapsedMinutes < 0 && depMin > 720) { // 假设起飞时间在下午/晚上
-    elapsedMinutes += 1440; // 算作昨天起飞
-  }
-
-  // 状态判断
-  if (elapsedMinutes < 0) {
-    return { status: "PREPARING", ratio: 0 };
-  } else if (elapsedMinutes >= flightDuration) {
-    return { status: "ARRIVED", ratio: 1 };
-  }
-
-  const ratio = elapsedMinutes / flightDuration;
-  const lat = depA.lat + (arrA.lat - depA.lat) * ratio;
-  const lng = depA.lng + (arrA.lng - depA.lng) * ratio;
-
-  // 计算飞机角度 (L.marker 会自动处理 360 度循环)
-  const angle = L.latLng(depA.lat, depA.lng).bearing(L.latLng(arrA.lat, arrA.lng));
-
-  return { 
-    status: "IN_FLIGHT", 
-    ratio, 
-    lat, 
-    lng, 
-    angle
-  };
+/* ====== 查找机场 ====== */
+function findAirportByName(name){
+  if(!name) return null;
+  name = name.toLowerCase();
+  return airports.find(a=>{
+    if(a.name && a.name.toLowerCase() === name) return true;
+    if(a.code && a.code.toLowerCase() === name) return true;
+    if(a.aliases && a.aliases.some(x => x.toLowerCase() === name)) return true;
+    // includes
+    if(a.name && a.name.toLowerCase().includes(name)) return true;
+    return false;
+  }) || null;
 }
 
-/**
- * 在地图上渲染机场标记
- * @param {object} ap - 机场对象
- */
-function renderAirportMarker(ap) {
-  if (airportMarkers[ap.code]) return; // 避免重复创建
-
-  // 机场图标 (同心圆)
-  const iconHtml = `<div class="airport-icon-div"></div>`;
-  const airportMk = L.marker([ap.lat, ap.lon], {
-    icon: L.divIcon({className: "airport-icon", html: iconHtml, iconSize: [20, 20], iconAnchor: [10, 10]})
-  }).addTo(map);
-  airportMk.on("click", () => showAirportCard(ap));
-  
-  // 机场标签 (可开关)
-  const label = L.marker([ap.lat, ap.lon], {
-    icon: L.divIcon({
-      className: "airport-label", 
-      html: `${ap.name} (${ap.code})`,
-      iconAnchor: [-5, 10] // 略微偏移，不挡住图标
-    })
-  }).addTo(map);
-
-  airportMk.label = label;
-  
-  airportMarkers[ap.code] = { marker: airportMk, label: label };
+/* ====== 渲染（机场、航线、飞机） ====== */
+function clearSvgLayers(){
+  airportsLayer.innerHTML = "";
+  routesLayer.innerHTML = "";
+  planesLayer.innerHTML = "";
 }
 
+function renderAll(){
+  clearSvgLayers();
+  renderAirports();
+  renderRoutesAndPlanes();
+}
 
-/**
- * 渲染或更新所有航班及其位置
- * @param {boolean} smoothMove - 是否启用平滑移动
- */
-function renderFlights(smoothMove = false) {
-  const filterID = getFlightIDFromURL();
-  const nowMin = getBeijingTimeMinutes();
-  
-  const activeAirports = new Set();
-  const activeFlights = [];
+/* 把机场渲染到 airportsLayer（同心圆 + label） */
+function renderAirports(){
+  airports.forEach(ap=>{
+    const g = document.createElementNS("http://www.w3.org/2000/svg","g");
+    g.classList.add("airport");
+    g.setAttribute("data-code", ap.code || "");
+    g.setAttribute("transform", `translate(${ap.x},${ap.y})`);
+    // outer circles
+    const outer = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    outer.setAttribute("class","circleOuter");
+    outer.setAttribute("r",14);
+    g.appendChild(outer);
+    const mid = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    mid.setAttribute("class","circleMid");
+    mid.setAttribute("r",8);
+    g.appendChild(mid);
+    const core = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    core.setAttribute("class","circleCore");
+    core.setAttribute("r",5);
+    g.appendChild(core);
 
-  flights.forEach(f => {
-    // URL 过滤
-    if (filterID && f.prevNextFlight.toUpperCase() !== filterID.toUpperCase() && f.flightNo.toUpperCase() !== filterID.toUpperCase()) return;
-
-    const depA = airportByName(f.dep);
-    const arrA = airportByName(f.arr);
-    if (!depA || !arrA) return;
-
-    const pos = calculateFlightPosition(f, depA, arrA, nowMin);
-    
-    // 渲染航线和机场
-    const lineKey = `${f.flightNo}_LINE`;
-    if (!polyLines[lineKey]) {
-      const line = L.polyline([[depA.lat, depA.lon], [arrA.lat, arrA.lon]], {
-        color: "orange", weight: 2, dashArray: "6 6"
-      }).addTo(map);
-      polyLines[lineKey] = line;
+    // label (三字码 + 名称)
+    if(showAirportLabel){
+      const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+      label.setAttribute("x", 12);
+      label.setAttribute("y", -10);
+      label.setAttribute("class","label");
+      label.textContent = `${ap.name} (${ap.code})`;
+      g.appendChild(label);
     }
-    
-    // 渲染机场标记
-    activeAirports.add(depA.code);
-    activeAirports.add(arrA.code);
 
-    // 飞机图标
-    let mk = markers[f.flightNo];
+    g.addEventListener("click", ()=>{ showAirportCard(ap); });
+    airportsLayer.appendChild(g);
+  });
+}
 
-    if (pos.status === "IN_FLIGHT") {
-      activeFlights.push(f);
-      
-      if (!mk) {
-        // 创建新的标记
-        const icon = L.icon({
-          iconUrl: "https://i.imgur.com/4bZtV3y.png", // 飞机 PNG
-          iconSize: [32, 32],
-          iconAnchor: [16, 16]
-        });
-        mk = L.marker([pos.lat, pos.lng], { icon, rotationAngle: pos.angle }).addTo(map);
-        mk.flight = f;
-        mk.airportFrom = depA;
-        mk.airportTo = arrA;
-        mk.on("click", () => showInfoCard(f, depA, arrA, pos.ratio));
-        markers[f.flightNo] = mk;
-        
-        // 绑定航班号标签
-        mk.tooltip = L.tooltip({
-            permanent: true,
-            direction: "right",
-            className: "flight-label"
-        }).setContent(f.flightNo).setLatLng([pos.lat, pos.lng]).addTo(map);
+/* 根据当前时间与航班定义判断航班状态与是否今天开行：
+   返回状态： "NOT_SCHEDULED", "PREPARING", "IN_FLIGHT", "ARRIVED" 以及 progress 0..1
+*/
+function computeFlightState(f){
+  const now = nowInBeijing();
+  // day-of-week check (if weekdays empty, treat as daily)
+  const dow = dayOfWeekStr(now);
+  if(f.weekdays && f.weekdays.length>0 && !f.weekdays.includes(dow)){
+    return {state:"NOT_SCHEDULED"};
+  }
+  const depMin = hhmmToMinutes(f.depTime);
+  const arrMin = hhmmToMinutes(f.arrTime);
+  if(depMin == null || arrMin == null) return {state:"NOT_SCHEDULED"};
+  // handle cross-day
+  let arrOffset = (f.arrCross || 0);
+  // compute absolute minutes from today's 00:00
+  const nowMin = now.getHours()*60 + now.getMinutes();
+  let depAbs = depMin;
+  let arrAbs = arrMin + arrOffset*24*60;
+  // if arrAbs <= depAbs then assume arrives next day
+  if(arrAbs <= depAbs) arrAbs += 24*60;
+  // determine state
+  if(nowMin < depAbs - 30){ // before prepare window (30min)
+    return {state:"NOT_PREPARING"}; // not showing
+  } else if(nowMin >= depAbs - 30 && nowMin < depAbs){
+    return {state:"PREPARING", progress:0};
+  } else if(nowMin >= depAbs && nowMin <= arrAbs){
+    const progress = (nowMin - depAbs) / (arrAbs - depAbs);
+    return {state:"IN_FLIGHT", progress};
+  } else {
+    return {state:"ARRIVED", progress:1};
+  }
+}
 
-      } else {
-        // 更新现有标记的位置和角度
-        const newLatLng = [pos.lat, pos.lng];
-        if (smoothMove && mk.getLatLng) {
-           // 启用平滑动画
-           mk.startLatLng = mk.getLatLng();
-           mk.endLatLng = L.latLng(newLatLng);
-           mk.startRatio = pos.ratio - (1 / (f.flightDuration * ANIMATION_FPS * REFRESH_INTERVAL_SECONDS)); // 估算起始比例
-           mk.startTime = Date.now();
-           mk.duration = REFRESH_INTERVAL_SECONDS * 1000;
-        } else {
-          // 直接跳到新位置
-          mk.setLatLng(newLatLng);
-        }
-        
-        mk.setRotationAngle(pos.angle);
-        mk.tooltip.setLatLng(newLatLng);
+/* 渲染航线与飞机（只渲染 IN_FLIGHT 状态的飞机；PREPARING/ARRIVED/NOT_SCHEDULED 可以在列表中显示） */
+function renderRoutesAndPlanes(){
+  const urlFlight = getFlightIDFromURL();
+  const showOnlyURL = urlFlight && (USE_URL_SINGLE_MODE_BY_DEFAULT || onlySingleMode);
+  flights.forEach(f=>{
+    // find airports
+    const depA = findAirportByName(f.dep);
+    const arrA = findAirportByName(f.arr);
+    if(!depA || !arrA) return; // 无机场信息则跳过
+
+    const st = computeFlightState(f);
+    // if only single mode and not this flight skip
+    if(showOnlyURL && urlFlight && f.flightNo.toUpperCase() !== urlFlight.toUpperCase()) return;
+
+    // we only draw route if state === IN_FLIGHT
+    if(st.state === "IN_FLIGHT"){
+      // draw route line
+      const line = document.createElementNS("http://www.w3.org/2000/svg","path");
+      const d = `M ${depA.x} ${depA.y} Q ${(depA.x+arrA.x)/2} ${(depA.y+arrA.y)/2 - 60} ${arrA.x} ${arrA.y}`;
+      line.setAttribute("d", d);
+      line.setAttribute("class", "routeLine");
+      line.setAttribute("data-flight", f.flightNo);
+      routesLayer.appendChild(line);
+
+      // plane (pos along the quadratic curve)
+      const pos = pointAlongQuad(depA, arrA, st.progress);
+      const grp = document.createElementNS("http://www.w3.org/2000/svg","g");
+      grp.setAttribute("transform", `translate(${pos.x},${pos.y})`);
+      grp.setAttribute("data-flight", f.flightNo);
+      grp.classList.add("plane");
+
+      // compute heading angle to face toward arrival
+      const aheadPos = pointAlongQuad(depA, arrA, Math.min(1, st.progress + 0.02));
+      const angle = Math.atan2(aheadPos.y - pos.y, aheadPos.x - pos.x) * 180 / Math.PI;
+
+      grp.setAttribute("data-angle", angle);
+      grp.style.transform = `rotate(${angle}deg)`;
+
+      // use image inside svg via foreignObject or image tag
+      const img = document.createElementNS("http://www.w3.org/2000/svg","image");
+      img.setAttribute("href", PLANE_ICON_URL);
+      img.setAttribute("class","planeIcon");
+      img.setAttribute("x",-14); img.setAttribute("y",-14); img.setAttribute("width",28); img.setAttribute("height",28);
+      grp.appendChild(img);
+
+      // label
+      if(showFlightNo){
+        const label = document.createElementNS("http://www.w3.org/2000/svg","text");
+        label.setAttribute("x", 18);
+        label.setAttribute("y", 6);
+        label.setAttribute("font-size", 11);
+        label.setAttribute("fill", "#0b1726");
+        label.textContent = f.flightNo;
+        grp.appendChild(label);
       }
-      
-      // 检查航班号标签是否显示
-      if (mk.tooltip) {
-        if (showFlightNo) mk.tooltip.setOpacity(1);
-        else mk.tooltip.setOpacity(0);
-      }
-      
-    } else {
-      // 航班不在飞行中，移除标记和标签
-      if (mk) {
-        map.removeLayer(mk);
-        if(mk.tooltip) map.removeLayer(mk.tooltip);
-        delete markers[f.flightNo];
-      }
-    }
-    
-    // 实时更新航线颜色/状态
-    const lineColor = (pos.status === "IN_FLIGHT" || pos.status === "ARRIVED") ? "var(--secondary-color)" : "gray";
-    const lineWeight = (pos.status === "IN_FLIGHT") ? 3 : 2;
-    polyLines[lineKey].setStyle({ color: lineColor, weight: lineWeight, opacity: (filterID ? 1 : 0.4)});
-  });
-  
-  // 移除未使用的航线
-  for (let k in polyLines) {
-    const flightNo = k.replace("_LINE", "");
-    if (!markers[flightNo] && !filterID) {
-      polyLines[k].setStyle({opacity: 0.2, weight: 1}); // 仅在非单航班模式下淡化
-    }
-  }
-  
-  // 渲染并控制机场标签的可见性
-  for (let code in airportDB) {
-    const ap = airportDB[code];
-    renderAirportMarker(ap); // 确保所有机场图标存在
-    const airport = airportMarkers[ap.code];
-    
-    // 控制机场标签可见性
-    if (airport.label) {
-      airport.label.setOpacity(showAirportLabel ? 1 : 0);
-    }
-    // 突出显示相关机场
-    const isRelated = activeAirports.has(code) || (filterID && activeAirports.has(code));
-    airport.marker.setOpacity(isRelated ? 1 : 0.6);
-  }
-  
-  // 如果是单航班模式且有航班，移动地图视角
-  if(filterID && activeFlights.length > 0){
-    map.flyTo([activeFlights[0].lat, activeFlights[0].lng], 5, { duration: 1.5 });
-  }
 
-  // 更新可见航班列表
-  updateVisibleFlightsList();
-}
+      grp.addEventListener("click", ()=>{ showInfoCardForFlight(f, depA, arrA, st); });
 
+      planesLayer.appendChild(grp);
 
-// ============ 动画和平滑移动 ============
-
-function animatePlane() {
-    const now = Date.now();
-    for (let flightNo in markers) {
-        const mk = markers[flightNo];
-        const f = mk.flight;
-        
-        if (mk.startLatLng && mk.endLatLng && mk.startTime && mk.duration) {
-            const timeElapsed = now - mk.startTime;
-            let ratio = timeElapsed / mk.duration;
-            
-            if (ratio > 1) {
-                ratio = 1;
-                // 动画结束，清除起始点
-                mk.startLatLng = null;
-                mk.endLatLng = null;
-            }
-
-            // 插值计算新位置
-            const newLat = mk.startLatLng.lat + (mk.endLatLng.lat - mk.startLatLng.lat) * ratio;
-            const newLng = mk.startLatLng.lng + (mk.endLatLng.lng - mk.startLatLng.lng) * ratio;
-            
-            const newLatLng = L.latLng(newLat, newLng);
-            mk.setLatLng(newLatLng);
-            mk.tooltip.setLatLng(newLatLng);
-        }
-    }
-
-    animationFrameId = requestAnimationFrame(animatePlane);
-}
-
-/**
- * 开始渲染循环（包括定时刷新和动画）
- */
-function startRenderLoop() {
-  // 1. 立即渲染一次 (不带平滑移动)
-  renderFlights(false); 
-  
-  // 2. 设置定时刷新 (用于重新计算准确位置)
-  if (refreshTimer) clearInterval(refreshTimer);
-  refreshTimer = setInterval(() => {
-    renderFlights(true); // 启用平滑移动
-  }, REFRESH_INTERVAL_SECONDS * 1000);
-  
-  // 3. 启动动画帧 (用于平滑移动)
-  if (animationFrameId) cancelAnimationFrame(animationFrameId);
-  animationFrameId = requestAnimationFrame(animatePlane);
-}
-
-// ============ UI/侧边栏逻辑 ============
-
-/**
- * 切换手机上拉栏的状态
- */
-function toggleSidebar() {
-  const sidebar = document.getElementById("sidebar");
-  sidebar.classList.toggle("expanded");
-  document.getElementById("handle").innerHTML = sidebar.classList.contains("expanded") ? '&#x25BC;' : '&#x25B2;';
-}
-
-/**
- * 初始化工具栏开关和事件
- */
-function initToolbar() {
-  // 开关初始化
-  document.getElementById("toggleFlightNo").checked = showFlightNo;
-  document.getElementById("toggleAirportLabel").checked = showAirportLabel;
-  document.getElementById("toggleSingleFlightMode").checked = enableSingleFlightMode;
-  document.getElementById("refresh-interval").textContent = REFRESH_INTERVAL_SECONDS / 60;
-
-  // 手机端：点击把手/头部展开/收起
-  const sidebar = document.getElementById("sidebar");
-  const handle = document.getElementById("handle");
-  handle.addEventListener("click", toggleSidebar);
-  document.getElementById("sidebar-header").addEventListener("click", () => {
-     if (window.innerWidth <= 768) toggleSidebar();
-  });
-
-
-  // 航班号开关
-  document.getElementById("toggleFlightNo").addEventListener("change", (e) => {
-    showFlightNo = e.target.checked;
-    localStorage.setItem("showFlightNo", showFlightNo);
-    renderFlights(false);
-  });
-  
-  // 机场标签开关
-  document.getElementById("toggleAirportLabel").addEventListener("change", (e) => {
-    showAirportLabel = e.target.checked;
-    localStorage.setItem("showAirportLabel", showAirportLabel);
-    // 仅更新标签可见性，无需重绘所有航班
-    for(let code in airportMarkers) {
-      if(airportMarkers[code].label) {
-        airportMarkers[code].label.setOpacity(showAirportLabel ? 1 : 0);
-      }
+      // update runtime planesState for animation
+      planesState[f.flightNo] = {
+        x: pos.x, y: pos.y, heading: angle, progress: st.progress, dep:depA, arr:arrA, flight: f
+      };
     }
   });
-  
-  // URL单航班模式开关
-  document.getElementById("toggleSingleFlightMode").addEventListener("change", (e) => {
-    enableSingleFlightMode = e.target.checked;
-    renderFlights(false);
-  });
-}
 
-/**
- * 根据搜索框内容过滤航班
- */
-function handleSearch() {
-  const query = document.getElementById("flight-search").value.toUpperCase();
-  if (query) {
-    const foundFlight = flights.find(f => 
-      f.flightNo.toUpperCase().includes(query) || 
-      f.regNo.toUpperCase().includes(query) || 
-      airportByName(query) // 搜索机场
-    );
-
-    if (foundFlight) {
-        // 如果找到航班，构造一个临时的 URL 过滤
-        const searchURL = `?flights_map=${foundFlight.prevNextFlight || foundFlight.flightNo}`;
-        // 临时覆盖 getFlightIDFromURL 的行为
-        const originalGetID = getFlightIDFromURL;
-        getFlightIDFromURL = () => foundFlight.prevNextFlight || foundFlight.flightNo;
-        
-        renderFlights(false);
-        // 恢复
-        getFlightIDFromURL = originalGetID;
-        return;
+  // If URL single flight mode, pan / focus to that flight
+  const urlF = getFlightIDFromURL();
+  if(urlF){
+    const p = planesState[urlF.toUpperCase()] || Object.values(planesState).find(s=>s.flight && s.flight.flightNo.toUpperCase()===urlF.toUpperCase());
+    if(p){
+      // simulate pan by applying a small transform (we keep it simple: set viewBox center)
+      centerSvgOn(p.x, p.y);
+      // highlight route
+      const routeEl = routesLayer.querySelector(`[data-flight="${p.flight.flightNo}"]`);
+      if(routeEl) routeEl.classList.add("routeHighlight");
     }
   }
-  // 清空搜索，回到全部显示或 URL 模式
-  renderFlights(false);
 }
 
-/**
- * 更新屏幕内航班列表 (平板/PC)
- */
-function updateVisibleFlightsList() {
-    if (window.innerWidth <= 768) return; // 手机端不显示列表
-
-    const bounds = map.getBounds();
-    const flightListElement = document.getElementById("flight-list");
-    const visibleFlights = [];
-
-    for (let flightNo in markers) {
-        const mk = markers[flightNo];
-        if (bounds.contains(mk.getLatLng())) {
-            visibleFlights.push(mk.flight);
-        }
-    }
-
-    document.getElementById("flight-count").textContent = visibleFlights.length;
-    flightListElement.innerHTML = visibleFlights.map(f => 
-        `<li onclick="showInfoCard(markers['${f.flightNo}'].flight, markers['${f.flightNo}'].airportFrom, markers['${f.flightNo}'].airportTo, markers['${f.flightNo}'].ratio || 0)">${f.flightNo} (${f.dep}-${f.arr})</li>`
-    ).join('');
+/* 把 svg center 移动到指定点（通过修改 viewBox） */
+function centerSvgOn(x,y){
+  const vb = svg.viewBox.baseVal;
+  const w = vb.width, h = vb.height;
+  let nx = x - w/2, ny = y - h/2;
+  // clamp
+  nx = Math.max(0, Math.min(nx, 1000 - w));
+  ny = Math.max(0, Math.min(ny, 600 - h));
+  svg.setAttribute("viewBox", `${nx} ${ny} ${w} ${h}`);
 }
 
+/* 二次贝塞尔曲线在 t 处点位（近似） */
+function pointAlongQuad(a,b,t){
+  // control point above midpoint for nice arc
+  const cx = (a.x + b.x)/2;
+  const cy = (a.y + b.y)/2 - 60;
+  const x = (1-t)*(1-t)*a.x + 2*(1-t)*t*cx + t*t*b.x;
+  const y = (1-t)*(1-t)*a.y + 2*(1-t)*t*cy + t*t*b.y;
+  return {x,y};
+}
 
-// ============ 信息卡片逻辑 ============
+/* 显示机场卡片 */
+function showAirportCard(ap){
+  infoCard.classList.remove("hidden");
+  infoCard.innerHTML = `<h3>${ap.name} (${ap.code})</h3>
+    ${ap.level?`<p><b>机场等级：</b>${ap.level}</p>`:""}
+    ${ap.runways?`<p><b>跑道：</b>${ap.runways}</p>`:""}
+    <p style="font-size:12px;color:var(--muted)">坐标：x=${Math.round(ap.x)} y=${Math.round(ap.y)}</p>
+    <p><button class="btn secondary" onclick="hideInfoCard()">关闭</button></p>`;
+}
 
-/**
- * 显示航班信息卡片
- * @param {object} f - 航班对象
- * @param {object} depA - 出发机场
- * @param {object} arrA - 到达机场
- * @param {number} ratio - 飞行进度 (0-1)
- */
-function showInfoCard(f, depA, arrA, ratio) {
-  const card = document.getElementById("infoCard");
-  
-  // 状态
-  let statusText = "已到达";
-  let progressText = `${(ratio * 100).toFixed(1)}%`;
-  
-  const nowMin = getBeijingTimeMinutes();
-  const pos = calculateFlightPosition(f, depA, arrA, nowMin);
-
-  if (pos.status === "IN_FLIGHT") {
-    statusText = "飞行中";
-    progressText = `${(pos.ratio * 100).toFixed(1)}%`;
-  } else if (pos.status === "PREPARING") {
-    statusText = "准备中 (未起飞)";
-    progressText = `0%`;
-  } else if (pos.status === "ARRIVED") {
-    statusText = "已到达";
-    progressText = `100%`;
-  } else if (pos.status === "NO_FLIGHT") {
-    statusText = "当天无航班";
-    progressText = `0%`;
-  }
-
-  // 飞行进度条
-  const progressBarHTML = `
-    <div class="progress-label">${statusText} - 进度: ${progressText}</div>
-    <div class="progress-bar-container">
-      <div class="progress-bar" style="width: ${pos.ratio * 100}%;"></div>
-    </div>
+/* 显示航班卡片，含前后序航段信息 */
+function showInfoCardForFlight(f, depA, arrA, st){
+  infoCard.classList.remove("hidden");
+  const nextSegments = (f.ids || []).filter(id=>id && id !== f.id);
+  const statusText = st.state === "IN_FLIGHT" ? `飞行中 ${Math.round(st.progress*100)}%` : (st.state==="PREPARING" ? "准备中" : (st.state==="ARRIVED"?"已到达":"未开行"));
+  infoCard.innerHTML = `
+    <h3>${f.flightNo} — ${f.airline || ""}</h3>
+    <p><b>机型：</b>${f.aircraft || "-"}</p>
+    <p><b>注册/航班ID：</b>${f.id || (f.ids&&f.ids[0]) || "-"}</p>
+    <p><b>出发：</b>${depA.name} (${f.depTime})</p>
+    <p><b>到达：</b>${arrA.name} (${f.arrTime})</p>
+    <p><b>进度：</b> ${statusText}</p>
+    <div class="progressBar"><div class="fill" style="width:${(st.progress||0)*100}%"></div></div>
+    <p style="margin-top:8px">${nextSegments.length?`前后序航段： ${nextSegments.join(", ")}`:""}</p>
+    <p><button class="btn primary" onclick="zoomToFlight('${f.flightNo}')">聚焦此航班</button>
+       <button class="btn ghost" onclick="hideInfoCard()">关闭</button></p>
   `;
+}
 
-  card.innerHTML = `
-    <h3>${f.flightNo} - ${f.airline}</h3>
-    <p><b>状态：</b>${statusText}</p>
-    ${progressBarHTML}
-    <p><b>出发：</b>${depA.name} (${f.depTime}${f.depCrossDay > 0 ? `+${f.depCrossDay}` : ''})</p>
-    <p><b>到达：</b>${arrA.name} (${f.arrTime}${f.arrCrossDay > 0 ? `+${f.arrCrossDay}` : ''})</p>
-    <p><b>机型：</b>${f.aircraft}</p>
-    <p><b>注册号：</b>${f.regNo}</p>
-    <p><b>前后序航程：</b>${f.prevNextFlight}</p>
-  `;
-  card.classList.remove("hidden");
-  
-  if (window.innerWidth <= 768) {
-      document.getElementById("sidebar").classList.add("expanded");
-      document.getElementById("handle").innerHTML = '&#x25BC;';
+/* 隐藏卡片 */
+function hideInfoCard(){ infoCard.classList.add("hidden"); }
+
+/* 聚焦航班（调整 viewBox 并高亮） */
+function zoomToFlight(flightNo){
+  const st = planesState[flightNo];
+  if(st){ centerSvgOn(st.x, st.y); }
+}
+
+/* 填充侧栏航班列表（当前所有 flights 的状态） */
+function populateFlightList(){
+  flightListEl.innerHTML = "";
+  flights.forEach(f=>{
+    const st = computeFlightState(f);
+    const item = document.createElement("div");
+    item.classList.add("flight-item");
+    item.innerHTML = `<strong>${f.flightNo}</strong> ${f.dep}→${f.arr} <span style="color:var(--muted)">[${st.state}]</span>`;
+    item.addEventListener("click", ()=>{ showInfoCardForFlight(f, findAirportByName(f.dep), findAirportByName(f.arr), st); });
+    flightListEl.appendChild(item);
+  });
+
+  // 手机版
+  mobileContent.innerHTML = flightListEl.innerHTML;
+}
+
+/* 搜索功能：支持航班号、机场三字码/别名/部分名称、注册号 */
+function doSearch(q){
+  if(!q){ renderAll(); return; }
+  q = q.trim().toLowerCase();
+  // try matching flightNo
+  const flight = flights.find(f => f.flightNo && f.flightNo.toLowerCase() === q);
+  if(flight){
+    // show only this flight
+    // set URL param (does not reload) and re-render
+    const url = new URL(location);
+    url.searchParams.set("flights_map", flight.flightNo);
+    history.replaceState({}, "", url);
+    renderAll();
+    // focus
+    setTimeout(()=>{ const st = planesState[flight.flightNo]; if(st) centerSvgOn(st.x, st.y); }, 120);
+    return;
+  }
+  // airport search
+  const ap = findAirportByName(q);
+  if(ap){
+    centerSvgOn(ap.x, ap.y);
+    // highlight airport (simple effect: create temp circle)
+    const tmp = document.createElementNS("http://www.w3.org/2000/svg","circle");
+    tmp.setAttribute("cx", ap.x); tmp.setAttribute("cy", ap.y); tmp.setAttribute("r", 22);
+    tmp.setAttribute("fill", "none"); tmp.setAttribute("stroke", "#ffb347"); tmp.setAttribute("stroke-width",4);
+    airportsLayer.appendChild(tmp);
+    setTimeout(()=> tmp.remove(), 1500);
+    return;
+  }
+  // search by registration or id
+  const f2 = flights.find(f=> (f.id && f.id.toLowerCase() === q) || (f.ids && f.ids.some(id=>id.toLowerCase()===q)));
+  if(f2){
+    const url = new URL(location);
+    url.searchParams.set("flights_map", f2.flightNo);
+    history.replaceState({}, "", url);
+    renderAll();
+    return;
+  }
+
+  // fuzzy match flightNo contains or airport contains
+  const candidates = flights.filter(f=> (f.flightNo && f.flightNo.toLowerCase().includes(q)) || (f.dep && f.dep.toLowerCase().includes(q)) || (f.arr && f.arr.toLowerCase().includes(q)));
+  if(candidates.length>0){
+    // show list in sideBar
+    sideBar.classList.remove("collapsed");
+    flightListEl.innerHTML = "";
+    candidates.forEach(f=>{
+      const st = computeFlightState(f);
+      const item = document.createElement("div");
+      item.classList.add("flight-item");
+      item.innerHTML = `<strong>${f.flightNo}</strong> ${f.dep}→${f.arr} <span style="color:var(--muted)">[${st.state}]</span>`;
+      item.addEventListener("click", ()=>{ showInfoCardForFlight(f, findAirportByName(f.dep), findAirportByName(f.arr), st); });
+      flightListEl.appendChild(item);
+    });
+  } else {
+    alert("未找到匹配项");
   }
 }
 
-/**
- * 显示机场信息卡片
- * @param {object} ap - 机场对象
- */
-function showAirportCard(ap) {
-  const card = document.getElementById("infoCard");
-  card.innerHTML = `
-    <h3>${ap.name} (${ap.code})</h3>
-    <p><b>城市：</b>${ap.city || 'N/A'}</p>
-    ${ap.level ? `<p><b>机场等级：</b>${ap.level}</p>` : ""}
-    ${ap.runways ? `<p><b>跑道数量：</b>${ap.runways}</p>` : ""}
-  `;
-  card.classList.remove("hidden");
-  
-  if (window.innerWidth <= 768) {
-      document.getElementById("sidebar").classList.add("expanded");
-      document.getElementById("handle").innerHTML = '&#x25BC;';
+/* 启动/停止动画循环（平滑飞机移动）*/
+function startAnimationLoop(){
+  let lastTime = performance.now();
+  function loop(now){
+    const dt = now - lastTime;
+    lastTime = now;
+    // animate planes movement: for each planesState entry, smooth towards target computed from computeFlightState
+    flights.forEach(f=>{
+      const st = computeFlightState(f);
+      if(st.state === "IN_FLIGHT"){
+        const depA = findAirportByName(f.dep);
+        const arrA = findAirportByName(f.arr);
+        if(!depA||!arrA) return;
+        const target = pointAlongQuad(depA, arrA, st.progress);
+        const state = planesState[f.flightNo] || {x:target.x, y:target.y, heading:0, progress:st.progress};
+        // lerp towards target for smooth movement
+        const lerp = 0.08; // 调整平滑速率
+        state.x += (target.x - state.x) * lerp;
+        state.y += (target.y - state.y) * lerp;
+        state.progress = st.progress;
+        const ahead = pointAlongQuad(depA, arrA, Math.min(1, st.progress+0.01));
+        const angle = Math.atan2(ahead.y - state.y, ahead.x - state.x) * 180/Math.PI;
+        state.heading += (angle - (state.heading||0)) * 0.2;
+        planesState[f.flightNo] = state;
+      }
+    });
+
+    // update DOM elements positions
+    const planeEls = planesLayer.querySelectorAll("[data-flight]");
+    planeEls.forEach(el=>{
+      const fn = el.getAttribute("data-flight");
+      const st = planesState[fn];
+      if(!st) return;
+      el.setAttribute("transform", `translate(${st.x},${st.y})`);
+      el.style.transform = `rotate(${st.heading}deg)`;
+    });
+
+    rafId = requestAnimationFrame(loop);
+  }
+  rafId = requestAnimationFrame(loop);
+}
+function stopAnimationLoop(){
+  if(rafId) cancelAnimationFrame(rafId);
+}
+
+/* 自动刷新控制 */
+function setAutoRefresh(){
+  if(refreshTimer) clearInterval(refreshTimer);
+  if(autoRefreshEnabled){
+    refreshTimer = setInterval(async ()=>{
+      await loadFlightData();
+      renderAll();
+      populateFlightList();
+    }, refreshIntervalMs);
   }
 }
 
-// ============ 启动 ============
-loadData();
+/* UI helper：渲染/隐藏侧栏（已经有） */
+window.addEventListener("resize", ()=>{ /* 可扩展：根据尺寸自动折叠侧栏 */ });
+
+/* 启动 */
+init();
+
+/* 调试辅助函数（全局，方便 console 调用） */
+window.renderAll = renderAll;
+window.hideInfoCard = hideInfoCard;
+window.zoomToFlight = zoomToFlight;
