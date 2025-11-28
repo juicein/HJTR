@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>航班实时地图 · flights_map</title>
 
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css" />
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -13,34 +13,45 @@
 <body>
   <header class="topbar">
     <div class="brand">航路可视化</div>
-    <div class="toolbar">
-      <input id="searchInput" placeholder="搜索：航班号 / 机场名 / 三字码 / 注册号 (示例：HA1608 / BAY / DF1729)" />
+
+    <!-- Search (style A) -->
+    <div class="search-wrap">
+      <input id="searchInput" placeholder="搜索：航班号 / 注册号 / 机场 / 三字码（按回车）" />
+      <button id="btnSearch">搜索</button>
+    </div>
+
+    <div class="toolbar-right">
       <label class="switch">
         <input id="toggleFlightNo" type="checkbox" />
         <span class="slider"></span>
-        显示航班号
+        <span class="label-text">显示航班号</span>
       </label>
     </div>
   </header>
 
-  <main class="layout">
-    <aside class="side">
-      <div class="filters">
-        <label><input id="showAirportNames" type="checkbox" checked /> 显示机场名称</label><br/>
-        <label><input id="showAirportCodes" type="checkbox" checked /> 显示三字码</label>
+  <main class="main">
+    <!-- left sidebar (350px on large screens) -->
+    <aside id="sidebar" class="sidebar">
+      <div class="side-header">
+        <div>航班列表</div>
+        <button id="sidebarToggle" class="hide-mobile">收起</button>
       </div>
-
+      <div class="side-controls">
+        <label><input id="showAirportNames" type="checkbox" checked /> 显示机场名称</label>
+        <label><input id="showAirportCodes" type="checkbox" checked /> 显示三字码</label>
+        <label><input id="hideOthersSwitch" type="checkbox" /> 搜索时隐藏其他航班</label>
+      </div>
       <div id="flightList" class="flight-list"></div>
     </aside>
 
     <section class="map-area">
-      <div id="map"></div>
+      <div id="map" class="map"></div>
     </section>
   </main>
 
-  <!-- 卡片 -->
+  <!-- info card -->
   <div id="infoCard" class="info-card hidden"></div>
 
-  <script src="script.js"></script>
+  <script src="./script.js"></script>
 </body>
 </html>
