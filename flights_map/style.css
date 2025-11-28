@@ -1,64 +1,66 @@
-/* 基础：确保地图能占满高度（修复桌面白屏问题） */
-html,body { height:100%; width:100%; margin:0; padding:0; font-family: Arial, "Noto Sans", sans-serif; }
+/* ========== 基础 & 响应 ========== */
 :root{
-  --bg:#f6f8fb; --card:#fff; --text:#111; --muted:#666; --accent:#0b66c2;
+  --bg:#f6f8fb; --card:#ffffff; --text:#111; --muted:#666; --accent:#0b66c2;
 }
 @media (prefers-color-scheme: dark){
   :root{ --bg:#071018; --card:#061018; --text:#e6eef9; --muted:#99a0aa; --accent:#59a7ff; }
 }
+html,body{height:100%;margin:0;font-family:Inter, "PingFang SC", "Noto Sans", sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
 
-body{background:var(--bg); color:var(--text);}
-
-/* Topbar */
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid rgba(0,0,0,0.06);position:relative;z-index:1000}
+/* topbar */
+.topbar{height:64px;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--card);box-shadow:0 2px 8px rgba(0,0,0,0.04);position:relative;z-index:1200}
 .brand{font-weight:700}
-.toolbar{display:flex;gap:10px;align-items:center}
-#searchInput{padding:8px 10px;border-radius:6px;border:1px solid #ccc;min-width:320px}
+.search-wrap{display:flex;gap:8px;align-items:center}
+#searchInput{width:480px;padding:8px 12px;border-radius:18px;border:1px solid rgba(0,0,0,0.08);background:rgba(255,255,255,0.9)}
+#btnSearch{padding:8px 12px;border-radius:10px;border:0;background:var(--accent);color:white;cursor:pointer}
 
-/* Layout */
-.layout{display:flex;height:calc(100% - 56px)}
-.side{width:360px;padding:12px;background:var(--card);box-shadow:0 6px 18px rgba(2,6,23,0.04);overflow:auto}
-.map-area{flex:1;position:relative}
-#map{height:100%;width:100%}
-
-/* Switch */
-.switch{display:inline-block;position:relative;width:56px;height:28px}
+/* switch */
+.switch{display:inline-flex;align-items:center;gap:8px}
 .switch input{display:none}
-.slider{position:absolute;left:0;top:0;right:0;bottom:0;background:#ccc;border-radius:28px}
-.slider:before{content:"";position:absolute;left:4px;top:4px;width:20px;height:20px;background:#fff;border-radius:50%;transition:0.25s}
+.switch .slider{width:48px;height:26px;background:#ccc;border-radius:26px;position:relative;display:inline-block}
+.switch .slider:after{content:'';position:absolute;left:4px;top:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s}
 .switch input:checked + .slider{background:var(--accent)}
-.switch input:checked + .slider:before{transform:translateX(28px)}
+.switch input:checked + .slider:after{transform:translateX(22px)}
+.switch .label-text{font-size:13px;color:var(--muted)}
 
-/* Flight list */
-.flight-list{margin-top:8px}
-.flight-card{padding:10px;border-radius:8px;margin-bottom:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.01));border:1px solid rgba(0,0,0,0.04)}
+/* main layout */
+.main{display:flex;height:calc(100% - 64px);overflow:hidden}
+.sidebar{width:350px;background:var(--card);padding:12px;border-right:1px solid rgba(0,0,0,0.04);box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);overflow:auto}
+.map-area{flex:1;position:relative}
+.map{width:100%;height:100%}
+
+/* side content */
+.side-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.side-controls{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;font-size:13px;color:var(--muted)}
+.flight-list{display:flex;flex-direction:column;gap:8px}
+.flight-card{padding:10px;border-radius:8px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(0,0,0,0.02));border:1px solid rgba(0,0,0,0.04)}
 .flight-card h4{margin:0;font-size:14px}
-.flight-meta{color:var(--muted);font-size:13px;margin-top:6px}
+.flight-meta{font-size:12px;color:var(--muted);margin-top:6px}
 .flight-status{margin-top:8px;font-weight:600}
 
-/* Airport marker (divIcon style) */
-.leaflet-container .airport-marker {
-  display:flex;align-items:center;justify-content:center;
-  width:14px;height:14px;border-radius:50%;
-  background:var(--accent);border:2px solid #fff;box-shadow:0 0 6px rgba(11,102,194,0.25);
-}
+/* airport marker css via divIcon - we style inner html */
+.leaflet-container .airport-marker-outer{display:flex;align-items:center;justify-content:center}
+.airport-marker-inner{width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 0 6px rgba(11,102,194,0.25)}
+.leaflet-tooltip.flight-label{background:transparent;border:none;box-shadow:none;color:var(--text);font-weight:500}
 
-/* Plane icon text label style (tooltip-like) */
-.flight-label { background:rgba(255,255,255,0.95); padding:2px 6px;border-radius:4px;border:1px solid #ddd; font-size:12px;}
+/* plane marker label tooltip style */
+.flight-label{background:rgba(255,255,255,0.95);padding:2px 6px;border-radius:6px;border:1px solid #eee}
 
-/* Info card (FR24-like) */
-.info-card{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:1200;min-width:280px;max-width:420px;background:var(--card);color:var(--text);border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,0.25)}
+/* info card (FR24-like) */
+.info-card{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:1400;min-width:280px;max-width:420px;background:var(--card);color:var(--text);border-radius:12px;padding:14px;box-shadow:0 8px 30px rgba(0,0,0,0.25)}
 .info-card .title{font-weight:700;font-size:16px;margin-bottom:6px}
 .info-card .meta{color:var(--muted);font-size:13px;margin-bottom:8px}
 .progress-wrap{height:8px;background:rgba(0,0,0,0.06);border-radius:6px;overflow:hidden}
 .progress{height:100%;background:linear-gradient(90deg,var(--accent),#2fd3ff);width:0%}
 
-/* hidden */
-.hidden{display:none}
-
-/* responsive */
+/* responsive: mobile layout -> sidebar becomes bottom pull-up */
 @media (max-width:900px){
-  .side{width:100%;max-height:260px;order:2}
-  .layout{flex-direction:column}
-  #searchInput{min-width:160px}
+  .sidebar{position:fixed;left:0;right:0;bottom:0;height:42%;width:100%;transform:translateY(100%);transition:transform .28s;z-index:1300;border-top-left-radius:12px;border-top-right-radius:12px}
+  .sidebar.open{transform:translateY(0)}
+  .hide-mobile{display:none}
+  #searchInput{width:200px}
 }
+
+/* small tweaks */
+.hidden{display:none}
