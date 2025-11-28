@@ -1,117 +1,86 @@
-:root{
-  --bg: #f6f9fc;
-  --card-bg: rgba(255,255,255,0.92);
-  --text: #0a1b2a;
-  --muted: #6b7785;
-  --primary: #0073c7; /* 接近新航蓝 */
-  --line: #e6eef7;
-  --card: #ffffff;
+:root {
+  color-scheme: light dark;
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --text-color: #000;
 }
-
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg: #0b1220;
-    --card-bg: rgba(3,7,12,0.75);
-    --text: #e7eef8;
-    --muted: #aab6c4;
-    --line: #16202b;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-bg: rgba(0, 0, 0, 0.75);
+    --text-color: #fff;
   }
 }
-
-*{box-sizing:border-box}
-body{ margin:0; font-family: "Helvetica Neue", Arial, sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; }
-
-/* topbar */
-#topbar{
-  position:absolute; top:8px; left:8px; right:8px;
-  display:flex; align-items:center; justify-content:space-between;
-  gap:10px; padding:8px 12px; background:var(--card-bg);
-  border-radius:10px; z-index:9999; backdrop-filter: blur(6px);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-}
-#topbar .left{display:flex;align-items:center;gap:8px}
-#brand{font-weight:700}
-#topbar .center{flex:1; display:flex; gap:8px; align-items:center; margin:0 12px}
-#globalSearch{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--line); background:transparent}
-#topbar .right{display:flex; align-items:center; gap:8px}
-
-/* buttons */
-.btn{ border:none; border-radius:10px; padding:8px 12px; font-weight:600; cursor:pointer }
-.btn.primary{ background:var(--primary); color:var(--card) }
-.btn.ghost{ background:transparent; border:1px solid var(--line) }
-.btn.secondary{ background:#e9eef7 }
-
-.switch-inline{display:flex; align-items:center; gap:6px}
-.switch-inline input{width:18px;height:18px}
-
-/* sidebar */
-aside#sidebar{
-  position:absolute; left:12px; top:72px; bottom:12px; width:320px;
-  background:var(--card-bg); border-radius:12px; padding:12px; z-index:9998;
-  box-shadow:0 8px 30px rgba(0,0,0,0.12); overflow:auto;
-  transition: transform .26s ease;
-}
-aside#sidebar.closed{ transform: translateX(-340px); }
-.sidebar-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px }
-.settings h4, .flight-list h4, .help h4{ margin:8px 0 6px 0 }
-.row{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0 }
-.row input[type="checkbox"]{ transform:scale(1.1) }
-
-/* flight list */
-.list{ display:flex; flex-direction:column; gap:6px; max-height:40vh; overflow:auto; padding-right:6px }
-.flight-item{ padding:8px; border-radius:8px; background:transparent; border:1px solid var(--line); cursor:pointer }
-.flight-item:hover{ background:rgba(0,0,0,0.03) }
-
-/* map */
-#map{ width:100%; height:100vh; z-index:1 }
-
-/* infoCard bottom */
-#infoCard{
-  position:absolute; left:50%; transform:translateX(-50%); bottom:18px;
-  width:min(960px, 94%); max-width:980px; padding:12px; border-radius:12px;
-  background:var(--card-bg); z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,0.12);
-}
-.hidden{ display:none }
-
-/* flight progress and details in infoCard */
-.card-row{ display:flex; gap:12px; align-items:center }
-.progress{ height:8px; width:100%; background:var(--line); border-radius:8px; overflow:hidden }
-.progress > span{ display:block; height:100%; width:0%; background:var(--primary); }
-
-/* airport label like google maps (not popup) */
-.airport-label{
-  font-size:12px; font-weight:600; padding:2px 6px; border-radius:6px;
-  background:var(--card-bg); border:1px solid var(--line); box-shadow:0 2px 8px rgba(0,0,0,0.06)
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  color: var(--text-color);
 }
 
-/* airport concentric marker (divIcon) */
-.airport-icon-wrap{ display:flex; align-items:center; gap:8px }
-.airport-circle{
-  width:18px; height:18px; border-radius:50%; display:inline-block; position:relative; box-shadow:0 1px 4px rgba(0,0,0,0.12);
+#toolbar {
+  padding: 10px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  position: absolute;
+  z-index: 9999;
+  left: 10px;
+  top: 10px;
+  border-radius: 10px;
 }
-.airport-circle::after{
-  content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-  width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,0.9);
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 55px;
+  height: 28px;
+}
+.switch input { display: none; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: gray;
+  transition: 0.4s;
+  border-radius: 28px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px; width: 20px;
+  left: 4px; bottom: 4px;
+  background: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background: #2196F3;
+}
+input:checked + .slider:before {
+  transform: translateX(26px);
 }
 
-/* plane icon wrapper for rotation */
-.plane-icon{
-  width:36px; height:36px; display:block;
-  transform-origin:center center;
-  will-change: transform;
+#map {
+  width: 100%;
+  height: 100vh;
 }
 
-/* responsive: small screens bottom sheet style */
-@media (max-width:900px){
-  aside#sidebar{ width:100%; height:40vh; left:0; top:auto; bottom:0; border-radius:12px 12px 0 0; transform: translateY(100%); }
-  aside#sidebar.closed{ transform: translateY(100%); }
-  #topbar{ left:8px; right:8px; top:8px; }
+#infoCard {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: 90%;
+  max-width: 400px;
+  transform: translateX(-50%);
+  background: var(--card-bg);
+  color: var(--text-color);
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
 }
+.hidden { display: none; }
 
-/* mobile: infoCard as pull-up collapsed */
-@media (max-width:420px){
-  #infoCard{ left:8px; right:8px; transform:none; bottom:72px; width:auto; max-width:calc(100% - 16px) }
+.flight-label {
+  font-size: 12px;
+  padding: 2px 4px;
+  background: var(--card-bg);
+  border-radius: 5px;
 }
-
-/* small utility */
-small.muted{ color:var(--muted) }
