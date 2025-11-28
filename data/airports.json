@@ -1,20 +1,29 @@
-{
-  "BAY": {
+[
+  {
     "name": "拜科努尔",
     "code": "BAY",
     "lat": 45.6,
-    "lon": 63.3,
+    "lng": 63.3,
     "aliases": ["北联","拜科努尔机场"],
     "level": "4C",
     "runways": 1
   },
-  "QLM": {
+  {
     "name": "千里马",
     "code": "QLM",
     "lat": 50.2,
-    "lon": 70.1,
+    "lng": 70.1,
     "aliases": ["千里机场"],
     "level": "4C",
     "runways": 1
+  },
+  {
+    "name": "上海浦东",
+    "code": "PVG",
+    "lat": 31.1443,
+    "lng": 121.8083,
+    "aliases": ["浦东","上海浦东国际机场"],
+    "level": "4F",
+    "runways": 4
   }
-}
+]
