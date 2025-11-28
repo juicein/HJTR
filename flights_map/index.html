@@ -1,70 +1,85 @@
-<!doctype html>
-<html lang="zh-CN">
+<!DOCTYPE html>
+<html lang="zh">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>航班实时地图（Leaflet + OSM）</title>
+  <title>航班实时地图</title>
 
   <link rel="stylesheet" href="style.css" />
   <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 </head>
 <body>
+  <!-- 顶部搜索栏 -->
   <header id="topbar">
-    <div class="brand">🛩 豪金航班地图</div>
-    <div class="search">
-      <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 机场名 / 注册号（示例 HA1610 / BAY / 拜科努尔 / DF1729）">
-      <button class="btn ghost" id="searchBtn">搜索</button>
-      <button class="btn ghost" id="clearSearch">清除</button>
+    <div class="left">
+      <button id="openSidebar" class="btn ghost">☰</button>
+      <div id="brand">FlightMap</div>
     </div>
-    <div class="top-actions">
-      <button class="btn ghost" id="openSettings">设置</button>
+    <div class="center">
+      <input id="globalSearch" placeholder="搜索：航班号/三字码/机场名/注册号（例如 HA1608 / BAY / 拜科努尔 / DF1729）" />
+      <button id="searchBtn" class="btn primary">搜索</button>
+      <button id="clearSearch" class="btn ghost">清除</button>
+    </div>
+    <div class="right">
+      <label class="switch-inline">
+        <input type="checkbox" id="toggleFlightNo">
+        <span>显示航班号</span>
+      </label>
     </div>
   </header>
 
-  <div id="map" ></div>
-
-  <!-- info card -->
-  <div id="infoCard" class="hidden"></div>
-
-  <!-- sidebar (desktop / tablet) -->
-  <aside id="sideBar" class="collapsed">
-    <div class="sideHeader">
+  <!-- 侧栏（桌面/平板） -->
+  <aside id="sidebar" class="closed">
+    <div class="sidebar-header">
       <h3>设置 & 航班列表</h3>
-      <button class="btn ghost" id="closeSidebar">关闭</button>
+      <button id="closeSidebar" class="btn ghost">✕</button>
     </div>
 
-    <div class="sideSection">
-      <h4>显示选项</h4>
-      <label><input type="checkbox" id="optShowFlightNo"> 在飞机旁显示航班号</label><br>
-      <label><input type="checkbox" id="optShowAirportLabel"> 显示机场标签</label><br>
-      <label><input type="checkbox" id="optURLSingleMode"> URL 单航班强制模式</label><br>
-      <label><input type="checkbox" id="optShowPreparing"> 显示准备中航班（PREPARING）</label><br>
-    </div>
+    <section class="settings">
+      <h4>显示设置</h4>
+      <label class="row">
+        <input type="checkbox" id="toggleAirportLabel" checked />
+        <span>显示机场三字码与名称</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" id="toggleAirportMarker" checked />
+        <span>显示机场点（同心圈）</span>
+      </label>
+      <label class="row">
+        <input type="checkbox" id="toggleShowAllFlights" checked />
+        <span>显示所有航班（关闭时单航班模式仍可高亮）</span>
+      </label>
+      <label class="row">
+        <span>自动刷新间隔（秒）</span>
+        <input id="refreshInterval" type="number" min="10" step="10" value="180"/>
+      </label>
+      <label class="row">
+        <span>地图跟随单航班（URL 模式）</span>
+        <input type="checkbox" id="followSingleFlight" checked />
+      </label>
+    </section>
 
-    <div class="sideSection">
-      <h4>自动刷新</h4>
-      <label><input type="checkbox" id="optAutoRefresh"> 启用自动刷新</label>
-      <div class="row">
-        <label>间隔（秒）</label>
-        <input type="number" id="refreshInterval" min="10" step="10">
-        <button class="btn secondary" id="applyRefresh">应用</button>
-      </div>
-    </div>
+    <section class="flight-list">
+      <h4>当前视图航班</h4>
+      <div id="flightListInner" class="list"></div>
+    </section>
 
-    <div class="sideSection">
-      <h4>当前航班</h4>
-      <div id="flightList" class="flight-list"></div>
-    </div>
+    <section class="help">
+      <h4>说明</h4>
+      <p>使用搜索或在 URL 后加 <code>?flights_map=HA1608</code> 显示单航班并高亮。时间均以 <strong>东八区（UTC+8）</strong> 计算与显示。</p>
+    </section>
   </aside>
 
-  <!-- mobile bottom panel -->
-  <div id="mobilePanel" class="collapsed hidden">
-    <div id="mobileHandle">↑ 航班列表 / 设置</div>
-    <div id="mobileContent"></div>
-  </div>
+  <!-- 地图 -->
+  <div id="map"></div>
 
+  <!-- 航班信息卡片（底部） -->
+  <div id="infoCard" class="hidden"></div>
+
+  <!-- Leaflet -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- 用于平滑动画我们使用 requestAnimationFrame，无额外插件 -->
   <script src="script.js"></script>
 </body>
 </html>
