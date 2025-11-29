@@ -1,65 +1,64 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>航班实时地图</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Leaflet 地图 -->
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-  <!-- 顶部栏：搜索 + 右上设置按钮 -->
-  <div id="topbar">
+  <!-- 顶栏（固定） -->
+  <header id="topbar">
     <div id="brand">航班实时地图</div>
-    <div id="searchContainer">
-      <input id="searchInput" placeholder="搜索: 航班号 / 机场三字码 / 注册号 (回车搜索)" />
+    <div id="searchGroup">
+      <input id="searchInput" placeholder="搜索：航班号 / 注册号 / 机场三字码" />
       <button id="searchBtn" class="btn primary">搜索</button>
       <button id="clearBtn" class="btn ghost">清除</button>
     </div>
-    <div id="topControls">
+    <div id="topRight">
       <button id="settingsBtn" class="btn secondary">设置</button>
     </div>
-  </div>
-
-  <!-- 侧边工具栏（开关等，备用） -->
-  <div id="toolbar">
-    <label class="switch">
-      <input type="checkbox" id="toggleFlightNo">
-      <span class="slider"></span>
-    </label>
-    <span class="control-label">显示航班号</span>
-  </div>
+  </header>
 
   <!-- 地图容器 -->
   <div id="map"></div>
 
-  <!-- 航班信息卡片 -->
+  <!-- 信息卡片 -->
   <div id="infoCard" class="hidden"></div>
 
-  <!-- 设置对话框 -->
-  <div id="settingsModal" class="modal hidden">
-    <div class="modal-content">
-      <h3>设置</h3>
-      <div class="setting-row">
-        <label><input type="checkbox" id="setting_showAirportLabel"> 显示机场名称 + 三字码</label>
-      </div>
-      <div class="setting-row">
-        <label><input type="checkbox" id="setting_showFlightNo"> 显示航班号（标签）</label>
-      </div>
-      <div class="setting-row">
-        <label><input type="checkbox" id="setting_hideOtherWhenFilter"> 当使用 URL 过滤时隐藏其他航班</label>
-      </div>
-      <div class="setting-row">
-        <label>自动刷新间隔（秒）:</label>
-        <input id="setting_refreshInterval" type="number" min="30" step="30" value="180" />
-      </div>
-      <div class="setting-actions">
-        <button id="saveSettings" class="btn primary">保存</button>
-        <button id="closeSettings" class="btn ghost">关闭</button>
-      </div>
+  <!-- 设置面板（开关） -->
+  <div id="settingsPanel" class="panel hidden">
+    <h4>设置</h4>
+    <div class="panel-row">
+      <label class="switchRow">
+        <span>显示机场名称</span>
+        <label class="switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
+      </label>
+    </div>
+    <div class="panel-row">
+      <label class="switchRow">
+        <span>显示机场三字码</span>
+        <label class="switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
+      </label>
+    </div>
+    <div class="panel-row">
+      <label class="switchRow">
+        <span>显示航班号标签</span>
+        <label class="switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
+      </label>
+    </div>
+    <div class="panel-row">
+      <label class="switchRow">
+        <span>过滤时隐藏其他航班</span>
+        <label class="switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
+      </label>
+    </div>
+    <div class="panel-row">
+      <label>自动刷新（秒）</label>
+      <input id="input_refreshInterval" type="number" min="30" step="30" />
     </div>
   </div>
 
