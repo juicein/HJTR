@@ -49,54 +49,43 @@ function bearing(lat1, lon1, lat2, lon2) {
   return θ;
 }
 
-// 解析 flight_data.txt（容错、注册号可能出现在段中间）
 function parseFlightData(raw) {
-  const arr = [];
-  // 每段以《航班结束》分割（保留可能不规范的空白）
-  const parts = raw.split("《航班结束》");
-  for (let block of parts) {
-    block = block.trim();
-    if (!block) continue;
+  const lines = raw.split("《航班结束》");
+  const list = [];
 
-    const getMatch = (re) => { const m = block.match(re); return m? m[1].trim() : ""; };
+  lines.forEach(block => {
+    if (!block.includes("【")) return;
 
-    const flightNo = getMatch(/【\s*([^\]　]+)\s*】/);
-    const planeType = getMatch(/〔\s*([^\]　]+)\s*〕/);
-    const airline = getMatch(/『\s*([^』]+)\s*』/);
+    const flightNo = (block.match(/【(.*?)】/) || [])[1];
+    const dep = (block.match(/《(.*?)出发》/) || [])[1];
+    const arr = (block.match(/《(.*?)到达》/) || [])[1];
 
-    // dep / arr
-    const depMatch = block.match(/《\s*([^》]+?)出发\s*》\s*\{([^}]+)\}\s*(\#\+\d+\#)?/i);
-    const dep = depMatch ? depMatch[1].trim() : "";
-    const depTimeRaw = depMatch ? depMatch[2].trim() : "";
-    const depOffset = depMatch && depMatch[3] ? Number(depMatch[3].replace(/[^\d]/g,"")) : 0;
+    const depTimeRaw = (block.match(/出发》\{(.*?)\}/) || [])[1];
+    const arrTimeRaw = (block.match(/到达》\{(.*?)\}/) || [])[1];
 
-    const arrMatch = block.match(/《\s*([^》]+?)到达\s*》\s*\{([^}]+)\}\s*(\#\+\d+\#)?/i);
-    const arr = arrMatch ? arrMatch[1].trim() : "";
-    const arrTimeRaw = arrMatch ? arrMatch[2].trim() : "";
-    const arrOffset = arrMatch && arrMatch[3] ? Number(arrMatch[3].replace(/[^\d]/g,"")) : 0;
+    const regid = (block.match(/<([^>]+)>/) || [])[1];
 
-    // 注册号 anywhere inside <>
-    const regM = block.match(/<\s*([^>]+)\s*>/);
-    const reg = regM ? regM[1].trim() : "";
+    if (!flightNo || !dep || !arr || !depTimeRaw || !arrTimeRaw) return;
 
-    const priceE = (()=>{ const m = block.match(/§([^§]+)§/); return m?m[1].trim():""; })();
-    const priceB = (()=>{ const m = block.match(/θ([^θ]+)θ/); return m?m[1].trim():""; })();
-    const priceO = (()=>{ const m = block.match(/△([^△]+)△/); return m?m[1].trim():""; })();
+    const depNext = depTimeRaw.includes("#+1#");
+    const arrNext = arrTimeRaw.includes("#+1#");
 
-    const depTerminalM = block.match(/《[^》]+出发》\{[^}]+\}.*?@T([^@\s　]+)/i);
-    const depTerminal = depTerminalM ? depTerminalM[1].trim() : "";
-    const arrTerminalM = block.match(/《[^》]+到达》\{[^}]+\}.*?@T([^@\s　]+)/i);
-    const arrTerminal = arrTerminalM ? arrTerminalM[1].trim() : "";
-
-    arr.push({
-      flightNo, planeType, airline,
-      dep, depTimeRaw, depOffset, depTerminal,
-      arr, arrTimeRaw, arrOffset, arrTerminal,
-      reg, priceE, priceB, priceO, raw:block
+    list.push({
+      flightNo: flightNo.trim(),
+      dep: dep.trim(),
+      depTime: depTimeRaw.replace(/#\+\d+#/g, "").trim(),
+      depNext,
+      arr: arr.trim(),
+      arrTime: arrTimeRaw.replace(/#\+\d+#/g, "").trim(),
+      arrNext,
+      regId: regid ? regid.trim() : null
     });
-  }
-  return arr;
+  });
+
+  return list;
 }
+
+
 
 // 从机场数据库查找（支持 code/name/aliases/包含）
 function airportByName(nameOrCode) {
