@@ -10,19 +10,19 @@
   },
   {
     "name": "千里马",
-    "code": "QLM",
-    "lat": 50.2,
-    "lng": 70.1,
+    "code": "KLM",
+    "lat": 13.4110,
+    "lng": 100.4512,
     "aliases": ["千里机场"],
     "level": "4C",
     "runways": 1
   },
   {
-    "name": "上海浦东",
+    "name": "新裕艮山",
     "code": "PVG",
     "lat": 31.1443,
     "lng": 121.8083,
-    "aliases": ["浦东","上海浦东国际机场"],
+    "aliases": ["新裕"],
     "level": "4F",
     "runways": 4
   }
