@@ -24,9 +24,9 @@ let flightMarkers = {};
 let flightLines = {};
 let highlightedKey = null; // MOD: track highlighted flight
 
-const PLANE_IMG = "image/flight.png";
+const PLANE_IMG = "../image/flight.png";
 
-// ============== 工具函数 ==============
+// ============== 工具函数 ==============image/flight.png
 function getFlightIDFromURL() {
   const urlParams = new URLSearchParams(location.search);
   if(!urlParams.has("flights_map")) return null;
