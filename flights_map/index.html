@@ -12,39 +12,65 @@
 </head>
 <body>
 
-  <!-- 顶部栏： 搜索 + 右上设置按钮 -->
-  <header id="topbar">
-    <div class="left">
-      <div id="brand">Haojin Map</div>
+  <!-- 顶部工具栏（保留原 toggleFlightNo 并扩展） -->
+  <div id="toolbar">
+    <div id="toolbar-left">
+      <div id="brand">航班实时地图</div>
       <div id="searchWrap">
-        <input id="searchInput" type="search" placeholder="搜索航班号 / 三字码 / 注册号 (例: HA1608 / BAY / DF1729)" />
-        <button id="searchBtn" class="btn ghost">搜索</button>
-        <button id="clearSearch" class="btn ghost">清除</button>
+        <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 机场别名 / 注册号 (例如 HA1608 或 BAY 或 DF1729)" />
+        <button class="btn primary" id="searchBtn">搜索</button>
+        <button class="btn ghost" id="clearSearchBtn">清除</button>
       </div>
     </div>
-    <div class="right">
-      <button id="openSettings" class="btn">设置</button>
-    </div>
-  </header>
 
-  <!-- 设置面板（右上） -->
-  <div id="settings" class="hidden">
-    <div class="settings-inner">
-      <h3>设置</h3>
-      <label><input type="checkbox" id="toggleFlightNo"> 显示航班号标签（永久）</label>
-      <label><input type="checkbox" id="toggleAirportLabels"> 显示机场名称 + 三字码（永久）</label>
-      <label><input type="checkbox" id="toggleHideOthers"> 单航班模式时隐藏其他航班</label>
-      <label>
-        自动刷新间隔：
-        <select id="refreshInterval">
-          <option value="60000">1 分钟</option>
-          <option value="180000">3 分钟（默认）</option>
-          <option value="300000">5 分钟</option>
-        </select>
+    <div id="toolbar-right">
+      <label class="switch small">
+        <input type="checkbox" id="toggleFlightNo">
+        <span class="slider"></span>
       </label>
-      <div class="settings-actions">
-        <button id="saveSettings" class="btn primary">保存</button>
+      <span class="smallLabel">显示航班号</span>
+
+      <button id="settingsBtn" class="btn secondary">设置</button>
+    </div>
+  </div>
+
+  <!-- 设置对话框 -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>设置</h3>
         <button id="closeSettings" class="btn ghost">关闭</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <label>机场名称与三字码显示</label>
+          <label class="switch">
+            <input type="checkbox" id="toggleAirportLabels">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <label>在 URL 单航班模式下隐藏其他航班</label>
+          <label class="switch">
+            <input type="checkbox" id="hideOthersInSingleMode">
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-row">
+          <label>自动刷新间隔（秒）</label>
+          <input id="refreshInterval" type="number" min="10" value="180" />
+          <div class="hint">默认 180 秒（3 分钟），可修改</div>
+        </div>
+
+        <div class="setting-row">
+          <label>机场标点样式（仅预览）</label>
+          <div class="hint">标点始终显示，标签可开关</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="saveSettings" class="btn primary">保存</button>
       </div>
     </div>
   </div>
