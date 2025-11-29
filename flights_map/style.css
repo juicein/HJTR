@@ -1,65 +1,60 @@
 :root {
   color-scheme: light dark;
-  --card-bg: rgba(255, 255, 255, 0.92);
-  --card-bg-opaque: #fff;
+  --card-bg: rgba(255, 255, 255, 0.9);
   --text-color: #000;
-  --primary: #006aa6; /* 可调整为新加坡航空色 */
-  --line: #e6eef7;
-  --card: #ffffff;
+  --primary: #0b5cff;
+  --card: #fff;
+  --line: #e1e6f0;
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --card-bg: rgba(0, 0, 0, 0.75);
     --text-color: #fff;
-    --card: #111;
   }
 }
 body {
   margin: 0;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: Arial, sans-serif;
   color: var(--text-color);
 }
 
-/* 顶栏 */
-#topbar {
-  position: absolute;
-  left: 10px; right: 10px;
-  top: 10px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  z-index: 99999;
-  gap:10px;
-  pointer-events: auto;
-}
-#topbar .left { display:flex; align-items:center; gap:12px; }
-#brand { font-weight:700; margin-right:6px; }
-#searchWrap { display:flex; gap:6px; align-items:center; background:var(--card-bg); padding:6px 8px; border-radius:10px; backdrop-filter: blur(6px); }
-#searchInput { width:320px; max-width:40vw; padding:8px 10px; border-radius:8px; border:1px solid var(--line); font-size:14px; }
-#searchBtn, #clearSearch { font-size:13px; padding:6px 8px; }
-
-/* 设置面板 */
-#settings {
-  position: absolute;
-  top: 60px;
-  right: 10px;
-  z-index: 99999;
-  pointer-events: auto;
-}
-.settings-inner {
+/* 顶部工具栏 */
+#toolbar{
+  padding: 8px 12px;
   background: var(--card-bg);
-  padding: 14px;
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  min-width: 260px;
+  backdrop-filter: blur(8px);
+  position: absolute;
+  z-index: 9999;
+  left: 10px;
+  top: 10px;
+  border-radius: 10px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:320px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
 }
-.settings-inner h3 { margin:0 0 8px 0; }
-.settings-inner label { display:block; margin:6px 0; font-size:14px; }
+#toolbar-left{
+  display:flex; align-items:center; gap:10px;
+}
+#brand{
+  font-weight:700; margin-right:8px;
+}
+#searchWrap{
+  display:flex; align-items:center; gap:6px;
+}
+#searchInput{
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid var(--line);
+  min-width:260px;
+  font-size:14px;
+}
 
-/* 按钮（保留你给的样式） */
+/* 保留你要求的按钮样式 */
 .btn{
   border: none; border-radius: 10px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -67,10 +62,38 @@ body {
 .btn.secondary{ background: #e9eef7; color: var(--primary); }
 .btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
 
-/* 地图全屏 */
-#map { width: 100%; height: 100vh; }
+/* 切换开关（与你原有样式兼容） */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 55px;
+  height: 28px;
+}
+.switch.small{ width:44px; height:22px; }
+.switch input { display: none; }
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: gray;
+  transition: 0.2s;
+  border-radius: 28px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px; width: 20px;
+  left: 4px; bottom: 4px;
+  background: white;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+.switch.small .slider:before { height:16px; width:16px; left:3px; bottom:3px; }
+input:checked + .slider { background: #2196F3; }
+input:checked + .slider:before { transform: translateX(26px); }
 
-/* 卡片（航班/机场信息） */
+/* 地图与卡片 */
+#map { width:100%; height:100vh; }
 #infoCard {
   position: absolute;
   bottom: 20px;
@@ -82,46 +105,69 @@ body {
   color: var(--text-color);
   padding: 15px;
   border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.25);
-  backdrop-filter: blur(8px);
-  z-index: 99999;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+  z-index: 9999;
 }
 .hidden { display: none; }
 
-/* 航班标签 */
+/* 航班进度条 */
+.progress {
+  height:8px; background:#e6edf8; border-radius:6px; overflow:hidden; margin-top:8px;
+}
+.progress > span { display:block; height:100%; background: linear-gradient(90deg,#0b5cff,#00c3a7); }
+
+/* 航班标签（tooltip-like） */
 .flight-label {
   font-size: 12px;
-  padding: 2px 6px;
+  padding: 4px 6px;
   background: var(--card-bg);
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  border-radius: 5px;
+  white-space: nowrap;
 }
 
-/* 机场图标（divIcon）美化 */
+/* 机场标注样式（divIcon） */
 .airport-icon {
-  background: rgba(255,255,255,0.9);
-  padding: 6px 8px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  font-weight:700;
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
+  display:flex; align-items:center; gap:6px;
+  background: rgba(255,255,255,0.95);
+  padding:6px 8px; border-radius:8px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+  border:1px solid var(--line);
+  font-weight:700; font-size:13px;
 }
-.airport-icon small { display:block; font-size:11px; opacity:0.8; font-weight:600; }
+.airport-code { font-size:12px; opacity:0.9; margin-left:6px; }
 
-/* 响应式 */
-@media (max-width: 600px) {
-  #searchInput { width: 140px; }
-  .settings-inner { min-width: 200px; }
-  #infoCard { max-width: 94%; left: 50%; transform: translateX(-50%); }
+/* 保证横向文本（即便在窄屏也不换成竖排） */
+* { writing-mode: horizontal-tb !important; }
+
+/* 模态设置对话框 */
+.modal{
+  position:fixed; right:20px; top:20px; z-index:10000;
+  width:320px; max-width:92%;
+}
+.modal-content{
+  background:var(--card-bg); padding:12px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18);
+}
+.modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.modal-body{ display:flex; flex-direction:column; gap:10px; }
+.modal-footer{ display:flex; justify-content:flex-end; margin-top:10px; }
+
+.setting-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.setting-row label{ font-weight:600; }
+
+/* 高亮航班样式（当单独搜索或 url 指定时） */
+.flight-highlight{
+  box-shadow: 0 0 18px 4px rgba(11,92,255,0.12) !important;
 }
 
-/* 鼠标悬停时给航线一点样式（leaflet polyline） */
-.leaflet-interactive:hover { filter: brightness(1.05); }
+/* 飞机图标使用的 class（支持旋转） */
+.plane-icon {
+  width:32px; height:32px; transform-origin:center center;
+  display:block;
+}
 
-/* 小飞机图标样式（旋转使用） */
-.flight-marker img { width:32px; height:32px; transform-origin:center; }
-
-/* 高亮航班样式（通过为 polyline 添加类实现） */
-.highlight-line { stroke: #ffcc00 !important; stroke-width:4 !important; }
+/* 适配：小屏下 toolbar 足够紧凑 */
+@media (max-width:600px){
+  #toolbar { left:6px; right:6px; top:8px; min-width:unset; gap:6px; padding:8px; }
+  #searchInput { min-width:120px; }
+}
