@@ -11,68 +11,26 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-
-  <!-- 顶部工具栏（保留原 toggleFlightNo 并扩展） -->
-  <div id="toolbar">
-    <div id="toolbar-left">
-      <div id="brand">航班实时地图</div>
-      <div id="searchWrap">
-        <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 机场别名 / 注册号 (例如 HA1608 或 BAY 或 DF1729)" />
-        <button class="btn primary" id="searchBtn">搜索</button>
-        <button class="btn ghost" id="clearSearchBtn">清除</button>
-      </div>
+  <!-- 顶部栏：搜索 + 右上设置按钮 -->
+  <div id="topbar">
+    <div id="brand">航班实时地图</div>
+    <div id="searchContainer">
+      <input id="searchInput" placeholder="搜索: 航班号 / 机场三字码 / 注册号 (回车搜索)" />
+      <button id="searchBtn" class="btn primary">搜索</button>
+      <button id="clearBtn" class="btn ghost">清除</button>
     </div>
-
-    <div id="toolbar-right">
-      <label class="switch small">
-        <input type="checkbox" id="toggleFlightNo">
-        <span class="slider"></span>
-      </label>
-      <span class="smallLabel">显示航班号</span>
-
+    <div id="topControls">
       <button id="settingsBtn" class="btn secondary">设置</button>
     </div>
   </div>
 
-  <!-- 设置对话框 -->
-  <div id="settingsModal" class="modal hidden">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>设置</h3>
-        <button id="closeSettings" class="btn ghost">关闭</button>
-      </div>
-      <div class="modal-body">
-        <div class="setting-row">
-          <label>机场名称与三字码显示</label>
-          <label class="switch">
-            <input type="checkbox" id="toggleAirportLabels">
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-row">
-          <label>在 URL 单航班模式下隐藏其他航班</label>
-          <label class="switch">
-            <input type="checkbox" id="hideOthersInSingleMode">
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="setting-row">
-          <label>自动刷新间隔（秒）</label>
-          <input id="refreshInterval" type="number" min="10" value="180" />
-          <div class="hint">默认 180 秒（3 分钟），可修改</div>
-        </div>
-
-        <div class="setting-row">
-          <label>机场标点样式（仅预览）</label>
-          <div class="hint">标点始终显示，标签可开关</div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="saveSettings" class="btn primary">保存</button>
-      </div>
-    </div>
+  <!-- 侧边工具栏（开关等，备用） -->
+  <div id="toolbar">
+    <label class="switch">
+      <input type="checkbox" id="toggleFlightNo">
+      <span class="slider"></span>
+    </label>
+    <span class="control-label">显示航班号</span>
   </div>
 
   <!-- 地图容器 -->
@@ -80,6 +38,30 @@
 
   <!-- 航班信息卡片 -->
   <div id="infoCard" class="hidden"></div>
+
+  <!-- 设置对话框 -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>设置</h3>
+      <div class="setting-row">
+        <label><input type="checkbox" id="setting_showAirportLabel"> 显示机场名称 + 三字码</label>
+      </div>
+      <div class="setting-row">
+        <label><input type="checkbox" id="setting_showFlightNo"> 显示航班号（标签）</label>
+      </div>
+      <div class="setting-row">
+        <label><input type="checkbox" id="setting_hideOtherWhenFilter"> 当使用 URL 过滤时隐藏其他航班</label>
+      </div>
+      <div class="setting-row">
+        <label>自动刷新间隔（秒）:</label>
+        <input id="setting_refreshInterval" type="number" min="30" step="30" value="180" />
+      </div>
+      <div class="setting-actions">
+        <button id="saveSettings" class="btn primary">保存</button>
+        <button id="closeSettings" class="btn ghost">关闭</button>
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
