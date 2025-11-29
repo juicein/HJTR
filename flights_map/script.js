@@ -15,7 +15,8 @@ let settings = {
 
 // 地图与图层
 const map = L.map('map', { worldCopyJump: true, minZoom: 2 }).setView([30, 90], 3);
-L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 7 }).addTo(map);
+//L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 7 }).addTo(map);
+L.tileLayer("", { maxZoom: 7 }).addTo(map);
 
 let airportDB = {};
 let flights = [];
