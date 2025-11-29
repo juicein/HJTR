@@ -1,12 +1,16 @@
 :root {
   color-scheme: light dark;
-  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-bg: rgba(255, 255, 255, 0.92);
   --text-color: #000;
+  --primary: #0b66ff;
+  --card: #fff;
+  --line: #e6eef9;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --card-bg: rgba(0, 0, 0, 0.75);
+    --card-bg: rgba(10, 10, 10, 0.82);
     --text-color: #fff;
+    --primary: #4ea1ff;
   }
 }
 body {
@@ -15,58 +19,84 @@ body {
   color: var(--text-color);
 }
 
-#toolbar {
+/* toolbar */
+.toolbar-card {
   padding: 10px;
   background: var(--card-bg);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(8px);
   position: absolute;
   z-index: 9999;
   left: 10px;
   top: 10px;
   border-radius: 10px;
+  min-width: 320px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
 }
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 55px;
-  height: 28px;
+.toolbar-top {
+  display:flex; gap:10px; align-items:center; justify-content:space-between;
+  flex-wrap:wrap;
 }
-.switch input { display: none; }
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: gray;
-  transition: 0.4s;
-  border-radius: 28px;
+.search-wrap { display:flex; gap:8px; align-items:center; flex:1 }
+.search-wrap input {
+  padding:8px 10px; border-radius:8px; border:1px solid var(--line); flex:1;
+  background:transparent;
+  color:var(--text-color);
 }
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 20px; width: 20px;
-  left: 4px; bottom: 4px;
-  background: white;
-  transition: 0.4s;
-  border-radius: 50%;
-}
-input:checked + .slider {
-  background: #2196F3;
-}
-input:checked + .slider:before {
-  transform: translateX(26px);
-}
+.toggles{ display:flex; gap:10px; align-items:center; margin-left:10px; }
+.small-toggle{ display:flex; gap:6px; align-items:center; font-size:13px; }
 
+/* buttons (keep your style) */
+.btn{
+  border: none; border-radius: 10px;
+  padding: 8px 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn.primary{ background: var(--primary); color:var(--card); }
+.btn.secondary{ background: #e9eef7; color: var(--primary); }
+.btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
+
+/* map */
 #map {
   width: 100%;
   height: 100vh;
 }
 
+/* side panel (responsive) */
+.side-panel {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 320px;
+  max-height: calc(100vh - 40px);
+  overflow:auto;
+  z-index: 9998;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+.side-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.flight-list { display:flex; flex-direction:column; gap:8px; }
+
+/* flight card in list */
+.flight-item {
+  padding:10px;
+  border-radius:10px;
+  background: rgba(255,255,255,0.06);
+  cursor:pointer;
+  border:1px solid rgba(0,0,0,0.04);
+}
+.flight-item h4 { margin:0 0 6px 0; font-size:15px; }
+.flight-item p { margin:0; font-size:13px; color:var(--text-color); opacity:0.85; }
+
+/* info card bottom */
 #infoCard {
   position: absolute;
   bottom: 20px;
   left: 50%;
   width: 90%;
-  max-width: 400px;
+  max-width: 420px;
   transform: translateX(-50%);
   background: var(--card-bg);
   color: var(--text-color);
@@ -80,7 +110,33 @@ input:checked + .slider:before {
 
 .flight-label {
   font-size: 12px;
-  padding: 2px 4px;
+  padding: 2px 6px;
   background: var(--card-bg);
-  border-radius: 5px;
+  border-radius: 6px;
+  border:1px solid rgba(0,0,0,0.06);
+}
+
+/* airport icon (divIcon) */
+.airport-icon {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:56px; height:56px;
+  border-radius:50%;
+  background: rgba(255,255,255,0.92);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  font-weight:700;
+  color:var(--text-color);
+  border:2px solid rgba(0,0,0,0.06);
+  font-size:14px;
+  text-align:center;
+  line-height:1;
+}
+
+/* concentric circles for airports using pseudo-element on marker via CSS class applied to marker DOM */
+.leaflet-marker-icon.airport-circle { border-radius:50% !important; }
+/* small responsive rules */
+@media (max-width: 900px) {
+  .side-panel { width: 100%; left:0; right:0; bottom:0; top:auto; max-height:40vh; border-radius:12px 12px 0 0; }
+  .toolbar-card { left: 50%; transform: translateX(-50%); width: calc(100% - 20px); min-width: auto; }
 }
