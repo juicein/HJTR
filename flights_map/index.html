@@ -1,66 +1,66 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>航班实时地图</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Leaflet -->
+
+  <!-- Leaflet 地图 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
-  <!-- 顶栏（固定） -->
+  <!-- 顶部栏：固定在最上（样式在 CSS 中） -->
   <header id="topbar">
     <div id="brand">航班实时地图</div>
-    <div id="searchGroup">
-      <input id="searchInput" placeholder="搜索：航班号 / 注册号 / 机场三字码" />
+
+    <div id="searchContainer">
+      <input id="searchInput" placeholder="搜索: 航班号 / 三字码 / 注册号 (回车搜索)" />
       <button id="searchBtn" class="btn primary">搜索</button>
       <button id="clearBtn" class="btn ghost">清除</button>
     </div>
-    <div id="topRight">
+
+    <div id="topControls">
+      <!-- 和你原来一样的开关样式（保留） -->
+      <label class="switch small-switch" title="显示航班号">
+        <input type="checkbox" id="toggleFlightNo">
+        <span class="slider"></span>
+      </label>
       <button id="settingsBtn" class="btn secondary">设置</button>
     </div>
   </header>
 
-  <!-- 地图容器 -->
-  <div id="map"></div>
-
-  <!-- 信息卡片 -->
-  <div id="infoCard" class="hidden"></div>
-
-  <!-- 设置面板（开关） -->
-  <div id="settingsPanel" class="panel hidden">
+  <!-- 设置面板（切换即保存） -->
+  <div id="settingsPanel" class="hidden">
     <h4>设置</h4>
-    <div class="panel-row">
-      <label class="switchRow">
-        <span>显示机场名称</span>
-        <label class="switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
-      </label>
+    <div class="setting-row">
+      <span>显示机场名称</span>
+      <label class="switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
     </div>
-    <div class="panel-row">
-      <label class="switchRow">
-        <span>显示机场三字码</span>
-        <label class="switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
-      </label>
+    <div class="setting-row">
+      <span>显示机场三字码</span>
+      <label class="switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
     </div>
-    <div class="panel-row">
-      <label class="switchRow">
-        <span>显示航班号标签</span>
-        <label class="switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
-      </label>
+    <div class="setting-row">
+      <span>显示航班号标签</span>
+      <label class="switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
     </div>
-    <div class="panel-row">
-      <label class="switchRow">
-        <span>过滤时隐藏其他航班</span>
-        <label class="switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
-      </label>
+    <div class="setting-row">
+      <span>过滤时隐藏其他航班</span>
+      <label class="switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
     </div>
-    <div class="panel-row">
-      <label>自动刷新（秒）</label>
+    <div class="setting-row">
+      <span>自动刷新（秒）</span>
       <input id="input_refreshInterval" type="number" min="30" step="30" />
     </div>
   </div>
+
+  <!-- 地图容器 -->
+  <div id="map"></div>
+
+  <!-- 航班信息卡片（进度条已加入） -->
+  <div id="infoCard" class="hidden"></div>
 
   <script src="script.js"></script>
 </body>
