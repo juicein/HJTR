@@ -12,44 +12,42 @@
 </head>
 <body>
 
-  <!-- 顶部工具栏 / 搜索 -->
-  <div id="toolbar" class="toolbar-card">
-    <div class="toolbar-top">
-      <div class="search-wrap">
-        <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 别名 / 注册号" />
-        <button class="btn primary" id="searchBtn">搜索</button>
-        <button class="btn ghost" id="clearSearch">清除</button>
-      </div>
-      <div class="toggles">
-        <label class="small-toggle">
-          <input type="checkbox" id="toggleFlightNo">
-          <span>显示航班号</span>
-        </label>
-        <label class="small-toggle">
-          <input type="checkbox" id="toggleAirportLabels">
-          <span>显示机场名称</span>
-        </label>
+  <!-- 顶部栏： 搜索 + 右上设置按钮 -->
+  <header id="topbar">
+    <div class="left">
+      <div id="brand">Haojin Map</div>
+      <div id="searchWrap">
+        <input id="searchInput" type="search" placeholder="搜索航班号 / 三字码 / 注册号 (例: HA1608 / BAY / DF1729)" />
+        <button id="searchBtn" class="btn ghost">搜索</button>
+        <button id="clearSearch" class="btn ghost">清除</button>
       </div>
     </div>
+    <div class="right">
+      <button id="openSettings" class="btn">设置</button>
+    </div>
+  </header>
 
-    <div class="toolbar-bottom">
-      <div class="info">
-        <span id="statusText">加载中…</span>
-      </div>
-      <div class="links">
-        <small>布局：自动响应（电脑/平板/手机） · 刷新间隔 <span id="refreshIntervalLabel">180s</span></small>
+  <!-- 设置面板（右上） -->
+  <div id="settings" class="hidden">
+    <div class="settings-inner">
+      <h3>设置</h3>
+      <label><input type="checkbox" id="toggleFlightNo"> 显示航班号标签（永久）</label>
+      <label><input type="checkbox" id="toggleAirportLabels"> 显示机场名称 + 三字码（永久）</label>
+      <label><input type="checkbox" id="toggleHideOthers"> 单航班模式时隐藏其他航班</label>
+      <label>
+        自动刷新间隔：
+        <select id="refreshInterval">
+          <option value="60000">1 分钟</option>
+          <option value="180000">3 分钟（默认）</option>
+          <option value="300000">5 分钟</option>
+        </select>
+      </label>
+      <div class="settings-actions">
+        <button id="saveSettings" class="btn primary">保存</button>
+        <button id="closeSettings" class="btn ghost">关闭</button>
       </div>
     </div>
   </div>
-
-  <!-- 侧边栏 / 手机底栏 航班列表 -->
-  <aside id="sidePanel" class="side-panel">
-    <div class="side-header">
-      <h3>航班列表</h3>
-      <button class="btn secondary" id="refreshBtn">刷新</button>
-    </div>
-    <div id="flightList" class="flight-list"></div>
-  </aside>
 
   <!-- 地图容器 -->
   <div id="map"></div>
