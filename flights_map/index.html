@@ -6,20 +6,55 @@
   <title>航班实时地图</title>
   <link rel="stylesheet" href="style.css" />
 
+  <!-- Leaflet 地图 -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
 <body>
 
-  <div id="toolbar">
-    <label class="switch">
-      <input type="checkbox" id="toggleFlightNo">
-      <span class="slider"></span> 显示航班号
-    </label>
+  <!-- 顶部工具栏 / 搜索 -->
+  <div id="toolbar" class="toolbar-card">
+    <div class="toolbar-top">
+      <div class="search-wrap">
+        <input id="searchInput" placeholder="搜索：航班号 / 三字码 / 别名 / 注册号" />
+        <button class="btn primary" id="searchBtn">搜索</button>
+        <button class="btn ghost" id="clearSearch">清除</button>
+      </div>
+      <div class="toggles">
+        <label class="small-toggle">
+          <input type="checkbox" id="toggleFlightNo">
+          <span>显示航班号</span>
+        </label>
+        <label class="small-toggle">
+          <input type="checkbox" id="toggleAirportLabels">
+          <span>显示机场名称</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="toolbar-bottom">
+      <div class="info">
+        <span id="statusText">加载中…</span>
+      </div>
+      <div class="links">
+        <small>布局：自动响应（电脑/平板/手机） · 刷新间隔 <span id="refreshIntervalLabel">180s</span></small>
+      </div>
+    </div>
   </div>
 
+  <!-- 侧边栏 / 手机底栏 航班列表 -->
+  <aside id="sidePanel" class="side-panel">
+    <div class="side-header">
+      <h3>航班列表</h3>
+      <button class="btn secondary" id="refreshBtn">刷新</button>
+    </div>
+    <div id="flightList" class="flight-list"></div>
+  </aside>
+
+  <!-- 地图容器 -->
   <div id="map"></div>
 
+  <!-- 航班信息卡片 -->
   <div id="infoCard" class="hidden"></div>
 
   <script src="script.js"></script>
