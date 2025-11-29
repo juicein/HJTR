@@ -1,173 +1,139 @@
 :root {
-  color-scheme: light dark;
-  --card-bg: rgba(255, 255, 255, 0.9);
-  --text-color: #000;
-  --primary: #0b5cff;
+  --primary: #0b5fff;
+  --card-bg: rgba(255,255,255,0.92);
+  --text-color: #111;
   --card: #fff;
-  --line: #e1e6f0;
+  --line: #e0e6f0;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --card-bg: rgba(0, 0, 0, 0.75);
-    --text-color: #fff;
+    --card-bg: rgba(10,10,10,0.75);
+    --text-color: #eee;
+    --card: #0b1220;
   }
 }
+
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Arial, sans-serif;
   color: var(--text-color);
 }
 
-/* 顶部工具栏 */
-#toolbar{
-  padding: 8px 12px;
-  background: var(--card-bg);
-  backdrop-filter: blur(8px);
+#map {
+  width: 100%;
+  height: 100vh;
+}
+
+/* 顶部条 */
+#topbar {
   position: absolute;
-  z-index: 9999;
+  z-index: 10002;
   left: 10px;
+  right: 10px;
   top: 10px;
-  border-radius: 10px;
   display:flex;
   align-items:center;
-  gap:12px;
-  min-width:320px;
+  justify-content:space-between;
+  gap:10px;
+  background: var(--card-bg);
+  padding: 8px 12px;
+  border-radius: 10px;
   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  backdrop-filter: blur(6px);
 }
-#toolbar-left{
-  display:flex; align-items:center; gap:10px;
-}
-#brand{
-  font-weight:700; margin-right:8px;
-}
-#searchWrap{
-  display:flex; align-items:center; gap:6px;
-}
-#searchInput{
-  padding:8px 10px;
-  border-radius:8px;
-  border:1px solid var(--line);
-  min-width:260px;
-  font-size:14px;
-}
+#brand { font-weight:700; font-size:16px; }
+#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:720px; margin:0 12px; }
+#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); }
+.btn{ border:none; border-radius:10px; padding:8px 10px; font-weight:600; cursor:pointer; }
+.btn.primary{ background:var(--primary); color:var(--card); }
+.btn.secondary{ background:#eef4ff; color:var(--primary); border:1px solid rgba(11,95,255,0.08); }
+.btn.ghost{ background:transparent; color:var(--primary); border:1px solid var(--line); }
 
-/* 保留你要求的按钮样式 */
-.btn{
-  border: none; border-radius: 10px;
-  padding: 8px 10px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.btn.primary{ background: var(--primary); color:var(--card); }
-.btn.secondary{ background: #e9eef7; color: var(--primary); }
-.btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
+/* 小工具栏 */
+#toolbar { position:absolute; left:10px; bottom:10px; z-index:10002; background:var(--card-bg); padding:10px; border-radius:10px; display:flex; align-items:center; gap:8px; backdrop-filter: blur(6px);}
 
-/* 切换开关（与你原有样式兼容） */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 55px;
-  height: 28px;
-}
-.switch.small{ width:44px; height:22px; }
-.switch input { display: none; }
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: gray;
-  transition: 0.2s;
-  border-radius: 28px;
-}
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 20px; width: 20px;
-  left: 4px; bottom: 4px;
-  background: white;
-  transition: 0.2s;
-  border-radius: 50%;
-}
-.switch.small .slider:before { height:16px; width:16px; left:3px; bottom:3px; }
-input:checked + .slider { background: #2196F3; }
+/* switch 样式 */
+.switch { position:relative; display:inline-block; width:55px; height:28px; }
+.switch input { display:none; }
+.slider { position:absolute; top:0; left:0; right:0; bottom:0; background:gray; border-radius:28px; transition:0.3s; }
+.slider:before{ content:""; position:absolute; height:20px; width:20px; left:4px; bottom:4px; background:white; border-radius:50%; transition:0.3s; }
+input:checked + .slider { background:#2196F3; }
 input:checked + .slider:before { transform: translateX(26px); }
 
-/* 地图与卡片 */
-#map { width:100%; height:100vh; }
+/* 信息卡片 */
 #infoCard {
   position: absolute;
   bottom: 20px;
   left: 50%;
-  width: 90%;
+  width: 92%;
   max-width: 420px;
   transform: translateX(-50%);
   background: var(--card-bg);
   color: var(--text-color);
-  padding: 15px;
+  padding: 14px;
   border-radius: 12px;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-  backdrop-filter: blur(10px);
-  z-index: 9999;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+  z-index: 10003;
+  backdrop-filter: blur(8px);
 }
-.hidden { display: none; }
+.hidden { display:none; }
 
-/* 航班进度条 */
-.progress {
-  height:8px; background:#e6edf8; border-radius:6px; overflow:hidden; margin-top:8px;
-}
-.progress > span { display:block; height:100%; background: linear-gradient(90deg,#0b5cff,#00c3a7); }
-
-/* 航班标签（tooltip-like） */
+/* 航班标签 */
 .flight-label {
   font-size: 12px;
-  padding: 4px 6px;
+  padding: 2px 6px;
   background: var(--card-bg);
   border-radius: 5px;
-  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
-/* 机场标注样式（divIcon） */
+/* 机场图标样式（divIcon 内的 class） */
 .airport-icon {
-  display:flex; align-items:center; gap:6px;
-  background: rgba(255,255,255,0.95);
-  padding:6px 8px; border-radius:8px;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-weight:700;
+  font-size:13px;
+  padding:6px 8px;
+  border-radius:8px;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   border:1px solid var(--line);
-  font-weight:700; font-size:13px;
-}
-.airport-code { font-size:12px; opacity:0.9; margin-left:6px; }
-
-/* 保证横向文本（即便在窄屏也不换成竖排） */
-* { writing-mode: horizontal-tb !important; }
-
-/* 模态设置对话框 */
-.modal{
-  position:fixed; right:20px; top:20px; z-index:10000;
-  width:320px; max-width:92%;
-}
-.modal-content{
-  background:var(--card-bg); padding:12px; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.18);
-}
-.modal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.modal-body{ display:flex; flex-direction:column; gap:10px; }
-.modal-footer{ display:flex; justify-content:flex-end; margin-top:10px; }
-
-.setting-row{ display:flex; justify-content:space-between; align-items:center; gap:8px; }
-.setting-row label{ font-weight:600; }
-
-/* 高亮航班样式（当单独搜索或 url 指定时） */
-.flight-highlight{
-  box-shadow: 0 0 18px 4px rgba(11,92,255,0.12) !important;
 }
 
-/* 飞机图标使用的 class（支持旋转） */
+/* 飞机图像样式在 divIcon 中旋转 */
 .plane-icon {
-  width:32px; height:32px; transform-origin:center center;
+  width:32px;
+  height:32px;
+  transform-origin:center center;
   display:block;
+  image-rendering: -webkit-optimize-contrast;
 }
 
-/* 适配：小屏下 toolbar 足够紧凑 */
-@media (max-width:600px){
-  #toolbar { left:6px; right:6px; top:8px; min-width:unset; gap:6px; padding:8px; }
-  #searchInput { min-width:120px; }
+/* 设置模态框 */
+.modal {
+  position: absolute;
+  right: 12px;
+  top: 60px;
+  z-index: 10010;
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 12px;
+  width: 320px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
 }
+.modal-content h3 { margin:0 0 8px 0; }
+.setting-row { margin:8px 0; display:flex; align-items:center; justify-content:space-between; }
+.setting-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+
+/* 小屏适配 */
+@media (max-width:600px){
+  #topbar { flex-direction:column; align-items:stretch; gap:10px; }
+  #searchContainer { max-width:100%; }
+  .modal { width: 94%; left: 3%; right: 3%; top: auto; bottom: 90px; }
+}
+
+/* 保留你给出的按钮风格 */
+.btn.primary{ background: var(--primary); color:var(--card); }
+.btn.secondary{ background: #e9eef7; color: var(--primary); }
+.btn.ghost{ background: transparent; color: var(--primary); border:1px solid var(--line); }
