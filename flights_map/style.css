@@ -1,6 +1,6 @@
 :root {
   --primary: #0b5fff;
-  --accent: #ffcc33; /* 高亮航线颜色 */
+  --accent: #ffcc33; /* 高亮航线 */
   --card-bg: rgba(255,255,255,0.95);
   --text: #111;
   --line: #e6eefc;
@@ -12,32 +12,61 @@
     --line: rgba(255,255,255,0.08);
   }
 }
-* { box-sizing: border-box; }
+*{box-sizing:border-box}
 body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); }
 
-/* 顶栏（固定在上） */
+/* ========== 顶栏（固定在顶部） ========== */
 #topbar {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 56px;
-  display:flex; align-items:center; gap:12px;
+  height: 60px;
+  display:flex;
+  align-items:center;
+  gap:12px;
   padding: 0 14px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--line);
   z-index: 10020;
 }
-#brand { font-weight:700; font-size:18px; margin-right:8px; }
-#searchGroup { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; }
-#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); }
+#brand { font-weight:700; font-size:18px; }
+#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; }
+#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; }
 .btn { border:none; border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
 .btn.primary { background:var(--primary); color:white; }
 .btn.secondary { background: #eef4ff; color:var(--primary); border:1px solid rgba(11,95,255,0.08); }
 .btn.ghost { background:transparent; color:var(--primary); border:1px solid var(--line); }
 
-/* 地图占位（下方留出顶栏高度） */
-#map { position: absolute; top:56px; bottom:0; left:0; right:0; z-index: 0; }
+/* small switch in topbar */
+.small-switch { width:48px; height:26px; }
 
-/* 信息卡片 */
+/* ========== 地图位置（下方留出顶栏高度） ========== */
+#map { position: absolute; top:60px; bottom:0; left:0; right:0; z-index: 0; }
+
+/* ========== 设置面板 ========== */
+#settingsPanel {
+  position: fixed;
+  right: 12px;
+  top: 70px;
+  width: 300px;
+  background: var(--card-bg);
+  border-radius:10px;
+  padding:12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.16);
+  z-index:10025;
+}
+#settingsPanel.hidden { display:none; }
+.setting-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.03); }
+.setting-row:last-child { border-bottom: none; }
+
+/* ========== switch 样式（通用） ========== */
+.switch { position: relative; display:inline-block; width:52px; height:28px; }
+.switch input { display:none; }
+.slider { position:absolute; top:0; left:0; right:0; bottom:0; background:gray; border-radius:28px; transition:0.3s; }
+.slider:before { position:absolute; content:""; height:20px; width:20px; left:4px; bottom:4px; background:white; border-radius:50%; transition:0.3s; }
+.switch input:checked + .slider { background:#2196F3; }
+.switch input:checked + .slider:before { transform: translateX(24px); }
+
+/* ========== 信息卡片（含进度条） ========== */
 #infoCard {
   position: fixed;
   bottom: 20px;
@@ -46,50 +75,30 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
   width: 92%;
   max-width:420px;
   background: var(--card-bg);
-  padding:12px;
+  padding:14px;
   border-radius:12px;
   box-shadow: 0 8px 30px rgba(0,0,0,0.18);
   z-index: 10030;
 }
-.hidden{ display:none; }
+#infoCard.hidden { display:none; }
 
-/* 进度条 */
-.progressWrap { background: rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; height:10px; }
-.progressBar { height:100%; width:0%; transition:width 0.3s linear; background: linear-gradient(90deg,var(--primary), #00c6ff); }
+.progressWrap { background: rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; height:10px; margin-top:6px; }
+.progressBar { height:100%; width:0%; transition:width 0.3s linear; background: linear-gradient(90deg,var(--primary), #00c6ff); border-radius:8px; }
 
-/* 航班标签 */
-.flight-label { font-size:12px; padding:2px 6px; background:var(--card-bg); border-radius:5px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+/* flight label tooltip style kept if used */
+.flight-label { font-size:12px; padding:2px 6px; background:var(--card-bg); border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
 
-/* 设置面板 */
-.panel {
-  position: fixed;
-  right: 12px;
-  top: 66px;
-  width: 300px;
-  background: var(--card-bg);
-  border-radius:10px;
-  padding:12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.16);
-  z-index:10025;
-}
-.panel.hidden { display:none; }
-.panel-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.03); }
-.panel-row:last-child { border-bottom:none; }
-
-/* switch 样式（与之前 slider 一致） */
-.switch { position: relative; display:inline-block; width:52px; height:28px; }
-.switch input { display:none; }
-.slider { position:absolute; top:0; left:0; right:0; bottom:0; background:gray; border-radius:28px; transition:0.3s; }
-.slider:before { position:absolute; content:""; height:20px; width:20px; left:4px; bottom:4px; background:white; border-radius:50%; transition:0.3s; }
-.switch input:checked + .slider { background:#2196F3; }
-.switch input:checked + .slider:before { transform: translateX(24px); }
-
-/* 机场同心圆 divIcon 内部 HTML */
+/* ========== 机场同心圆样式 ========== */
+/* airport divIcon wrapper */
 .airport-marker {
-  display:flex; align-items:center; gap:8px;
+  display:flex;
+  align-items:center;
+  gap:10px; /* <-- 让同心圆与文本有距离（你要的间距） */
+  font-weight:700;
+  white-space:nowrap; /* 横向排列，不换行 */
 }
 .airport-circle {
-  width:18px; height:18px; border-radius:50%; position:relative;
+  width:18px; height:18px; border-radius:50%; position:relative; flex-shrink:0;
 }
 .airport-circle::before {
   content:""; position:absolute; left:-6px; top:-6px; width:30px; height:30px; border-radius:50%;
@@ -99,14 +108,15 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
   content:""; position:absolute; left:4px; top:4px; width:10px; height:10px; border-radius:50%;
   background: #fff; border: 2px solid var(--primary);
 }
-.airport-label { display:flex; flex-direction:column; font-size:12px; font-weight:700; }
-.airport-code { font-size:11px; opacity:0.9; font-weight:600; }
+.airport-label { display:flex; flex-direction:row; gap:6px; align-items:center; font-size:12px; }
+.airport-name { font-weight:700; }
+.airport-code { font-weight:600; opacity:0.9; }
 
-/* plane icon style inside divIcon */
+/* ========== plane icon inside divIcon ========== */
 .plane-icon { width:32px; height:32px; transform-origin:center center; display:block; }
 
-/* responsive */
+/* responsive adjustments */
 @media (max-width:600px) {
-  #searchGroup { flex-direction:column; gap:6px; }
-  .panel { width:92%; right:4%; left:4%; top:auto; bottom:100px; }
+  #searchContainer { display:flex; flex-direction:column; gap:6px; }
+  #settingsPanel { width:92%; right:4%; left:4%; top:auto; bottom:110px; }
 }
