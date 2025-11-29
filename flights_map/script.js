@@ -49,42 +49,31 @@ function bearing(lat1, lon1, lat2, lon2) {
   return θ;
 }
 
+// ============ 解析航班原始格式 ============
 function parseFlightData(raw) {
-  const lines = raw.split("《航班结束》");
   const list = [];
 
-  lines.forEach(block => {
-    if (!block.includes("【")) return;
+  const reg = /【(.*?)】[\s\S]*?«([^»]+)»〔(.*?)〕『(.*?)』《(.*?)出发》\{(.*?)\}.*?《(.*?)到达》\{(.*?)\}[\s\S]*?(<([^>]+)>)?/g;
 
-    const flightNo = (block.match(/【(.*?)】/) || [])[1];
-    const dep = (block.match(/《(.*?)出发》/) || [])[1];
-    const arr = (block.match(/《(.*?)到达》/) || [])[1];
-
-    const depTimeRaw = (block.match(/出发》\{(.*?)\}/) || [])[1];
-    const arrTimeRaw = (block.match(/到达》\{(.*?)\}/) || [])[1];
-
-    const regid = (block.match(/<([^>]+)>/) || [])[1];
-
-    if (!flightNo || !dep || !arr || !depTimeRaw || !arrTimeRaw) return;
-
-    const depNext = depTimeRaw.includes("#+1#");
-    const arrNext = arrTimeRaw.includes("#+1#");
+  let m;
+  while ((m = reg.exec(raw)) !== null) {
+    const depCity = m[5].replace("出发", "").trim();
+    const arrCity = m[7].replace("到达", "").trim();
 
     list.push({
-      flightNo: flightNo.trim(),
-      dep: dep.trim(),
-      depTime: depTimeRaw.replace(/#\+\d+#/g, "").trim(),
-      depNext,
-      arr: arr.trim(),
-      arrTime: arrTimeRaw.replace(/#\+\d+#/g, "").trim(),
-      arrNext,
-      regId: regid ? regid.trim() : null
+      flightNo: m[1],        // 航班号
+      cycle: m[2],           // 运行日
+      aircraft: m[3],        // 机型
+      airline: m[4],         // 航空公司
+      dep: depCity,          // 出发城市
+      depTime: m[6],         // 出发时间
+      arr: arrCity,          // 到达城市
+      arrTime: m[8],         // 到达时间
+      reg: m[10] || null     // 注册号（可为空）
     });
-  });
-
+  }
   return list;
 }
-
 
 
 // 从机场数据库查找（支持 code/name/aliases/包含）
