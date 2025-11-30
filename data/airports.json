@@ -25,5 +25,24 @@
     "aliases": ["新裕"],
     "level": "4F",
     "runways": 4
+  },
+  {
+    "name": "临东金桦",
+    "code": "LHC",
+    "lat": 41.639496‌,
+    "lng": 123.495322,
+    "aliases": ["临东"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "临东北关岭",
+    "code": "FJB",
+    "lat": 41.875300,
+    "lng": 123.444800,
+    "aliases": ["临东"],
+    "level": "4C",
+    "runways": 1
   }
+  
 ]
