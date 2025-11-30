@@ -43,6 +43,15 @@
     "aliases": ["临东"],
     "level": "4C",
     "runways": 1
-  }
+  },
+  {
+    "name": "新清云索恩",
+    "code": "QNE",
+    "lat": 1.35917,
+    "lng": 103.98944,
+    "aliases": ["新清云机场"],
+    "level": "4F",
+    "runways": 1
+}
   
 ]
