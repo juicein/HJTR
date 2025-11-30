@@ -293,7 +293,7 @@ function renderFlight(flight, options={forceShow:false}) {
 
   const idKey = keyForFlight(flight);
 
-  // compute progress and skip if <=0 or >=1 (MOD requirement)
+  // 计算进度并跳过<=0或>=1（MOD要求）
   const prog = computeProgress(flight);
   if (prog === null) {
     // remove existing if present
@@ -303,6 +303,33 @@ function renderFlight(flight, options={forceShow:false}) {
     delete flightMarkers[idKey];
     return;
   }
+
+
+ // 计算进度我自己的东西
+  const prog = computeProgress(flight);
+  if (prog === 1) {
+    // remove existing if present
+    if (flightLines[idKey]) try { map.removeLayer(flightLines[idKey]); } catch(e){}
+    if (flightMarkers[idKey]) try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
+    delete flightLines[idKey];
+    delete flightMarkers[idKey];
+    return;
+  }
+  const prog = computeProgress(flight);
+  if (prog === 0) {
+    // remove existing if present
+    if (flightLines[idKey]) try { map.removeLayer(flightLines[idKey]); } catch(e){}
+    if (flightMarkers[idKey]) try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
+    delete flightLines[idKey];
+    delete flightMarkers[idKey];
+    return;
+  }
+
+
+
+  
+
+  
   // when not forceShow, require 0<prog<1 (strict)
   if (!options.forceShow) {
     if (!(prog > 0 && prog < 1)) {
@@ -324,7 +351,7 @@ function renderFlight(flight, options={forceShow:false}) {
     flightLines[idKey].setLatLngs([[depLat,depLng],[arrLat,arrLng]]);
   }
 
-  // plane marker: only create if showPlaneIcon setting true
+  // 平面标记：仅在showPlaneIcon设置为true时创建
   if (settings.showPlaneIcon) {
     const angle = bearingBetween(depLat,depLng,arrLat,arrLng);
     const curLat = depLat + (arrLat - depLat) * Math.max(0, Math.min(1, prog));
