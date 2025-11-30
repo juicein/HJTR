@@ -11,6 +11,7 @@ let settings = {
   showAirportCode: JSON.parse(localStorage.getItem("showAirportCode") || "true"),
   showFlightNo: JSON.parse(localStorage.getItem("showFlightNo") || "false"),
   hideOtherWhenFilter: JSON.parse(localStorage.getItem("hideOtherWhenFilter") || "false"),
+  showPlaneIcon: JSON.parse(localStorage.getItem("showPlaneIcon") || "true"), // 新增：飞机图标开关
 };
 
 // 地图与图层
@@ -24,7 +25,7 @@ let flightMarkers = {};
 let flightLines = {};
 let highlightedKey = null; // track highlighted flight
 
-const PLANE_IMG = "/..image/flight.png"; // 机头向上
+const PLANE_IMG = "https://i.imgur.com/4bZtV3y.png"; // 你确认的图片：机头向上（北）
 
 // ============== 工具函数 ==============
 function getFlightIDFromURL() {
@@ -44,24 +45,31 @@ function timeStrToMinutes(t) {
   return h*60 + m;
 }
 
-function nowInBeijingMinutes() {
+// 返回北京时的 Date 对象（当前时刻）
+function beijingNowDate() {
   const now = new Date();
   const utc = now.getTime() + now.getTimezoneOffset()*60000;
   const bj = new Date(utc + 8*3600*1000);
-  return bj.getHours()*60 + bj.getMinutes();
+  return bj;
 }
 
-// return a Date object in Beijing for today at 00:00
-function beijingToday() {
-  const now = new Date();
-  const utc = now.getTime() + now.getTimezoneOffset()*60000;
-  return new Date(utc + 8*3600*1000);
+// 返回北京基准当天的午夜（00:00）Date对象
+function beijingTodayMidnight() {
+  const bj = beijingNowDate();
+  const mid = new Date(bj.getTime());
+  mid.setHours(0,0,0,0);
+  return mid;
 }
 
-// compute formatted date string for given offset days
+// 计算以“北京时”为基准的当前分钟（自 epoch），返回整数分钟
+function nowBeijingTotalMinutes() {
+  const bj = beijingNowDate();
+  return Math.floor(bj.getTime() / 60000);
+}
+
+// compute formatted date string for given offset days (relative to Beijing today)
 function formatDateOffset(offsetDays) {
-  const base = beijingToday();
-  base.setHours(0,0,0,0);
+  const base = beijingTodayMidnight();
   base.setDate(base.getDate() + Number(offsetDays||0));
   const yyyy = base.getFullYear();
   const mm = String(base.getMonth()+1).padStart(2,'0');
@@ -221,15 +229,25 @@ function renderAllAirports() {
 }
 
 // ============== 渲染航班（只显示 0<progress<1 的航段，除非 forceShow） ==============
+
+// 计算进度：基于“北京时”的绝对分钟数进行计算，确保跨天/跨日正确
 function computeProgress(flight) {
   const depMin = timeStrToMinutes(flight.depTimeRaw);
   const arrMin = timeStrToMinutes(flight.arrTimeRaw);
   if (depMin === null || arrMin === null) return null;
-  const depTotal = depMin + (flight.depOffset||0)*24*60;
-  const arrTotal = arrMin + (flight.arrOffset||0)*24*60;
+
+  // 以北京今日午夜为基准，计算 dep 和 arr 的绝对分钟数（相对于 epoch）
+  const baseMid = beijingTodayMidnight().getTime() / 60000; // 分钟数
+  const depTotal = baseMid + depMin + (flight.depOffset||0)*24*60;
+  const arrTotal = baseMid + arrMin + (flight.arrOffset||0)*24*60;
+
+  // 如果起降时间完全相同（或无有效差值），无法计算进度
   if (arrTotal === depTotal) return null;
-  const now = nowInBeijingMinutes();
-  const frac = (now - depTotal) / (arrTotal - depTotal);
+
+  const nowTotal = nowBeijingTotalMinutes();
+
+  // 计算进度 frac
+  const frac = (nowTotal - depTotal) / (arrTotal - depTotal);
   return frac;
 }
 
@@ -274,14 +292,7 @@ function renderFlight(flight, options={forceShow:false}) {
 
   // compute progress and skip if <=0 or >=1 (MOD requirement)
   const prog = computeProgress(flight);
-  if (prog === null) return;
-  // when not forceShow, require 0<prog<1
-  // compute progress and skip if <=0 or >=1 (MOD requirement)
-const prog = computeProgress(flight);
-
-// 统一强制过滤，不允许 0 或 1
-if (!options.forceShow) {
-  if (prog === null || prog <= 0 || prog >= 1) {
+  if (prog === null) {
     // remove existing if present
     if (flightLines[idKey]) try { map.removeLayer(flightLines[idKey]); } catch(e){}
     if (flightMarkers[idKey]) try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
@@ -289,7 +300,17 @@ if (!options.forceShow) {
     delete flightMarkers[idKey];
     return;
   }
-}
+  // when not forceShow, require 0<prog<1 (strict)
+  if (!options.forceShow) {
+    if (!(prog > 0 && prog < 1)) {
+      // remove existing if present
+      if (flightLines[idKey]) try { map.removeLayer(flightLines[idKey]); } catch(e){}
+      if (flightMarkers[idKey]) try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
+      delete flightLines[idKey];
+      delete flightMarkers[idKey];
+      return;
+    }
+  }
 
   // create or update line
   if (!flightLines[idKey]) {
@@ -300,27 +321,36 @@ if (!options.forceShow) {
     flightLines[idKey].setLatLngs([[depLat,depLng],[arrLat,arrLng]]);
   }
 
-  // plane marker
-  const angle = bearingBetween(depLat,depLng,arrLat,arrLng);
-  const curLat = depLat + (arrLat - depLat) * Math.max(0, Math.min(1, prog));
-  const curLng = depLng + (arrLng - depLng) * Math.max(0, Math.min(1, prog));
-  const planeHtml = `<div style="transform: rotate(${angle}deg);"><img class="plane-icon" src="${PLANE_IMG}" /></div>`;
-  const planeIcon = L.divIcon({ html: planeHtml, className: "plane-divicon", iconSize:[36,36], iconAnchor:[18,18] });
+  // plane marker: only create if showPlaneIcon setting true
+  if (settings.showPlaneIcon) {
+    const angle = bearingBetween(depLat,depLng,arrLat,arrLng);
+    const curLat = depLat + (arrLat - depLat) * Math.max(0, Math.min(1, prog));
+    const curLng = depLng + (arrLng - depLng) * Math.max(0, Math.min(1, prog));
+    const planeHtml = `<div style="transform: rotate(${angle}deg);"><img class="plane-icon" src="${PLANE_IMG}" /></div>`;
+    const planeIcon = L.divIcon({ html: planeHtml, className: "plane-divicon", iconSize:[36,36], iconAnchor:[18,18] });
 
-  if (!flightMarkers[idKey]) {
-    const mk = L.marker([curLat, curLng], { icon: planeIcon }).addTo(map);
-    mk.on("click", ()=> onFlightClicked(idKey, flight));
-    flightMarkers[idKey] = mk;
-  } else {
-    flightMarkers[idKey].setLatLng([curLat, curLng]);
-    flightMarkers[idKey].setIcon(L.divIcon({ html: planeHtml, className: "plane-divicon", iconSize:[36,36], iconAnchor:[18,18] }));
-  }
+    if (!flightMarkers[idKey]) {
+      const mk = L.marker([curLat, curLng], { icon: planeIcon }).addTo(map);
+      mk.on("click", ()=> onFlightClicked(idKey, flight));
+      flightMarkers[idKey] = mk;
+    } else {
+      flightMarkers[idKey].setLatLng([curLat, curLng]);
+      flightMarkers[idKey].setIcon(L.divIcon({ html: planeHtml, className: "plane-divicon", iconSize:[36,36], iconAnchor:[18,18] }));
+    }
 
-  // tooltip flight number controlled by setting
-  if (settings.showFlightNo) {
-    try { flightMarkers[idKey].bindTooltip(flight.flightNo || flight.reg || "", {permanent:true, direction:"right", className:"flight-label"}); } catch(e){}
+    // tooltip flight number controlled by setting
+    if (settings.showFlightNo) {
+      try { flightMarkers[idKey].bindTooltip(flight.flightNo || flight.reg || "", {permanent:true, direction:"right", className:"flight-label"}); } catch(e){}
+    } else {
+      try { flightMarkers[idKey].unbindTooltip(); } catch(e){}
+    }
   } else {
-    try { flightMarkers[idKey].unbindTooltip(); } catch(e){}
+    // if plane icons disabled, ensure any existing markers are removed
+    if (flightMarkers[idKey]) {
+      try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
+      delete flightMarkers[idKey];
+    }
+    // still optionally show tooltip on line? we keep previous behavior (no tooltip if no marker)
   }
 }
 
@@ -520,6 +550,7 @@ function initUI() {
   const swName = document.getElementById("sw_showAirportName");
   const swCode = document.getElementById("sw_showAirportCode");
   const swFlight = document.getElementById("sw_showFlightNo");
+  const swPlaneIcon = document.getElementById("sw_showPlaneIcon"); // 新增
   const swHide = document.getElementById("sw_hideOtherWhenFilter");
   const inputRefresh = document.getElementById("input_refreshInterval");
 
@@ -527,6 +558,7 @@ function initUI() {
   swName.checked = settings.showAirportName;
   swCode.checked = settings.showAirportCode;
   swFlight.checked = settings.showFlightNo;
+  swPlaneIcon.checked = settings.showPlaneIcon;
   swHide.checked = settings.hideOtherWhenFilter;
   inputRefresh.value = refreshIntervalSec;
 
@@ -545,6 +577,12 @@ function initUI() {
     settings.showFlightNo = swFlight.checked;
     localStorage.setItem("showFlightNo", JSON.stringify(settings.showFlightNo));
     document.getElementById("toggleFlightNo").checked = settings.showFlightNo;
+    renderFlights();
+  };
+  swPlaneIcon.onchange = () => {
+    settings.showPlaneIcon = swPlaneIcon.checked;
+    localStorage.setItem("showPlaneIcon", JSON.stringify(settings.showPlaneIcon));
+    // Immediately re-render flights to add/remove plane icons (but keep lines)
     renderFlights();
   };
   swHide.onchange = () => {
@@ -591,6 +629,7 @@ function restartAutoRefresh() { startAutoRefresh(); }
   settings.showAirportCode = JSON.parse(localStorage.getItem("showAirportCode") || "true");
   settings.showFlightNo = JSON.parse(localStorage.getItem("showFlightNo") || "false");
   settings.hideOtherWhenFilter = JSON.parse(localStorage.getItem("hideOtherWhenFilter") || "false");
+  settings.showPlaneIcon = JSON.parse(localStorage.getItem("showPlaneIcon") || "true");
   refreshIntervalSec = Number(localStorage.getItem("refreshIntervalSec") || 180);
 
   initUI();
