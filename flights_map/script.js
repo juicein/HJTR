@@ -25,7 +25,7 @@ let flightMarkers = {};
 let flightLines = {};
 let highlightedKey = null; 
 
-const PLANE_IMG = "..image/flight_left.png"; // 机头向上（北）
+const PLANE_IMG = "https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png"; // 机头向上（北）
 
 // ============== 工具函数 ==============
 function getFlightIDFromURL() {
