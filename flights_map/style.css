@@ -28,14 +28,16 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
   background: var(--card-bg);
   border-bottom: 1px solid var(--line);
   z-index: 10020;
+  /* allow content to shrink on narrow screens */
+  min-width: 0;
 }
-#brand { font-weight:700; font-size:18px; flex: 0 0 auto; }
-#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; }
-#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; }
-#searchButtons { display:flex; gap:8px; }
+#brand { font-weight:700; font-size:18px; flex: 0 0 auto; white-space:nowrap; }
+#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; min-width:0; }
+#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; max-width:100%; }
+#searchButtons { display:flex; gap:8px; align-items:center; }
 
 /* top control group */
-#topControls { display:flex; gap:8px; align-items:center; }
+#topControls { display:flex; gap:8px; align-items:center; flex:0 0 auto; }
 
 /* buttons */
 .btn { border:none; border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
@@ -125,17 +127,30 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
 .plane-icon { width:32px; height:32px; transform-origin:center center; display:block; }
 
 /* responsive adjustments */
+
+/* Medium screens */
 @media (max-width:900px) {
   #topbar { padding:8px; }
   #brand { flex: 0 0 auto; }
   #searchContainer { max-width: 60%; }
 }
+
+/* Mobile & small screens: 保持单行显示，压缩搜索框，避免换行堆叠 */
 @media (max-width:600px) {
-  /* mobile: stacked topbar to avoid crowding */
-  #topbar { height:auto; flex-direction:column; align-items:stretch; padding:10px; gap:8px; }
-  #brand { font-size:16px; }
-  #searchContainer { display:flex; flex-direction:column; gap:6px; max-width:100%; margin-left:0; }
-  #searchButtons { justify-content:flex-end; }
+  /* make topbar single-line and allow search to shrink (min-width:0 needed) */
+  #topbar { height:56px; flex-direction:row; align-items:center; padding:8px 10px; gap:8px; }
+  #brand { font-size:16px; margin-right:6px; }
+  #searchContainer { display:flex; gap:6px; align-items:center; flex:1; margin-left:0; min-width:0; }
+  #searchInput { min-width:80px; padding:6px 8px; font-size:14px; }
+  #searchButtons { gap:6px; }
   #settingsPanel { width:92%; right:4%; left:4%; top:auto; bottom:110px; }
-  #map { top: 150px; } /* ensure enough top space for stacked header */
+  #map { top: 72px; } /* enough top space for single-row header */
+}
+
+/* 更小屏幕进一步压缩（例如很窄的手机） */
+@media (max-width:420px) {
+  #brand { font-size:15px; }
+  #searchInput { min-width:60px; font-size:13px; padding:6px; }
+  .btn { padding:6px 8px; font-size:13px; border-radius:6px; }
+  .small-switch { width:44px; height:24px; }
 }
