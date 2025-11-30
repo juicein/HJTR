@@ -306,6 +306,22 @@ function renderFlight(flight, options={forceShow:false}) {
 
 
 
+
+  
+
+// === 强制隐藏：不在起飞与落地区间，则无条件删除 ===
+if (!strictlyInFlight(flight) && !options.forceShow) {
+  const idKey = keyForFlight(flight);
+  if (flightLines[idKey]) { try { map.removeLayer(flightLines[idKey]); } catch(e){} }
+  if (flightMarkers[idKey]) { try { map.removeLayer(flightMarkers[idKey]); } catch(e){} }
+  delete flightLines[idKey];
+  delete flightMarkers[idKey];
+  return;
+}
+
+
+  
+
   
 
   
