@@ -307,7 +307,7 @@ function renderFlight(flight, options={forceShow:false}) {
 
  // 计算进度我自己的东西
   const prog = computeProgress(flight);
-  if (prog === 1) {
+  if (prog == 1) {
     // remove existing if present
     if (flightLines[idKey]) try { map.removeLayer(flightLines[idKey]); } catch(e){}
     if (flightMarkers[idKey]) try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
@@ -316,7 +316,7 @@ function renderFlight(flight, options={forceShow:false}) {
     return;
   }
   const prog = computeProgress(flight);
-  if (prog === 0) {
+  if (prog == 0) {
     // remove existing if present
     if (flightLines[idKey]) try { map.removeLayer(flightLines[idKey]); } catch(e){}
     if (flightMarkers[idKey]) try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
