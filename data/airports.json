@@ -19,17 +19,17 @@
   },
   {
     "name": "新裕艮山",
-    "code": "PVG",
+    "code": "GES",
     "lat": 31.1443,
     "lng": 121.8083,
     "aliases": ["新裕"],
     "level": "4F",
-    "runways": 4
+    "runways": 1
   },
   {
     "name": "临东金桦",
     "code": "LHC",
-    "lat": 41.639496‌,
+    "lat": 41.63949‌61,
     "lng": 123.495322,
     "aliases": ["临东"],
     "level": "4F",
