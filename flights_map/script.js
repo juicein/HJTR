@@ -322,10 +322,12 @@ function renderFlight(flight, options={forceShow:false}) {
   }
   
   // 核心修改：如果不是强制显示，并且不在飞行中 (0 < prog < 1)，则强制移除图层
-  // 解决了你提出的“小于起飞时间或大于飞行时间”不显示的问题
   if (!options.forceShow) {
-    // 严格要求 0 < prog < 1
-    if (!(prog > 0 && prog < 1)) { 
+    // 使用 Math.round(prog * 10000) / 10000 来减少浮点数误差，以确保接近 0 或 1 的值能被正确识别
+    const roundedProg = Math.round(prog * 10000) / 10000; 
+    
+    // 检查进度：小于或等于 0 (未起飞)，或者大于或等于 1 (已到达)
+    if (roundedProg <= 0 || roundedProg >= 1) { 
       removeFlightLayers(idKey);
       return; 
     }
@@ -347,14 +349,11 @@ function renderFlight(flight, options={forceShow:false}) {
   // plane marker: only create if showPlaneIcon setting true
   if (settings.showPlaneIcon) {
     const angle = bearingBetween(depLat,depLng,arrLat,arrLng);
-    // 限制 prog 在 [0, 1] 范围内计算当前位置，防止极端情况导致 NaN 或位置错乱
+    // 限制 prog 在 [0, 1] 范围内计算当前位置，防止极端情况导致位置错乱
     const currentProg = Math.max(0, Math.min(1, prog)); 
     const curLat = depLat + (arrLat - depLat) * currentProg;
     const curLng = depLng + (arrLng - depLng) * currentProg;
     
-    // 如果是强制显示（例如搜索结果），但 prog <= 0 或 prog >= 1，则将图标放在起飞或到达机场
-    // 这一步是为了防止搜索结果在非飞行中时图标消失，但根据你的要求，我们应该只在 *不在* forceShow 且 *不在* 0-1 之间时才移除。
-    // 如果 forceShow 为 true，则保留原逻辑：图标会出现在 prog 对应的位置（可能在机场）。
     
     const planeHtml = `<div style="transform: rotate(${angle}deg);"><img class="plane-icon" src="${PLANE_IMG}" /></div>`;
     const planeIcon = L.divIcon({ html: planeHtml, className: "plane-divicon", iconSize:[36,36], iconAnchor:[18,18] });
@@ -380,7 +379,6 @@ function renderFlight(flight, options={forceShow:false}) {
       try { map.removeLayer(flightMarkers[idKey]); } catch(e){}
       delete flightMarkers[idKey];
     }
-    // still optionally show tooltip on line? we keep previous behavior (no tooltip if no marker)
   }
 }
 
