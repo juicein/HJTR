@@ -1,4 +1,3 @@
-const PLANE_IMG = "../image/flight_icon.png"; // 你确认的图片：机头向上（北）
 
 
 // ================== 全局配置 ==================
@@ -28,7 +27,8 @@ let flightMarkers = {};
 let flightLines = {};
 let highlightedKey = null; // track highlighted flight
 
-const PLANE_IMG = "https://i.imgur.com/4bZtV3y.png"; // 你确认的图片：机头向上（北）
+const PLANE_IMG = "../image/flight_icon.png"; // 你确认的图片：机头向上（北）
+
 
 // ============== 工具函数 ==============
 function getFlightIDFromURL() {
