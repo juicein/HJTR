@@ -1,6 +1,7 @@
 :root {
   --primary: #0b5fff;
-  --accent: #ffcc33; /* 高亮航线 */
+  --accent: #0b5fff; /* 高亮航线（蓝色） */
+  --orange: #ff8c2b; /* 未高亮航线颜色（橙色） */
   --card-bg: rgba(255,255,255,0.95);
   --text: #111;
   --line: #e6eefc;
@@ -19,18 +20,24 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
 #topbar {
   position: fixed;
   top: 0; left: 0; right: 0;
-  height: 60px;
+  height: 64px;
   display:flex;
   align-items:center;
   gap:12px;
-  padding: 0 14px;
+  padding: 8px 14px;
   background: var(--card-bg);
   border-bottom: 1px solid var(--line);
   z-index: 10020;
 }
-#brand { font-weight:700; font-size:18px; }
+#brand { font-weight:700; font-size:18px; flex: 0 0 auto; }
 #searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; }
 #searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; }
+#searchButtons { display:flex; gap:8px; }
+
+/* top control group */
+#topControls { display:flex; gap:8px; align-items:center; }
+
+/* buttons */
 .btn { border:none; border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
 .btn.primary { background:var(--primary); color:white; }
 .btn.secondary { background: #eef4ff; color:var(--primary); border:1px solid rgba(11,95,255,0.08); }
@@ -40,14 +47,14 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
 .small-switch { width:48px; height:26px; }
 
 /* ========== 地图位置（下方留出顶栏高度） ========== */
-#map { position: absolute; top:60px; bottom:0; left:0; right:0; z-index: 0; }
+#map { position: absolute; top:72px; bottom:0; left:0; right:0; z-index: 0; }
 
 /* ========== 设置面板 ========== */
 #settingsPanel {
   position: fixed;
   right: 12px;
-  top: 70px;
-  width: 300px;
+  top: 82px;
+  width: 320px;
   background: var(--card-bg);
   border-radius:10px;
   padding:12px;
@@ -55,6 +62,7 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
   z-index:10025;
 }
 #settingsPanel.hidden { display:none; }
+.settings-header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
 .setting-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.03); }
 .setting-row:last-child { border-bottom: none; }
 
@@ -73,7 +81,7 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
   left: 50%;
   transform: translateX(-50%);
   width: 92%;
-  max-width:420px;
+  max-width:480px;
   background: var(--card-bg);
   padding:14px;
   border-radius:12px;
@@ -93,9 +101,10 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
 .airport-marker {
   display:flex;
   align-items:center;
-  gap:10px; /* <-- 让同心圆与文本有距离（你要的间距） */
+  gap:10px; /* <-- 让同心圆与文本有距离 */
   font-weight:700;
   white-space:nowrap; /* 横向排列，不换行 */
+  pointer-events: auto;
 }
 .airport-circle {
   width:18px; height:18px; border-radius:50%; position:relative; flex-shrink:0;
@@ -116,7 +125,17 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); 
 .plane-icon { width:32px; height:32px; transform-origin:center center; display:block; }
 
 /* responsive adjustments */
+@media (max-width:900px) {
+  #topbar { padding:8px; }
+  #brand { flex: 0 0 auto; }
+  #searchContainer { max-width: 60%; }
+}
 @media (max-width:600px) {
-  #searchContainer { display:flex; flex-direction:column; gap:6px; }
+  /* mobile: stacked topbar to avoid crowding */
+  #topbar { height:auto; flex-direction:column; align-items:stretch; padding:10px; gap:8px; }
+  #brand { font-size:16px; }
+  #searchContainer { display:flex; flex-direction:column; gap:6px; max-width:100%; margin-left:0; }
+  #searchButtons { justify-content:flex-end; }
   #settingsPanel { width:92%; right:4%; left:4%; top:auto; bottom:110px; }
+  #map { top: 150px; } /* ensure enough top space for stacked header */
 }
