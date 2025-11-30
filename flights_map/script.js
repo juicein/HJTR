@@ -7,8 +7,8 @@ let refreshIntervalSec = Number(localStorage.getItem("refreshIntervalSec") || 18
 
 // 本地状态（从设置读取 / 保存）
 let settings = {
-  showAirportName: JSON.parse(localStorage.getItem("showAirportName") || "true"), // MOD: 名称单独开关
-  showAirportCode: JSON.parse(localStorage.getItem("showAirportCode") || "true"), // MOD: 代码单独开关
+  showAirportName: JSON.parse(localStorage.getItem("showAirportName") || "true"),
+  showAirportCode: JSON.parse(localStorage.getItem("showAirportCode") || "true"),
   showFlightNo: JSON.parse(localStorage.getItem("showFlightNo") || "false"),
   hideOtherWhenFilter: JSON.parse(localStorage.getItem("hideOtherWhenFilter") || "false"),
 };
@@ -16,18 +16,17 @@ let settings = {
 // 地图与图层
 const map = L.map('map', { worldCopyJump: true, minZoom: 2 }).setView([30, 90], 3);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 7 }).addTo(map);
-//L.tileLayer("", { maxZoom: 7 }).addTo(map);
 
 let airportDB = {};
 let flights = [];
 let airportMarkers = {};
 let flightMarkers = {};
 let flightLines = {};
-let highlightedKey = null; // MOD: track highlighted flight
+let highlightedKey = null; // track highlighted flight
 
-const PLANE_IMG = "../image/flight.png";
+const PLANE_IMG = "https://i.imgur.com/4bZtV3y.png"; // 你确认的图片：机头向上（北）
 
-// ============== 工具函数 ==============image/flight.png
+// ============== 工具函数 ==============
 function getFlightIDFromURL() {
   const urlParams = new URLSearchParams(location.search);
   if(!urlParams.has("flights_map")) return null;
@@ -52,6 +51,25 @@ function nowInBeijingMinutes() {
   return bj.getHours()*60 + bj.getMinutes();
 }
 
+// return a Date object in Beijing for today at 00:00
+function beijingToday() {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset()*60000;
+  return new Date(utc + 8*3600*1000);
+}
+
+// compute formatted date string for given offset days
+function formatDateOffset(offsetDays) {
+  const base = beijingToday();
+  base.setHours(0,0,0,0);
+  base.setDate(base.getDate() + Number(offsetDays||0));
+  const yyyy = base.getFullYear();
+  const mm = String(base.getMonth()+1).padStart(2,'0');
+  const dd = String(base.getDate()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// 计算两个经纬之间的方位角（度），并调整使机头朝向目的地（图标机头向上）
 function bearingBetween(lat1, lon1, lat2, lon2) {
   const toRad = d => d*Math.PI/180;
   const toDeg = r => r*180/Math.PI;
@@ -59,12 +77,14 @@ function bearingBetween(lat1, lon1, lat2, lon2) {
   const λ1 = toRad(lon1), λ2 = toRad(lon2);
   const y = Math.sin(λ2-λ1)*Math.cos(φ2);
   const x = Math.cos(φ1)*Math.sin(φ2) - Math.sin(φ1)*Math.cos(φ2)*Math.cos(λ2-λ1);
-  let θ = toDeg(Math.atan2(y,x));
+  let θ = toDeg(Math.atan2(y,x)); // 0 = east
+  // For an image that points UP (north), we need to rotate so that:
+  // east -> rotate 90deg, so add 90. Keep previous behavior (works for up-pointing images).
   θ = (θ + 360 + 90) % 360;
   return θ;
 }
 
-// ============== 解析 flight_data.txt（保持你原解析，兼容） ==============
+// ============== 解析 flight_data.txt（兼容） ==============
 function parseFlightData(raw) {
   const entries = [];
   const parts = raw.split("《航班结束》");
@@ -129,7 +149,7 @@ function parseFlightData(raw) {
   return entries;
 }
 
-// ============== 机场查找（保持原样，支持 aliases） ==============
+// ============== 机场查找（支持 aliases） ==============
 function airportByName(nameOrCode) {
   if (!nameOrCode) return null;
   const key = String(nameOrCode).trim().toLowerCase();
@@ -154,12 +174,12 @@ function airportByName(nameOrCode) {
   return null;
 }
 
-// ============== 渲染机场（MOD：同心圆 + 横向 label + 分开开关） ==============
+// ============== 渲染机场（同心圆 + 横向 label + 分开开关） ==============
 function renderAllAirports() {
   for (let code in airportDB) {
     const ap = airportDB[code];
-    const lat = ap.lat || ap.latitude || ap.lat;
-    const lng = ap.lon || ap.lng || ap.longitude || ap.lon;
+    const lat = ap.lat || ap.latitude || ap.latitude;
+    const lng = ap.lon || ap.lng || ap.longitude || ap.lng;
     if (lat === undefined || lng === undefined) continue;
 
     if (airportMarkers[code]) {
@@ -174,8 +194,10 @@ function renderAllAirports() {
     }
 
     // html: same-line layout, gap enforced by CSS
+    // include aliases as title attribute (hover) and in popup/card
+    const aliasesText = (ap.aliases && ap.aliases.length) ? ap.aliases.join(" / ") : "";
     const html = `
-      <div class="airport-marker" title="${ap.name || ''}">
+      <div class="airport-marker" title="${ap.name || ''}${aliasesText?(' — ' + aliasesText):''}">
         <div class="airport-circle"></div>
         <div class="airport-label">
           <div class="airport-name">${ap.name || ''}</div>
@@ -198,7 +220,7 @@ function renderAllAirports() {
   }
 }
 
-// ============== 渲染航班（MOD：只显示 0<progress<1 的航段） ==============
+// ============== 渲染航班（只显示 0<progress<1 的航段，除非 forceShow） ==============
 function computeProgress(flight) {
   const depMin = timeStrToMinutes(flight.depTimeRaw);
   const arrMin = timeStrToMinutes(flight.arrTimeRaw);
@@ -212,7 +234,6 @@ function computeProgress(flight) {
 }
 
 function keyForFlight(flight) {
-  // use registration when exists else fallback
   if (flight.reg) return flight.reg.trim();
   return (flight.flightNo || "") + "|" + (flight.depTimeRaw || "") + "|" + (flight.arrTimeRaw || "");
 }
@@ -220,7 +241,7 @@ function keyForFlight(flight) {
 function highlightReset() {
   if (highlightedKey && flightLines[highlightedKey]) {
     try {
-      flightLines[highlightedKey].setStyle({ color: "orange", dashArray: "6 6", weight: 2 });
+      flightLines[highlightedKey].setStyle({ color: "var(--orange)", dashArray: "6 6", weight: 2 });
     } catch(e){}
     highlightedKey = null;
   }
@@ -268,7 +289,7 @@ function renderFlight(flight, options={forceShow:false}) {
 
   // create or update line
   if (!flightLines[idKey]) {
-    const line = L.polyline([[depLat,depLng],[arrLat,arrLng]], { color: "orange", weight: 2, dashArray: "6 6" }).addTo(map);
+    const line = L.polyline([[depLat,depLng],[arrLat,arrLng]], { color: "var(--orange)", weight: 2, dashArray: "6 6" }).addTo(map);
     line.on("click", ()=> onFlightClicked(idKey, flight));
     flightLines[idKey] = line;
   } else {
@@ -312,19 +333,23 @@ function clearFlightLayers() {
   highlightedKey = null;
 }
 
-// ============== 信息卡片（MOD: 使用注册号 prev/next + 进度栏） ==============
+// ============== 信息卡片（注册号单独一行 + 日期显示 + 起降机场信息） ==============
 function showInfoCard(f, depA, arrA) {
   const card = document.getElementById("infoCard");
   const prog = computeProgress(f);
   const percent = (prog === null) ? "-" : Math.round(Math.max(0, Math.min(1, prog))*100);
 
-  // prev/next only based on registration number (MOD)
+  // compute date strings based on offsets
+  const depDateStr = formatDateOffset(f.depOffset || 0);
+  const arrDateStr = formatDateOffset(f.arrOffset || 0);
+
+  // prev/next only based on registration number
   let prevHtml = "", nextHtml = "";
   if (f.reg) {
     const same = flights.filter(x => x.reg && x.reg.toLowerCase() === f.reg.toLowerCase());
     same.sort((a,b) => {
-      const am = timeStrToMinutes(a.depTimeRaw) === null ? 1e9 : timeStrToMinutes(a.depTimeRaw) + (a.depOffset||0)*24*60;
-      const bm = timeStrToMinutes(b.depTimeRaw) === null ? 1e9 : timeStrToMinutes(b.depTimeRaw) + (b.depOffset||0)*24*60;
+      const am = (timeStrToMinutes(a.depTimeRaw) === null) ? 1e9 : timeStrToMinutes(a.depTimeRaw) + (a.depOffset||0)*24*60;
+      const bm = (timeStrToMinutes(b.depTimeRaw) === null) ? 1e9 : timeStrToMinutes(b.depTimeRaw) + (b.depOffset||0)*24*60;
       return am - bm;
     });
     const idx = same.findIndex(x => x.raw === f.raw);
@@ -333,18 +358,21 @@ function showInfoCard(f, depA, arrA) {
   }
 
   card.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <h3 style="margin:0">${f.flightNo || "-"} ${f.reg?`(${f.reg})`:''}</h3>
-        <div style="font-size:12px;color:rgba(0,0,0,0.6)">${f.airline||""} · ${f.planeType||""}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+      <div style="flex:1">
+        <h3 style="margin:0">${f.flightNo || "-"}</h3>
+        <div style="font-size:12px;color:rgba(0,0,0,0.6);margin-top:4px">${f.airline||""} · ${f.planeType||""}</div>
+        <div style="margin-top:8px;font-size:13px"><b>注册号：</b> ${f.reg?f.reg:'—'}</div>
       </div>
-      <div style="text-align:right;font-size:12px">
-        <div>${depA?depA.name||depA.code:''}</div>
-        <div style="font-size:11px;color:rgba(0,0,0,0.6)">${f.depTimeRaw||""} → ${f.arrTimeRaw||""}</div>
+
+      <div style="text-align:right;font-size:12px;min-width:140px">
+        <div style="font-weight:700">${depA?depA.name||depA.code:''} → ${arrA?arrA.name||arrA.code:''}</div>
+        <div style="font-size:12px;color:rgba(0,0,0,0.6)">${f.depTimeRaw||''} <div style="font-size:11px;color:rgba(0,0,0,0.45)">${depDateStr}</div></div>
+        <div style="font-size:12px;color:rgba(0,0,0,0.6);margin-top:6px">${f.arrTimeRaw||''} <div style="font-size:11px;color:rgba(0,0,0,0.45)">${arrDateStr}</div></div>
       </div>
     </div>
 
-    <div style="margin-top:8px">
+    <div style="margin-top:10px">
       <div style="display:flex;justify-content:space-between;font-size:12px">
         <div>进度</div>
         <div>${percent === "-" ? "-" : percent + "%"}</div>
@@ -352,7 +380,7 @@ function showInfoCard(f, depA, arrA) {
       <div class="progressWrap"><div class="progressBar" style="width:${percent==="-"?0:percent}%"></div></div>
     </div>
 
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
       ${prevHtml}
       ${nextHtml}
       <button id="cardClose" class="btn primary">关闭</button>
@@ -380,11 +408,13 @@ function showInfoCard(f, depA, arrA) {
   }
 }
 
-// airport card kept
+// airport card (include aliases)
 function showAirportCard(ap) {
   const card = document.getElementById("infoCard");
+  const aliases = (ap.aliases && ap.aliases.length) ? `<p><b>别名：</b>${ap.aliases.join(' / ')}</p>` : '';
   card.innerHTML = `
     <h3 style="margin:0">${ap.name || ""} (${ap.code || ""})</h3>
+    ${aliases}
     ${ap.level?`<p><b>机场等级：</b>${ap.level}</p>` : ''}
     ${ap.runways?`<p><b>跑道数量：</b>${ap.runways}</p>` : ''}
     <div style="display:flex;justify-content:flex-end;margin-top:8px"><button id="cardClose" class="btn primary">关闭</button></div>
@@ -409,7 +439,7 @@ function renderFlights() {
       matchesFilter = (a.includes(filterKey) || b.includes(filterKey));
     }
     if (filterKey && settings.hideOtherWhenFilter && !matchesFilter) return;
-    // If filterKey present, we want to forceShow matched flights even if progress outside (user asked)
+    // If filterKey present, forceShow matched flights even if not in-flight
     const forceShow = matchesFilter;
     renderFlight(f, { forceShow });
   });
@@ -453,7 +483,7 @@ async function loadData() {
   renderFlights();
 }
 
-// ============== UI init（MOD: settings switches 即改即存） ==============
+// ============== UI init（settings switches 即改即存） ==============
 function initUI() {
   // topbar toggleFlightNo (small switch)
   const topToggle = document.getElementById("toggleFlightNo");
@@ -462,7 +492,6 @@ function initUI() {
     settings.showFlightNo = topToggle.checked;
     localStorage.setItem("showFlightNo", JSON.stringify(settings.showFlightNo));
     renderFlights();
-    // also sync panel switch if open
     const panelSw = document.getElementById("sw_showFlightNo");
     if (panelSw) panelSw.checked = settings.showFlightNo;
   });
@@ -480,6 +509,9 @@ function initUI() {
   const panel = document.getElementById("settingsPanel");
   settingsBtn.addEventListener("click", ()=> panel.classList.toggle("hidden"));
 
+  // settings close button
+  document.getElementById("settingsClose").addEventListener("click", ()=> panel.classList.add("hidden"));
+
   // panel elements
   const swName = document.getElementById("sw_showAirportName");
   const swCode = document.getElementById("sw_showAirportCode");
@@ -494,7 +526,7 @@ function initUI() {
   swHide.checked = settings.hideOtherWhenFilter;
   inputRefresh.value = refreshIntervalSec;
 
-  // immediate-save handlers (MOD: click => save instantly)
+  // immediate-save handlers
   swName.onchange = () => {
     settings.showAirportName = swName.checked;
     localStorage.setItem("showAirportName", JSON.stringify(settings.showAirportName));
@@ -508,7 +540,6 @@ function initUI() {
   swFlight.onchange = () => {
     settings.showFlightNo = swFlight.checked;
     localStorage.setItem("showFlightNo", JSON.stringify(settings.showFlightNo));
-    // sync top toggle
     document.getElementById("toggleFlightNo").checked = settings.showFlightNo;
     renderFlights();
   };
