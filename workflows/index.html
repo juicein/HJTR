@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>航班 Live Activity Demo</title>
+</head>
+<body>
+
+<h2>⚡ 航班进度条 Live Activity（iOS Web Push）</h2>
+<button id="subBtn">开始接收航班更新</button>
+
+<script>
+async function start() {
+  if (!("serviceWorker" in navigator)) {
+    alert("浏览器不支持 SW");
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.register("sw.js");
+  console.log("SW OK");
+
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") {
+    alert("你拒绝了通知");
+    return;
+  }
+
+  const vapidKey = "你的 VAPID 公钥（Base64）";
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: vapidKey
+  });
+
+  console.log("订阅成功", JSON.stringify(sub));
+
+  await fetch("/save-subscription", {
+    method: "POST",
+    body: JSON.stringify(sub),
+    headers: { "Content-Type": "application/json" }
+  });
+
+  alert("已订阅航班！服务器可以推送进度了。");
+}
+
+document.getElementById("subBtn").onclick = start;
+</script>
+
+</body>
+</html>
