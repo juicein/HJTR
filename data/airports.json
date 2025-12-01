@@ -2,8 +2,8 @@
   {
     "name": "拜科努尔",
     "code": "BAY",
-    "lat": 45.6,
-    "lng": 63.3,
+   "lat": 31.1443,
+    "lng": 121.8083,
     "aliases": ["北联","拜科努尔机场"],
     "level": "4C",
     "runways": 1
@@ -14,18 +14,27 @@
     "lat": 13.4110,
     "lng": 100.4512,
     "aliases": ["千里机场"],
-    "level": "4C",
+    "level": "4E",
     "runways": 1
   },
   {
-    "name": "新裕艮山",
-    "code": "GES",
-    "lat": 31.1443,
-    "lng": 121.8083,
+    "name": "新裕古湖",
+    "code": "AHF",
+    "lat": 27.75,
+    "lng": 114.83,
     "aliases": ["新裕"],
-    "level": "4F",
+    "level": "4D",
     "runways": 1
   },
+  {
+"name": "新裕艮山",
+"code": "GES",
+"lat": 27.7863,
+"lng": 114.6818,
+"aliases": ["新裕古湖"],
+"level": "4C",
+"runways": 1
+},
   {
     "name": "临东金桦",
     "code": "LHC",
@@ -52,6 +61,16 @@
     "aliases": ["新清云机场"],
     "level": "4F",
     "runways": 1
+},
+  "name": "峡东海东",
+"code": "XCY",
+"lat": -6.12556,
+"lng": 106.65583,
+"aliases": ["峡东", "机场"],
+"level": "4F",
+"runways": 2
 }
+  
+
   
 ]
