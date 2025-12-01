@@ -64,12 +64,12 @@
 },
   {
 "name": "闸南香兰",
-"code": "g",
+"code": "ZXA",
 "lat": 24.55361,
 "lng": 118.35333,
-"aliases": ["厦门第二机场", "大嶝岛国际机场", "Xiamen Xiang'an International Airport"],
-"level": "4F级民用国际机场",
-"runways": 2（一期建成，规划最终4条）
+"aliases": ["枫海"],
+"level": "4F",
+"runways": 2
 }
   {
   "name": "峡东海东",
