@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>航班字符串可视化编辑器（含夜间模式）</title>
+<style>
+:root{
+  --bg:#f3f7fb; --card:#ffffff; --muted:#7b8a97; --accent:#1186d6; --glass: rgba(255,255,255,0.6);
+  --text:#0b2636; --danger:#e74c3c;
+  --radius:12px;
+}
+[data-theme="dark"]{
+  --bg:#020617; --card:#0b1220; --muted:#7b8a97; --accent:#3aa0ff; --glass: rgba(255,255,255,0.03);
+  --text:#d7e6f2; --danger:#ff6b6b;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family: Inter, "Helvetica Neue", Arial; background:var(--bg); color:var(--text);
+  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+}
+.app{
+  display:flex; min-height:100vh;
+}
+/* 左侧侧边栏 */
+.sidebar{
+  width:320px; background:var(--card); box-shadow: 4px 0 18px rgba(0,0,0,0.06); padding:18px;
+  display:flex; flex-direction:column; gap:12px;
+}
+[data-theme="dark"] .sidebar{ background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00)); border-right:1px solid rgba(255,255,255,0.02)}
+.brand{display:flex; gap:10px; align-items:center}
+.brand .logo{
+  width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#1783d6,#23c3a3); display:flex; align-items:center; justify-content:center; color:white; font-weight:700;
+}
+.h1{font-size:16px; font-weight:600}
+.small{font-size:12px; color:var(--muted)}
+.sidebar button, .btn{ background:var(--accent); border:none; color:white; padding:10px 12px; border-radius:8px; cursor:pointer}
+.sidebar .section{ background:var(--glass); padding:10px; border-radius:10px}
+textarea.import { width:100%; height:90px; border-radius:8px; border:1px dashed rgba(0,0,0,0.06); padding:8px; resize:vertical; background:transparent; color:var(--text)}
+.history-list{ max-height:190px; overflow:auto; display:flex; flex-direction:column; gap:8px}
+.history-item{ display:flex; gap:8px; align-items:center; justify-content:space-between; background:rgba(0,0,0,0.02); padding:8px; border-radius:8px; font-size:13px}
+.side-actions{display:flex; gap:8px; flex-wrap:wrap}
+
+/* 主区 */
+.main{
+  flex:1; padding:28px; display:flex; flex-direction:column; gap:18px;
+}
+.header{
+  display:flex; justify-content:space-between; align-items:center;
+}
+.header .profile{display:flex; gap:12px; align-items:center}
+.avatar{width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,#2f8dd6,#55d1bb); display:flex;align-items:center; justify-content:center; color:white; font-weight:700}
+.theme-toggle{ padding:6px 10px; background:transparent; border:1px solid rgba(0,0,0,0.08); border-radius:8px; cursor:pointer}
+
+/* card form */
+.card{ background:var(--card); border-radius:var(--radius); padding:18px; box-shadow: 0 6px 18px rgba(8,10,20,0.04)}
+.form-row{ display:flex; gap:12px; margin-bottom:10px; flex-wrap:wrap}
+.col{ flex:1; min-width:180px}
+label{ display:block; font-size:13px; margin-bottom:6px; color:var(--muted)}
+input[type="text"], input[type="time"], select{ width:100%; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:transparent; color:var(--text)}
+.small-muted{font-size:12px; color:var(--muted); margin-top:6px}
+.weekdays{ display:flex; gap:6px; flex-wrap:wrap}
+.wday{ padding:6px 10px; border-radius:20px; border:1px solid rgba(0,0,0,0.06); cursor:pointer; background:transparent; font-size:13px}
+.wday.active{ background:var(--accent); color:white; box-shadow: 0 4px 14px rgba(0,0,0,0.08)}
+.row-inline{ display:flex; gap:8px; align-items:center}
+
+/* generated output area */
+.generated{
+  display:flex; gap:12px; align-items:center; justify-content:space-between;
+  margin-top:8px; padding:12px; border-radius:8px; background:var(--glass);
+}
+.output{ font-family: monospace; word-break:break-all; font-size:13px; color:var(--text); flex:1}
+.controls{ display:flex; gap:8px; align-items:center}
+
+/* responsive */
+@media (max-width:900px){
+  .sidebar{ display:none }
+  body{ padding:0 }
+  .main{ padding:16px }
+  .header .profile .name{ display:none }
+}
+
+/* small helpers */
+.badge{ background:rgba(0,0,0,0.05); padding:4px 8px; border-radius:8px; font-size:12px}
+.listbox{ max-height:180px; overflow:auto; border:1px solid rgba(0,0,0,0.04); padding:8px; border-radius:8px}
+.flight-list{ display:flex; flex-direction:column; gap:8px}
+.flight-item{ padding:8px; border-radius:8px; background:rgba(0,0,0,0.02); display:flex; justify-content:space-between; align-items:center}
+.smallbtn{ padding:6px 8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); background:transparent; cursor:pointer}
+.helper{ font-size:12px; color:var(--muted) }
+</style>
+</head>
+<body>
+<div class="app" id="app" data-theme="light">
+  <!-- 侧边栏 -->
+  <aside class="sidebar" aria-label="侧边控制面板">
+    <div class="brand">
+      <div class="logo">FL</div>
+      <div>
+        <div class="h1">航班编辑器</div>
+        <div class="small">可视化 & 导入 & 历史</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="small">导入原始字符串</div>
+      <textarea id="importText" class="import" placeholder="把整行原始字符串粘贴到这里，然后点击 导入"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px">
+        <button id="btnImport" class="btn">导入并解析</button>
+        <button id="btnClearImport" class="smallbtn">清空</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div class="small">历史记忆（本地）</div>
+        <div><button id="btnClearHistory" class="smallbtn">清空</button></div>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+
+    <div class="section">
+      <div class="small">flight_data（模拟）</div>
+      <div class="listbox" id="flightDataList"></div>
+      <div style="margin-top:8px; display:flex; gap:8px">
+        <button id="btnReloadSample" class="smallbtn">载入示例</button>
+        <button id="btnSaveFlightFile" class="smallbtn">保存到本地（模拟文件）</button>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:auto">
+      <div class="small">说明</div>
+      <div class="helper">粘贴格式示例：<br>【HA1608】〈〉«MON,TUE...»〔波音737-800〕『航空』《出发机场出发》{0:30}#+0#@T1航站楼@《到达机场到达》{23:20}#+0#@T1航站楼@ §1150元§θ3100元θ △8888元△<DF1729>《航班结束》</div>
+    </div>
+  </aside>
+
+  <!-- 主区域 -->
+  <main class="main">
+    <div class="header">
+      <div style="display:flex; gap:12px; align-items:center">
+        <div class="avatar">AL</div>
+        <div>
+          <div style="font-weight:700">AurLemon</div>
+          <div class="small-muted">航班编辑面板</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center">
+        <button id="themeToggle" class="theme-toggle">切换夜间</button>
+      </div>
+    </div>
+
+    <div class="card" id="editorCard">
+      <div style="display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px">
+        <div style="font-weight:700">航班信息编辑</div>
+        <div class="small-muted">支持导入/编辑/导出</div>
+      </div>
+
+      <div class="form-row">
+        <div class="col">
+          <label>航班号（例如：HA1608）</label>
+          <input id="flightNo" type="text" placeholder="JF731" />
+        </div>
+        <div class="col">
+          <label>机型（例如：波音737-800）</label>
+          <input id="aircraft" type="text" placeholder="波音737-800" />
+        </div>
+        <div class="col">
+          <label>航空公司</label>
+          <input id="airline" type="text" placeholder="豪金航空" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col">
+          <label>出发机场</label>
+          <div style="display:flex; gap:8px">
+            <input id="depAirport" type="text" placeholder="输入或选择机场" />
+            <select id="depMode">
+              <option value="typed">自由输入（联想）</option>
+              <option value="db">从数据库选择</option>
+            </select>
+          </div>
+          <div id="depSuggest" class="helper"></div>
+        </div>
+
+        <div class="col">
+          <label>到达机场</label>
+          <div style="display:flex; gap:8px">
+            <input id="arrAirport" type="text" placeholder="输入或选择机场" />
+            <select id="arrMode">
+              <option value="typed">自由输入（联想）</option>
+              <option value="db">从数据库选择</option>
+            </select>
+          </div>
+          <div id="arrSuggest" class="helper"></div>
+        </div>
+
+        <div class="col">
+          <label>航班状态</label>
+          <input id="status" type="text" placeholder="《航班结束》里的描述，例如 航班结束" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col">
+          <label>出发时间</label>
+          <div class="row-inline">
+            <input id="depTime" type="time" />
+            <label style="display:inline-flex; align-items:center; gap:6px"><input id="depCross" type="checkbox"/> 跨日（#+1#）</label>
+          </div>
+        </div>
+        <div class="col">
+          <label>到达时间</label>
+          <div class="row-inline">
+            <input id="arrTime" type="time" />
+            <label style="display:inline-flex; align-items:center; gap:6px"><input id="arrCross" type="checkbox"/> 跨日（#+1#）</label>
+          </div>
+        </div>
+        <div class="col">
+          <label>出发航站楼</label>
+          <input id="depTerminal" type="text" placeholder="T1航站楼" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col">
+          <label>到达航站楼</label>
+          <input id="arrTerminal" type="text" placeholder="T1航站楼" />
+        </div>
+        <div class="col">
+          <label>商务舱价格（可选）</label>
+          <input id="bizPrice" type="text" placeholder="例如 3100（留空则不生成 θ3100元θ）" />
+        </div>
+        <div class="col">
+          <label>头等舱价格（可选）</label>
+          <input id="firstPrice" type="text" placeholder="例如 8888（留空则不生成 △8888元△）" />
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="col">
+          <label>航班内部编号（可选，例如 &lt;DF1729&gt;）</label>
+          <input id="internalCode" type="text" placeholder="DF1729" />
+        </div>
+        <div class="col">
+          <label>星期（选择营运日）</label>
+          <div class="weekdays" id="weekdays">
+            <button class="wday" data-day="MON">MON</button>
+            <button class="wday" data-day="TUE">TUE</button>
+            <button class="wday" data-day="WED">WED</button>
+            <button class="wday" data-day="THU">THU</button>
+            <button class="wday" data-day="FRI">FRI</button>
+            <button class="wday" data-day="SAT">SAT</button>
+            <button class="wday" data-day="SUN">SUN</button>
+          </div>
+        </div>
+        <div class="col">
+          <label>其他备注</label>
+          <input id="misc" type="text" placeholder="例如：航班说明" />
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; align-items:center; margin-top:8px">
+        <button id="btnGenerate" class="btn">生成字符串</button>
+        <button id="btnSaveHistory" class="smallbtn">保存到历史</button>
+        <button id="btnLoadDefaults" class="smallbtn">重置示例</button>
+      </div>
+
+      <div class="generated" style="margin-top:12px">
+        <div class="output" id="generatedOutput">生成的字符串会显示在这里</div>
+        <div class="controls">
+          <button id="btnCopy" class="smallbtn">复制</button>
+          <button id="btnShare" class="smallbtn">分享</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 航空公司选择 & 列表 -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center">
+        <div style="font-weight:700">航司过滤 & 列表</div>
+        <div style="display:flex; gap:8px; align-items:center">
+          <input id="filterAirline" type="text" placeholder="输入或选择航空公司" />
+          <button id="btnFilter" class="smallbtn">筛选</button>
+        </div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div class="flight-list" id="filteredFlights"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ========== 数据与初始化 ========== */
+/* 示例 airports（你可以替换为真实 data/airports.json） */
+window.airports = [
+  {"name":"拜科努尔","code":"BAY","aliases":["北联","拜科努尔机场"],"lat":31.1443,"lng":121.8083,"level":"4C","runways":1},
+  {"name":"千里马","code":"KLM","aliases":["千里机场"],"lat":13.4110,"lng":100.4512,"level":"4E","runways":1},
+  {"name":"新裕古湖","code":"AHF","aliases":["新裕"],"lat":27.75,"lng":114.83,"level":"4D","runways":1},
+  {"name":"峡东海东","code":"XDH","aliases":["峡东"],"lat":30.1,"lng":120.1,"level":"4C","runways":1},
+  {"name":"新清云索恩","code":"XQY","aliases":["新清"],"lat":31.4,"lng":121.2,"level":"4D","runways":2}
+];
+
+/* 示例 flight_data.txt（模拟为 localStorage） */
+const sampleFlightText = `【JF731】〈〉«MON,TUE,WED,THU,FRI,SAT,SUN»〔A321-251N〕『东南航空』《拜科努尔出发》{8:05}#+0#@T1航站楼@《峡东海东到达》{14:35}#+0#@T1航站楼@ §2263元§ θ7680元θ<R-2102>《航班结束》
+【JF732】〈〉«MON,TUE,WED,THU,FRI,SAT,SUN»〔A321-251N〕『东南航空』《峡东海东出发》{15:30}#+0#@T1航站楼@《拜科努尔到达》{22:00}#+0#@T1航站楼@ §2193元§ θ7983元θ<R-2102>《航班结束》
+【JF721】〈〉«MON,TUE,WED,THU,FRI,SAT,SUN»〔A321-251N〕『东南航空』《拜科努尔出发》{7:55}#+0#@T1航站楼@《新清云索恩到达》{13:15}#+0#@T2航站楼@ §1770元§ θ7120元θ<R-2101>《航班结束》
+`;
+
+/* localStorage keys */
+const HIST_KEY = 'flight_editor_history_v1';
+const FLIGHT_FILE_KEY = 'flight_editor_file_v1';
+const THEME_KEY = 'flight_editor_theme_v1';
+
+/* load or init sample file */
+if(!localStorage.getItem(FLIGHT_FILE_KEY)) localStorage.setItem(FLIGHT_FILE_KEY, sampleFlightText);
+
+/* ========== 元素绑定 ========== */
+const app = document.getElementById('app');
+const themeToggle = document.getElementById('themeToggle');
+const importText = document.getElementById('importText');
+const btnImport = document.getElementById('btnImport');
+const btnClearImport = document.getElementById('btnClearImport');
+const historyList = document.getElementById('historyList');
+const btnSaveHistory = document.getElementById('btnSaveHistory');
+const btnClearHistory = document.getElementById('btnClearHistory');
+const btnGenerate = document.getElementById('btnGenerate');
+const generatedOutput = document.getElementById('generatedOutput');
+const btnCopy = document.getElementById('btnCopy');
+const btnShare = document.getElementById('btnShare');
+const btnLoadDefaults = document.getElementById('btnLoadDefaults');
+
+const flightNo = document.getElementById('flightNo');
+const aircraft = document.getElementById('aircraft');
+const airline = document.getElementById('airline');
+const depAirport = document.getElementById('depAirport');
+const arrAirport = document.getElementById('arrAirport');
+const depMode = document.getElementById('depMode');
+const arrMode = document.getElementById('arrMode');
+const depSuggest = document.getElementById('depSuggest');
+const arrSuggest = document.getElementById('arrSuggest');
+const depTime = document.getElementById('depTime');
+const arrTime = document.getElementById('arrTime');
+const depCross = document.getElementById('depCross');
+const arrCross = document.getElementById('arrCross');
+const depTerminal = document.getElementById('depTerminal');
+const arrTerminal = document.getElementById('arrTerminal');
+const bizPrice = document.getElementById('bizPrice');
+const firstPrice = document.getElementById('firstPrice');
+const internalCode = document.getElementById('internalCode');
+const status = document.getElementById('status');
+const weekdaysEl = document.getElementById('weekdays');
+const misc = document.getElementById('misc');
+
+const btnReloadSample = document.getElementById('btnReloadSample');
+const btnSaveFlightFile = document.getElementById('btnSaveFlightFile');
+const flightDataList = document.getElementById('flightDataList');
+
+const filterAirline = document.getElementById('filterAirline');
+const btnFilter = document.getElementById('btnFilter');
+const filteredFlights = document.getElementById('filteredFlights');
+
+/* ========== 主题 ========== */
+function loadTheme(){
+  const t = localStorage.getItem(THEME_KEY) || 'light';
+  app.setAttribute('data-theme', t);
+  themeToggle.textContent = t === 'light' ? '切换夜间' : '切换日间';
+}
+loadTheme();
+themeToggle.onclick = ()=>{
+  const cur = app.getAttribute('data-theme');
+  const next = cur === 'light' ? 'dark':'light';
+  app.setAttribute('data-theme', next);
+  localStorage.setItem(THEME_KEY, next);
+  loadTheme();
+}
+
+/* ========== 历史管理 ========== */
+function loadHistory(){
+  const arr = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+  renderHistory(arr);
+}
+function renderHistory(arr){
+  historyList.innerHTML = '';
+  arr.slice().reverse().forEach((s,i)=>{
+    const div = document.createElement('div'); div.className='history-item';
+    const left = document.createElement('div'); left.style.flex='1'; left.textContent = s.slice(0,80);
+    const right = document.createElement('div');
+    const btnLoad = document.createElement('button'); btnLoad.className='smallbtn'; btnLoad.textContent='加载';
+    btnLoad.onclick = ()=>{ parseAndFill(s); };
+    const btnDel = document.createElement('button'); btnDel.className='smallbtn'; btnDel.textContent='删除';
+    btnDel.onclick = ()=>{
+      let arr2 = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+      arr2 = arr2.filter(x=>x!==s);
+      localStorage.setItem(HIST_KEY, JSON.stringify(arr2));
+      loadHistory();
+    };
+    right.appendChild(btnLoad); right.appendChild(btnDel);
+    div.appendChild(left); div.appendChild(right);
+    historyList.appendChild(div);
+  });
+}
+btnSaveHistory.onclick = ()=>{
+  const s = generatedOutput.textContent.trim();
+  if(!s){ alert('当前无生成字符串'); return; }
+  let arr = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+  if(arr.indexOf(s)===-1) arr.push(s);
+  // 限制长度 15
+  if(arr.length>15) arr = arr.slice(arr.length-15);
+  localStorage.setItem(HIST_KEY, JSON.stringify(arr));
+  loadHistory();
+};
+btnClearHistory.onclick = ()=>{
+  if(confirm('清空历史？')){ localStorage.removeItem(HIST_KEY); loadHistory(); }
+};
+loadHistory();
+
+/* ========== flight_data 模拟文件 加载与编辑 ========== */
+function loadFlightFile(){
+  const txt = localStorage.getItem(FLIGHT_FILE_KEY) || '';
+  const lines = txt.split(/\r?\n/).filter(Boolean);
+  flightDataList.innerHTML = '';
+  lines.forEach(line=>{
+    const el = document.createElement('div'); el.className='flight-item';
+    const left = document.createElement('div'); left.textContent = line.slice(0,60);
+    const right = document.createElement('div');
+    const btnEdit = document.createElement('button'); btnEdit.className='smallbtn'; btnEdit.textContent='编辑';
+    btnEdit.onclick = ()=>{ parseAndFill(line); };
+    const btnRemove = document.createElement('button'); btnRemove.className='smallbtn'; btnRemove.textContent='删除';
+    btnRemove.onclick = ()=>{
+      if(!confirm('删除该行？')) return;
+      let updated = (localStorage.getItem(FLIGHT_FILE_KEY)||'').split(/\r?\n/).filter(Boolean);
+      updated = updated.filter(l=>l!==line);
+      localStorage.setItem(FLIGHT_FILE_KEY, updated.join('\n'));
+      loadFlightFile();
+    };
+    right.appendChild(btnEdit); right.appendChild(btnRemove);
+    el.appendChild(left); el.appendChild(right);
+    flightDataList.appendChild(el);
+  });
+}
+btnReloadSample.onclick = ()=>{
+  localStorage.setItem(FLIGHT_FILE_KEY, sampleFlightText);
+  loadFlightFile();
+};
+btnSaveFlightFile.onclick = ()=>{
+  // 将当前生成的字符串追加到模拟文件
+  const s = generatedOutput.textContent.trim();
+  if(!s){ alert('生成的字符串为空'); return; }
+  const cur = localStorage.getItem(FLIGHT_FILE_KEY) || '';
+  localStorage.setItem(FLIGHT_FILE_KEY, cur + (cur?'\n':'') + s);
+  loadFlightFile();
+};
+loadFlightFile();
+
+/* ========== 解析函数（将原始字符串解析为对象） ========== */
+function parseStringToObj(str){
+  // 基于你给的格式进行正则解析。容错处理。
+  const obj = {raw:str};
+  try{
+    // 航班号 【...】
+    const m_fno = str.match(/【([^】]+)】/);
+    obj.flightNo = m_fno ? m_fno[1].trim() : '';
+
+    // 机型 〔...〕
+    const m_ac = str.match(/〔([^〕]+)〕/);
+    obj.aircraft = m_ac ? m_ac[1].trim() : '';
+
+    // 航司 『...』
+    const m_air = str.match(/『([^』]+)』/);
+    obj.airline = m_air ? m_air[1].trim() : '';
+
+    // 星期 «...»
+    const m_days = str.match(/«([^»]+)»/);
+    obj.days = m_days ? m_days[1].split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+    // 出发 《...》{time}
+    const pairs = [...str.matchAll(/《([^》]+)》\{([^}]+)\}\#\+(\d)#@([^@]+)@/g)];
+    if(pairs.length>=2){
+      obj.depName = pairs[0][1].trim();
+      obj.depTime = normalizeTime(pairs[0][2]);
+      obj.depCross = Number(pairs[0][3])>0;
+      obj.depTerminal = pairs[0][4] ? pairs[0][4].trim() : '';
+      obj.arrName = pairs[1][1].trim();
+      obj.arrTime = normalizeTime(pairs[1][2]);
+      obj.arrCross = Number(pairs[1][3])>0;
+      obj.arrTerminal = pairs[1][4] ? pairs[1][4].trim() : '';
+    } else {
+      // 备用：用简单 regexp 查找两个 《...》{time} 结构
+      const p = [...str.matchAll(/《([^》]+)》\{([^}]+)\}(?:\#\+\d#@([^@]+)@)?/g)];
+      if(p.length>=2){
+        obj.depName = p[0][1].trim(); obj.depTime = normalizeTime(p[0][2]); obj.depCross = /#\+1#/.test(p[0][0]);
+        obj.arrName = p[1][1].trim(); obj.arrTime = normalizeTime(p[1][2]); obj.arrCross = /#\+1#/.test(p[1][0]);
+      }
+    }
+
+    // 商务 §...§
+    const m_biz = str.match(/§([^§]+)§/);
+    obj.biz = m_biz ? (m_biz[1].replace('元','').trim()) : '';
+
+    // 头等 △...△
+    const m_first = str.match(/△([^△]+)△/);
+    obj.first = m_first ? (m_first[1].replace('元','').trim()) : '';
+
+    // 内部代码 <...>
+    const m_ic = str.match(/<([^>]+)>/);
+    obj.internal = m_ic ? m_ic[1].trim() : '';
+
+    // 状态最后的 《...》
+    const m_status = str.match(/《([^》]+)》\s*$/);
+    obj.status = m_status ? m_status[1].trim() : '';
+
+    // 也提取出出发/到达航站楼（更可靠用 @T1航站楼@ 结构）
+    const terminalMatches = [...str.matchAll(/@([^@]+)@/g)];
+    if(terminalMatches.length>=2){
+      obj.depTerminal = terminalMatches[0][1].trim();
+      obj.arrTerminal = terminalMatches[1][1].trim();
+    }
+
+    // 规范化时间 hh:mm（可能输入形式 0:30 或 8:05）
+    function normalizeTime(t){
+      const m = t.match(/(\d{1,2})[:：]?(\d{2})/);
+      if(!m) return '';
+      const hh = ('0'+m[1]).slice(-2);
+      const mm = m[2];
+      return `${hh}:${mm}`;
+    }
+
+    // 如果 depName / arrName 含有 "出发" 或 "到达"，可保留原文或去尾"出发/到达"
+    if(obj.depName) obj.depName = obj.depName.replace(/(出发|到达)$/,'');
+    if(obj.arrName) obj.arrName = obj.arrName.replace(/(出发|到达)$/,'');
+
+  }catch(e){
+    console.warn('parse fail', e);
+  }
+  return obj;
+}
+
+/* ========== 填充到表单 ========== */
+function parseAndFill(str){
+  const o = parseStringToObj(str);
+  flightNo.value = o.flightNo || '';
+  aircraft.value = o.aircraft || '';
+  airline.value = o.airline || '';
+  depAirport.value = o.depName || '';
+  arrAirport.value = o.arrName || '';
+  depTime.value = o.depTime || '';
+  arrTime.value = o.arrTime || '';
+  depCross.checked = !!o.depCross;
+  arrCross.checked = !!o.arrCross;
+  depTerminal.value = o.depTerminal || '';
+  arrTerminal.value = o.arrTerminal || '';
+  bizPrice.value = o.biz || '';
+  firstPrice.value = o.first || '';
+  internalCode.value = o.internal || '';
+  status.value = o.status || '';
+  misc.value = '';
+  // 星期
+  const days = new Set(o.days || []);
+  weekdaysEl.querySelectorAll('.wday').forEach(btn=>{
+    btn.classList.toggle('active', days.has(btn.dataset.day));
+  });
+}
+
+/* ========== 生成字符串（由表单数据返回标准格式） ========== */
+function buildStringFromForm(){
+  const fn = flightNo.value.trim();
+  if(!fn){ alert('请输入航班号'); return ''; }
+  const ac = aircraft.value.trim();
+  const al = airline.value.trim();
+  // days
+  const days = Array.from(weekdaysEl.querySelectorAll('.wday.active')).map(b=>b.dataset.day);
+  const daysStr = days.length ? `«${days.join(',')}»` : `«MON,TUE,WED,THU,FRI,SAT,SUN»`;
+  // 出发/到达
+  const depN = depAirport.value.trim() + '出发';
+  const arrN = arrAirport.value.trim() + '到达';
+  const depT = depTime.value ? `{${depTime.value}}` : '{00:00}';
+  const arrT = arrTime.value ? `{${arrTime.value}}` : '{00:00}';
+  const depCrossStr = depCross.checked ? '#+1#' : '#+0#';
+  const arrCrossStr = arrCross.checked ? '#+1#' : '#+0#';
+  const depTerm = depTerminal.value.trim() ? `@${depTerminal.value.trim()}@` : '@T1航站楼@';
+  const arrTerm = arrTerminal.value.trim() ? `@${arrTerminal.value.trim()}@` : '@T1航站楼@';
+  const biz = bizPrice.value.trim() ? ` θ${bizPrice.value.trim()}元θ` : '';
+  const first = firstPrice.value.trim() ? ` △${firstPrice.value.trim()}元△` : '';
+  const ic = internalCode.value.trim() ? ` <${internalCode.value.trim()}>` : '';
+  const statusStr = status.value.trim() ? `《${status.value.trim()}》` : '《航班结束》';
+
+  const parts = [];
+  parts.push(`【${fn}】`);
+  parts.push('〈〉');
+  parts.push(daysStr);
+  if(ac) parts.push(`〔${ac}〕`);
+  if(al) parts.push(`『${al}』`);
+  parts.push(`《${depN}》${depT}${depCrossStr}${depTerm}`);
+  parts.push(`《${arrN}》${arrT}${arrCrossStr}${arrTerm}`);
+  if(biz) parts.push(`§${bizPrice.value.trim()}元§`);
+  if(biz) parts[parts.length-1] = `§${bizPrice.value.trim()}元§`; // ensure format
+  if(biz && biz.trim().length===0) parts = parts.filter(Boolean);
+  if(biz === ''){}// nothing
+  if(biz === ''){}
+  // Ensure if bizPrice present then bracketed, else skip
+  if(bizPrice.value.trim()) {/* already added */}
+  // Add biz & first by their patterns (we'll concat near end)
+  let mid = parts.join(' ') + (bizPrice.value.trim()?` ${'θ'+bizPrice.value.trim()+'元θ'}`:'') + (firstPrice.value.trim()?` ${'△'+firstPrice.value.trim()+'元△'}`:'') + (ic?` ${'<'+internalCode.value.trim()+'>'}`:'') + ` ${statusStr}`;
+  // clean double spaces
+  mid = mid.replace(/\s+/g,' ').trim();
+  return mid;
+}
+
+/* ========== 事件绑定 ========== */
+btnImport.onclick = ()=>{
+  const s = importText.value.trim();
+  if(!s){ alert('请先粘贴字符串'); return; }
+  parseAndFill(s);
+  // 保存到历史
+  let arr = JSON.parse(localStorage.getItem(HIST_KEY) || '[]');
+  if(arr.indexOf(s)===-1) arr.push(s);
+  if(arr.length>15) arr = arr.slice(arr.length-15);
+  localStorage.setItem(HIST_KEY, JSON.stringify(arr));
+  loadHistory();
+  alert('已导入并保存到历史（若新）');
+};
+btnClearImport.onclick = ()=> importText.value='';
+
+btnGenerate.onclick = ()=>{
+  const s = buildStringFromForm();
+  if(s) generatedOutput.textContent = s;
+};
+
+btnCopy.onclick = async ()=>{
+  const s = generatedOutput.textContent.trim();
+  if(!s){ alert('无内容可复制'); return; }
+  try{
+    await navigator.clipboard.writeText(s);
+    alert('已复制到剪贴板');
+  }catch(e){
+    alert('复制失败：'+e);
+  }
+};
+
+btnShare.onclick = async ()=>{
+  const s = generatedOutput.textContent.trim();
+  if(!s){ alert('无内容可分享'); return; }
+  if(navigator.share){
+    try{
+      await navigator.share({text:s, title:'航班字符串'});
+    }catch(e){ console.warn(e); }
+  }else{
+    alert('当前环境不支持分享，可先复制再手动分享');
+  }
+};
+
+btnLoadDefaults.onclick = ()=>{
+  // 清空表单或加载示例
+  flightNo.value = 'HA1608';
+  aircraft.value = '波音737-800';
+  airline.value = '豪金航空';
+  depAirport.value = '拜科努尔';
+  arrAirport.value = '千里马';
+  depTime.value = '00:30';
+  arrTime.value = '23:20';
+  depCross.checked = false;
+  arrCross.checked = false;
+  depTerminal.value = 'T1航站楼';
+  arrTerminal.value = 'T1航站楼';
+  bizPrice.value = '3100';
+  firstPrice.value = '8888';
+  internalCode.value = 'DF1729';
+  status.value = '航班结束';
+  // 星期默认全部选中
+  weekdaysEl.querySelectorAll('.wday').forEach(b=>b.classList.add('active'));
+};
+
+/* 星期按钮行为 */
+weekdaysEl.querySelectorAll('.wday').forEach(btn=>{
+  btn.addEventListener('click', ()=> btn.classList.toggle('active'));
+});
+
+/* 机场联想（简单实现） */
+function suggestAirport(inputEl, suggestEl, modeSel){
+  inputEl.addEventListener('input', ()=>{
+    const val = inputEl.value.trim().toLowerCase();
+    if(modeSel.value === 'db' || val.length===0){
+      suggestEl.textContent = '';
+      return;
+    }
+    const candidates = window.airports.filter(a=>{
+      const name = a.name.toLowerCase();
+      const aliases = (a.aliases||[]).join(' ').toLowerCase();
+      return name.includes(val) || aliases.includes(val) || a.code.toLowerCase().includes(val);
+    }).slice(0,6);
+    if(candidates.length===0){ suggestEl.textContent = ''; return; }
+    suggestEl.innerHTML = candidates.map(a=>`<div style="padding:6px;cursor:pointer;border-radius:6px" data-name="${a.name}">${a.name} <span style="color:var(--muted)">(${a.code})</span></div>`).join('');
+    // bind clicks
+    suggestEl.querySelectorAll('div').forEach(d=>{
+      d.onclick = ()=>{
+        inputEl.value = d.dataset.name;
+        suggestEl.textContent = '';
+      };
+    });
+  });
+  // if mode change to db, populate a datalist style
+  modeSel.addEventListener('change', ()=>{
+    if(modeSel.value==='db'){
+      // build list from airports
+      const list = window.airports.map(a=>a.name);
+      // show as helper with clickable choices
+      suggestEl.innerHTML = list.map(n=>`<div style="padding:6px;cursor:pointer;border-radius:6px" data-name="${n}">${n}</div>`).join('');
+      suggestEl.querySelectorAll('div').forEach(d=>{
+        d.onclick = ()=>{ inputEl.value = d.dataset.name; suggestEl.textContent = ''; };
+      });
+    }else{
+      suggestEl.textContent = '';
+    }
+  });
+}
+suggestAirport(depAirport, depSuggest, depMode);
+suggestAirport(arrAirport, arrSuggest, arrMode);
+
+/* ========== 航司过滤与列表展示 ========== */
+function refreshFilteredFlights(){
+  const fText = localStorage.getItem(FLIGHT_FILE_KEY) || '';
+  const lines = fText.split(/\r?\n/).filter(Boolean);
+  filteredFlights.innerHTML = '';
+  const filter = (filterAirline.value||'').trim().toLowerCase();
+  lines.forEach(line=>{
+    // quick parse airline
+    const m = line.match(/『([^』]+)』/);
+    const al = m ? m[1].trim() : '';
+    if(filter && al.toLowerCase().indexOf(filter)===-1) return;
+    const el = document.createElement('div'); el.className='flight-item';
+    const left = document.createElement('div'); left.textContent = line.split(' ')[0] + ' — ' + (al||'未知航司');
+    const right = document.createElement('div');
+    const btnOpen = document.createElement('button'); btnOpen.className='smallbtn'; btnOpen.textContent='打开';
+    btnOpen.onclick = ()=> parseAndFill(line);
+    right.appendChild(btnOpen);
+    el.appendChild(left); el.appendChild(right);
+    filteredFlights.appendChild(el);
+  });
+}
+btnFilter.onclick = refreshFilteredFlights;
+refreshFilteredFlights();
+
+/* ========== 载入历史与 file 显示 ========== */
+loadHistory();
+loadFlightFile();
+
+/* ========== 初始默认为空或示例 ========== */
+btnLoadDefaults.click();
+
+/* ========== parse demo: 当用户在 import textarea 粘贴并按 Ctrl+Enter 时也触发导入 ========== */
+importText.addEventListener('keydown',(e)=>{ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ btnImport.click(); } });
+
+/* ========== 如果你要从真实文件加载 airports 或 flight_data，可在这里做异步 fetch 替换 window.airports 或 localStorage 存值 ========== */
+/*
+fetch('/data/airports.json').then(r=>r.json()).then(d=>{
+  window.airports = d;
+});
+*/
+
+/* ========== 结束 ========== */
+</script>
+</body>
+</html>
