@@ -1,5 +1,5 @@
 async function update() {
-  const res = await fetch("https://你的workers子域.workers.dev/progress");
+  const res = await fetch("https://odd-flower-c9ed.1693076637.workers.dev");
   const data = await res.json();
 
   const pct = Math.floor(data.progress * 100);
