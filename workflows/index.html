@@ -1,50 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
-  <meta charset="utf-8">
-  <title>航班 Live Activity Demo</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>航班实时活动 Demo</title>
+<link rel="manifest" href="manifest.json" />
 </head>
 <body>
 
-<h2>⚡ 航班进度条 Live Activity（iOS Web Push）</h2>
-<button id="subBtn">开始接收航班更新</button>
+<h1>Android Live Activity (国内版) Demo</h1>
 
-<script>
-async function start() {
-  if (!("serviceWorker" in navigator)) {
-    alert("浏览器不支持 SW");
-    return;
-  }
+<div id="progressBox" style="margin-top:20px;">
+  <div id="bar" style="height:10px;background:#4CAF50;width:0%;transition:0.3s;"></div>
+</div>
 
-  const reg = await navigator.serviceWorker.register("sw.js");
-  console.log("SW OK");
+<p id="text"></p>
 
-  const perm = await Notification.requestPermission();
-  if (perm !== "granted") {
-    alert("你拒绝了通知");
-    return;
-  }
-
-  const vapidKey = "你的 VAPID 公钥（Base64）";
-
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: vapidKey
-  });
-
-  console.log("订阅成功", JSON.stringify(sub));
-
-  await fetch("/save-subscription", {
-    method: "POST",
-    body: JSON.stringify(sub),
-    headers: { "Content-Type": "application/json" }
-  });
-
-  alert("已订阅航班！服务器可以推送进度了。");
-}
-
-document.getElementById("subBtn").onclick = start;
-</script>
+<script src="main.js"></script>
 
 </body>
 </html>
