@@ -581,3 +581,411 @@ function restartAutoRefresh() { startAutoRefresh(); }
   startAutoRefresh();
   setInterval(()=> { renderFlights(); }, 30000); 
 })();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ================== 全局配置 ==================
+const AIRPORTS_PATH = "../data/airports.json";
+const FLIGHT_DATA_PATH = "../data/flight_data.txt";
+const PLANE_IMG = "https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png";
+
+let refreshIntervalSec = 180;
+let settings = {
+  showAirportName: true,
+  showAirportCode: true,
+  showFlightNo: false,
+  hideOtherWhenFilter: false,
+};
+
+// 初始化地图 (去除默认控件，追求极简)
+const map = L.map('map', { 
+  zoomControl: false, 
+  attributionControl: false,
+  worldCopyJump: true,
+  minZoom: 2
+}).setView([35, 105], 4);
+
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19,
+  className: 'map-tiles' // 可以后续加CSS滤镜变暗适应夜间模式
+}).addTo(map);
+
+// 数据存储
+let airportDB = {}; // key: code, value: object
+let flights = [];
+let airportMarkers = []; // 存对象 {marker, level, code, lat, lng} 以便手动控制
+let flightLayers = {};   // key: flightId, val: {line, plane}
+
+// ================== 智能机场显示逻辑 (Smart LOD) ==================
+
+// 机场等级映射 (假设数据里有 level, 没有则按跑道数或随机模拟)
+function getAirportWeight(ap) {
+  if (ap.level === "4F") return 100;
+  if (ap.level === "4E") return 80;
+  if (ap.level === "4D") return 60;
+  if (ap.level === "4C") return 40;
+  // 如果没有等级数据，用名字长度反向或者跑道数量做权重
+  if (ap.runways) return 50 + ap.runways * 10;
+  return 20; 
+}
+
+function updateAirportVisibility() {
+  const zoom = map.getZoom();
+  const bounds = map.getBounds();
+  
+  // 1. 筛选在当前视野内的机场
+  const visibleCandidates = airportMarkers.filter(item => bounds.contains(item.latlng));
+  
+  // 2. 按权重排序 (重要的先处理)
+  visibleCandidates.sort((a, b) => b.weight - a.weight);
+  
+  const accepted = []; // 已经决定显示的机场
+  const minPxDist = 40; // 两个图标之间最小像素距离 (防止重叠)
+
+  visibleCandidates.forEach(item => {
+    // 基础缩放过滤：太小的机场在小比例尺下直接不看
+    if (zoom < 5 && item.weight < 80) { item.marker.remove(); return; }
+    if (zoom < 7 && item.weight < 50) { item.marker.remove(); return; }
+
+    // 碰撞检测
+    const point = map.latLngToLayerPoint(item.latlng);
+    let collision = false;
+    
+    for (let other of accepted) {
+      const otherPoint = map.latLngToLayerPoint(other.latlng);
+      const dist = point.distanceTo(otherPoint);
+      if (dist < minPxDist) {
+        collision = true;
+        break;
+      }
+    }
+
+    if (!collision) {
+      item.marker.addTo(map);
+      accepted.push(item);
+      
+      // 控制文字显示 (缩放够大才显示名字，否则只显示圆点)
+      const el = item.marker.getElement();
+      if (el) {
+        const label = el.querySelector('.airport-label');
+        if (label) {
+            // 如果 zoom 很大或者这是个超级大机场，则显示名字
+            label.style.opacity = (zoom >= 6 || item.weight >= 90) ? "1" : "0";
+            // 根据设置隐藏
+            if(!settings.showAirportName && !settings.showAirportCode) label.style.display = 'none';
+            else label.style.display = 'flex';
+        }
+      }
+    } else {
+      item.marker.remove();
+    }
+  });
+}
+
+function renderAllAirports() {
+    // 清除旧的
+    airportMarkers.forEach(i => i.marker.remove());
+    airportMarkers = [];
+
+    for (let code in airportDB) {
+        const ap = airportDB[code];
+        if (!ap.lat || !ap.lon) continue;
+        
+        const weight = getAirportWeight(ap);
+        
+        const html = `
+          <div class="airport-marker-ios">
+            <div class="dot" style="width:${weight>=80?12:8}px;height:${weight>=80?12:8}px;"></div>
+            <div class="airport-label">
+              <span class="name" style="display:${settings.showAirportName?'block':'none'}">${ap.name||''}</span>
+            </div>
+          </div>
+        `;
+        
+        const icon = L.divIcon({
+            className: 'airport-div-wrapper',
+            html: html,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10] // Center
+        });
+
+        const marker = L.marker([ap.lat, ap.lon], {icon});
+        marker.on('click', () => showFlightCard(null, ap)); // 点击显示机场信息
+
+        airportMarkers.push({
+            marker: marker,
+            latlng: L.latLng(ap.lat, ap.lon),
+            weight: weight,
+            data: ap
+        });
+    }
+    updateAirportVisibility();
+}
+
+// 监听移动和缩放来更新机场聚合
+map.on('zoomend moveend', updateAirportVisibility);
+
+// ================== 航班逻辑 ==================
+
+// ... (这里保留原有的计算 progress, parsing 逻辑，为了节省篇幅，假设 computeProgress, timeStrToMinutes 等工具函数已存在) ...
+// 这里直接复用你原有代码的工具函数部分
+function timeStrToMinutes(t) {
+    if (!t) return null;
+    const parts = t.split(":").map(s=>s.trim());
+    if (parts.length < 2) return null;
+    const h = Number(parts[0]) || 0;
+    const m = Number(parts[1]) || 0;
+    return h*60 + m;
+}
+function beijingNowDate() {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset()*60000;
+    return new Date(utc + 8*3600*1000);
+}
+function computeProgress(flight) {
+    const depMin = timeStrToMinutes(flight.depTimeRaw);
+    const arrMin = timeStrToMinutes(flight.arrTimeRaw);
+    if (depMin === null || arrMin === null) return null;
+    
+    // 简单模拟跨天
+    let duration = arrMin - depMin + (flight.arrOffset - flight.depOffset) * 24 * 60;
+    if (duration < 0) duration += 24*60; 
+
+    const now = beijingNowDate();
+    const nowMin = now.getHours()*60 + now.getMinutes();
+    
+    // 注意：这里需要更严谨的绝对时间计算，为演示效果简化逻辑
+    // 假设 flight.depOffset 是相对于今天的
+    // 实际项目中应用 UTC timestamp 对比
+    
+    // 简化版逻辑：只演示UI，假设 flight 是当天的
+    const elapsed = nowMin - depMin;
+    let prog = elapsed / duration;
+    
+    // 补丁：不在天上
+    if (prog < 0 || prog > 1) return null;
+    return prog;
+}
+
+// 渲染单个航班
+function renderFlight(flight) {
+    const depA = airportDB[flight.depCode] || Object.values(airportDB).find(a=>a.name===flight.dep);
+    const arrA = airportDB[flight.arrCode] || Object.values(airportDB).find(a=>a.name===flight.arr);
+    
+    if (!depA || !arrA) return;
+
+    const prog = computeProgress(flight);
+    if (prog === null) return; // 不在天上
+
+    const id = flight.flightNo + flight.depTimeRaw;
+    const lat1 = depA.lat, lng1 = depA.lon;
+    const lat2 = arrA.lat, lng2 = arrA.lon;
+
+    // 当前位置
+    const curLat = lat1 + (lat2 - lat1) * prog;
+    const curLng = lng1 + (lng2 - lng1) * prog;
+    
+    // 角度
+    const angle = Math.atan2(lng2-lng1, lat2-lat1) * 180 / Math.PI;
+
+    // 绘制线
+    if (!flightLayers[id]) {
+        const line = L.polyline([[lat1, lng1], [lat2, lng2]], {
+            color: 'var(--orange)', 
+            weight: 2, 
+            dashArray: '5, 10',
+            opacity: 0.6
+        }).addTo(map);
+
+        const iconHtml = `<div style="transform: rotate(${angle}deg); transition: all 1s linear;">
+            <img src="${PLANE_IMG}" style="width:24px;height:24px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.3));" />
+        </div>`;
+        const icon = L.divIcon({ html: iconHtml, className: '', iconSize:[24,24], iconAnchor:[12,12] });
+        
+        const marker = L.marker([curLat, curLng], {icon}).addTo(map);
+        
+        marker.on('click', () => showFlightCard(flight, null));
+        line.on('click', () => showFlightCard(flight, null));
+
+        flightLayers[id] = { line, marker, data: flight };
+    } else {
+        // 更新位置
+        flightLayers[id].marker.setLatLng([curLat, curLng]);
+    }
+}
+
+function renderFlights() {
+    // 简单循环，实际建议加 diff 更新
+    flights.forEach(f => renderFlight(f));
+}
+
+// ================== UI 交互逻辑 ==================
+
+function showFlightCard(flight, airport) {
+    const card = document.getElementById('infoCard');
+    const content = document.getElementById('cardContent');
+    const btnFocus = document.getElementById('btnFocusMode');
+    
+    card.classList.remove('hidden');
+    
+    if (flight) {
+        const depCode = flight.depCode || "DEP";
+        const arrCode = flight.arrCode || "ARR";
+        const prog = Math.floor((computeProgress(flight)||0)*100);
+        
+        content.innerHTML = `
+            <div style="font-weight:600; font-size:18px; margin-bottom:12px;">${flight.flightNo}</div>
+            <div class="flight-info-grid">
+                <div>
+                    <div class="ap-code">${depCode}</div>
+                    <div class="ap-time">${flight.depTimeRaw}</div>
+                </div>
+                <div class="flight-arrow">✈</div>
+                <div>
+                    <div class="ap-code">${arrCode}</div>
+                    <div class="ap-time">${flight.arrTimeRaw}</div>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-labels">
+                    <span>已飞行 ${prog}%</span>
+                    <span>${flight.planeType||''}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width: ${prog}%"></div>
+                </div>
+            </div>
+        `;
+        btnFocus.style.display = 'flex';
+        btnFocus.onclick = () => enterFocusMode(flight);
+    } else if (airport) {
+        content.innerHTML = `
+           <div style="font-weight:700; font-size:22px;">${airport.name}</div>
+           <div style="color:gray; margin-bottom:10px;">${airport.code}</div>
+           <div>${airport.city || ''}</div>
+           ${airport.runways ? `<div>跑道数: ${airport.runways}</div>` : ''}
+        `;
+        btnFocus.style.display = 'none';
+    }
+}
+
+document.getElementById('cardClose').onclick = () => {
+    document.getElementById('infoCard').classList.add('hidden');
+};
+
+document.getElementById('settingsBtn').onclick = () => {
+    const panel = document.getElementById('settingsPanel');
+    panel.classList.toggle('hidden');
+};
+document.getElementById('settingsClose').onclick = () => {
+    document.getElementById('settingsPanel').classList.add('hidden');
+};
+
+// ================== 专注模式 (Focus Mode) ==================
+
+let focusTimer = null;
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 3958.8; // 英里 radius
+    const dLat = (lat2-lat1) * Math.PI/180;
+    const dLon = (lon2-lon1) * Math.PI/180;
+    const a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+              Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)*Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+function enterFocusMode(flight) {
+    const overlay = document.getElementById('focusOverlay');
+    const audio = document.getElementById('cabinAudio');
+    
+    overlay.classList.remove('hidden');
+    // 播放白噪音
+    audio.play().catch(e=>console.log("Audio autoplay blocked needed interaction"));
+
+    const depA = airportDB[flight.depCode] || Object.values(airportDB).find(a=>a.name===flight.dep);
+    const arrA = airportDB[flight.arrCode] || Object.values(airportDB).find(a=>a.name===flight.arr);
+
+    // 启动即时刷新
+    if (focusTimer) clearInterval(focusTimer);
+    
+    const updateStats = () => {
+        const prog = computeProgress(flight);
+        if (prog === null || prog >= 1) {
+            document.getElementById('focusTime').innerText = "Arrived";
+            document.getElementById('focusDist').innerText = "0";
+            return;
+        }
+
+        // 计算剩余
+        const totalDist = calculateDistance(depA.lat, depA.lon, arrA.lat, arrA.lon);
+        const remainDist = Math.floor(totalDist * (1 - prog));
+        
+        // 计算剩余时间 (粗略估计)
+        const arrMin = timeStrToMinutes(flight.arrTimeRaw);
+        const nowMin = beijingNowDate().getHours()*60 + beijingNowDate().getMinutes();
+        let remainMin = arrMin - nowMin;
+        if (remainMin < 0) remainMin += 24*60; // 跨天
+
+        document.getElementById('focusTime').innerHTML = `${remainMin} <span class="unit">min</span>`;
+        document.getElementById('focusDist').innerHTML = `${remainDist} <span class="unit">mi</span>`;
+    };
+
+    updateStats();
+    focusTimer = setInterval(updateStats, 1000); // 每秒刷新倒计时
+}
+
+document.getElementById('exitFocus').onclick = () => {
+    document.getElementById('focusOverlay').classList.add('hidden');
+    document.getElementById('cabinAudio').pause();
+    if (focusTimer) clearInterval(focusTimer);
+};
+
+// ================== 数据加载 (模拟) ==================
+
+async function init() {
+    // 加载机场
+    try {
+        const res = await fetch(AIRPORTS_PATH);
+        const data = await res.json();
+        // 转换格式
+        if (Array.isArray(data)) {
+            data.forEach(a => {
+                const c = a.code || a.iata || "UNK";
+                airportDB[c] = a;
+            });
+        } else {
+            airportDB = data;
+        }
+        renderSmartAirports(); // 使用新的智能渲染
+    } catch(e) { console.error(e); }
+
+    // 加载航班 (解析txt逻辑同前，这里简写)
+    try {
+        const txt = await fetch(FLIGHT_DATA_PATH).then(r=>r.text());
+        // ... (你需要把之前的 parseFlightData 函数放回来) ...
+        // flights = parseFlightData(txt);
+        // 这里模拟一个数据方便测试：
+        flights = [{
+            flightNo: "MU5183",
+            dep: "北京大兴", depCode: "PKX", depTimeRaw: "08:00", depOffset: 0,
+            arr: "上海虹桥", arrCode: "SHA", arrTimeRaw: "23:55", arrOffset: 0, // 故意设晚点方便测试
+            planeType: "A350-900"
+        }];
+        renderFlights();
+    } catch(e){}
+}
+
+init();
