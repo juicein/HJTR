@@ -1,77 +1,156 @@
-<!DOCTYPE html>
-<html lang="zh">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>航班实时地图</title>
-  <link rel="stylesheet" href="style.css" />
+:root {
+  --primary: #0b5fff;
+  --accent: #0b5fff; /* 高亮航线（蓝色） */
+  --orange: #ff8c2b; /* 未高亮航线颜色（橙色） */
+  --card-bg: rgba(255,255,255,0.95);
+  --text: #111;
+  --line: #e6eefc;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-bg: rgba(6,8,12,0.85);
+    --text: #eee;
+    --line: rgba(255,255,255,0.08);
+  }
+}
+*{box-sizing:border-box}
+body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); }
 
-  <!-- Leaflet 地图 -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-</head>
-<body>
-  <!-- 顶部栏：固定在最上（样式在 CSS 中） -->
-  <header id="topbar">
-    <div id="brand">航班实时地图</div>
+/* ========== 顶栏（固定在顶部） ========== */
+#topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 64px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding: 8px 14px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--line);
+  z-index: 10020;
+  /* allow content to shrink on narrow screens */
+  min-width: 0;
+}
+#brand { font-weight:700; font-size:18px; flex: 0 0 auto; white-space:nowrap; }
+#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; min-width:0; }
+#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; max-width:100%; }
+#searchButtons { display:flex; gap:8px; align-items:center; }
 
-    <div id="searchContainer">
-      <input id="searchInput" placeholder="搜索: 航班号 / 三字码 / 注册号 (回车搜索)" />
-      <div id="searchButtons">
-        <button id="searchBtn" class="btn primary">搜索</button>
-        <button id="clearBtn" class="btn ghost">清除</button>
-      </div>
-    </div>
+/* top control group */
+#topControls { display:flex; gap:8px; align-items:center; flex:0 0 auto; }
 
-    <div id="topControls">
-      <!-- 和你原来一样的开关样式（保留） -->
-      <label class="switch small-switch" title="显示航班号">
-        <input type="checkbox" id="toggleFlightNo">
-        <span class="slider"></span>
-      </label>
-      <button id="settingsBtn" class="btn secondary">设置</button>
-    </div>
-  </header>
+/* buttons */
+.btn { border:none; border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
+.btn.primary { background:var(--primary); color:white; }
+.btn.secondary { background: #eef4ff; color:var(--primary); border:1px solid rgba(11,95,255,0.08); }
+.btn.ghost { background:transparent; color:var(--primary); border:1px solid var(--line); }
 
-  <!-- 设置面板（切换即保存） -->
-  <div id="settingsPanel" class="hidden" role="dialog" aria-modal="true">
-    <div class="settings-header">
-      <h4>设置</h4>
-      <button id="settingsClose" class="btn ghost">关闭</button>
-    </div>
+/* small switch in topbar */
+.small-switch { width:48px; height:26px; }
 
-    <div class="setting-row">
-      <span>显示机场名称</span>
-      <label class="switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>显示机场三字码</span>
-      <label class="switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>显示航班号标签</span>
-      <label class="switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>显示飞机图标</span>
-      <label class="switch"><input id="sw_showPlaneIcon" type="checkbox"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>过滤时隐藏其他航班</span>
-      <label class="switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
-    </div>
-    <div class="setting-row">
-      <span>自动刷新（秒）</span>
-      <input id="input_refreshInterval" type="number" min="30" step="30" />
-    </div>
-  </div>
+/* ========== 地图位置（下方留出顶栏高度） ========== */
+#map { position: absolute; top:72px; bottom:0; left:0; right:0; z-index: 0; }
 
-  <!-- 地图容器 -->
-  <div id="map"></div>
+/* ========== 设置面板 ========== */
+#settingsPanel {
+  position: fixed;
+  right: 12px;
+  top: 82px;
+  width: 320px;
+  background: var(--card-bg);
+  border-radius:10px;
+  padding:12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.16);
+  z-index:10025;
+}
+#settingsPanel.hidden { display:none; }
+.settings-header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+.setting-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.03); }
+.setting-row:last-child { border-bottom: none; }
 
-  <!-- 航班信息卡片（进度条已加入） -->
-  <div id="infoCard" class="hidden" role="region" aria-live="polite"></div>
+/* ========== switch 样式（通用） ========== */
+.switch { position: relative; display:inline-block; width:52px; height:28px; }
+.switch input { display:none; }
+.slider { position:absolute; top:0; left:0; right:0; bottom:0; background:gray; border-radius:28px; transition:0.3s; }
+.slider:before { position:absolute; content:""; height:20px; width:20px; left:4px; bottom:4px; background:white; border-radius:50%; transition:0.3s; }
+.switch input:checked + .slider { background:#2196F3; }
+.switch input:checked + .slider:before { transform: translateX(24px); }
 
-  <script src="script.js"></script>
-</body>
-</html>
+/* ========== 信息卡片（含进度条） ========== */
+#infoCard {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width:480px;
+  background: var(--card-bg);
+  padding:14px;
+  border-radius:12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  z-index: 10030;
+}
+#infoCard.hidden { display:none; }
+
+.progressWrap { background: rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; height:10px; margin-top:6px; }
+.progressBar { height:100%; width:0%; transition:width 0.3s linear; background: linear-gradient(90deg,var(--primary), #00c6ff); border-radius:8px; }
+
+/* flight label tooltip style kept if used */
+.flight-label { font-size:12px; padding:2px 6px; background:var(--card-bg); border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+
+/* ========== 机场同心圆样式 ========== */
+/* airport divIcon wrapper */
+.airport-marker {
+  display:flex;
+  align-items:center;
+  gap:10px; /* <-- 让同心圆与文本有距离 */
+  font-weight:700;
+  white-space:nowrap; /* 横向排列，不换行 */
+  pointer-events: auto;
+}
+.airport-circle {
+  width:18px; height:18px; border-radius:50%; position:relative; flex-shrink:0;
+}
+.airport-circle::before {
+  content:""; position:absolute; left:-6px; top:-6px; width:30px; height:30px; border-radius:50%;
+  border:2px solid rgba(11,95,255,0.12);
+}
+.airport-circle::after {
+  content:""; position:absolute; left:4px; top:4px; width:10px; height:10px; border-radius:50%;
+  background: #fff; border: 2px solid var(--primary);
+}
+.airport-label { display:flex; flex-direction:row; gap:6px; align-items:center; font-size:12px; }
+.airport-name { font-weight:700; }
+.airport-code { font-weight:600; opacity:0.9; }
+
+/* ========== plane icon inside divIcon ========== */
+.plane-icon { width:32px; height:32px; transform-origin:center center; display:block; }
+
+/* responsive adjustments */
+
+/* Medium screens */
+@media (max-width:900px) {
+  #topbar { padding:8px; }
+  #brand { flex: 0 0 auto; }
+  #searchContainer { max-width: 60%; }
+}
+
+/* Mobile & small screens: 保持单行显示，压缩搜索框，避免换行堆叠 */
+@media (max-width:600px) {
+  /* make topbar single-line and allow search to shrink (min-width:0 needed) */
+  #topbar { height:56px; flex-direction:row; align-items:center; padding:8px 10px; gap:8px; }
+  #brand { font-size:16px; margin-right:6px; }
+  #searchContainer { display:flex; gap:6px; align-items:center; flex:1; margin-left:0; min-width:0; }
+  #searchInput { min-width:80px; padding:6px 8px; font-size:14px; }
+  #searchButtons { gap:6px; }
+  #settingsPanel { width:92%; right:4%; left:4%; top:auto; bottom:110px; }
+  #map { top: 72px; } /* enough top space for single-row header */
+}
+
+/* 更小屏幕进一步压缩（例如很窄的手机） */
+@media (max-width:420px) {
+  #brand { font-size:15px; }
+  #searchInput { min-width:60px; font-size:13px; padding:6px; }
+  .btn { padding:6px 8px; font-size:13px; border-radius:6px; }
+  .small-switch { width:44px; height:24px; }
+}
