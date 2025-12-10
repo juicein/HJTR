@@ -1,156 +1,101 @@
-:root {
-  --primary: #0b5fff;
-  --accent: #0b5fff; /* 高亮航线（蓝色） */
-  --orange: #ff8c2b; /* 未高亮航线颜色（橙色） */
-  --card-bg: rgba(255,255,255,0.95);
-  --text: #111;
-  --line: #e6eefc;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --card-bg: rgba(6,8,12,0.85);
-    --text: #eee;
-    --line: rgba(255,255,255,0.08);
-  }
-}
-*{box-sizing:border-box}
-body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); }
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Flight Focus</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
 
-/* ========== 顶栏（固定在顶部） ========== */
-#topbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 64px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding: 8px 14px;
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--line);
-  z-index: 10020;
-  /* allow content to shrink on narrow screens */
-  min-width: 0;
-}
-#brand { font-weight:700; font-size:18px; flex: 0 0 auto; white-space:nowrap; }
-#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; min-width:0; }
-#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; max-width:100%; }
-#searchButtons { display:flex; gap:8px; align-items:center; }
+  <div id="map"></div>
 
-/* top control group */
-#topControls { display:flex; gap:8px; align-items:center; flex:0 0 auto; }
+  <header id="iosHeader">
+    <div class="header-content">
+      <div class="brand">FlightMap</div>
+      <div class="search-bar">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>
+        <input id="searchInput" placeholder="搜索航班 / 机场" />
+      </div>
+      <button id="settingsBtn" class="icon-btn">
+        <svg width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"/></svg>
+      </button>
+    </div>
+  </header>
 
-/* buttons */
-.btn { border:none; border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
-.btn.primary { background:var(--primary); color:white; }
-.btn.secondary { background: #eef4ff; color:var(--primary); border:1px solid rgba(11,95,255,0.08); }
-.btn.ghost { background:transparent; color:var(--primary); border:1px solid var(--line); }
+  <div id="settingsPanel" class="ios-popover hidden">
+    <div class="popover-header">
+      <h3>显示设置</h3>
+      <button id="settingsClose" class="text-btn">完成</button>
+    </div>
+    <div class="ios-list">
+      <div class="list-item">
+        <span>机场名称</span>
+        <label class="ios-switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="list-item">
+        <span>机场三字码</span>
+        <label class="ios-switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="list-item">
+        <span>显示航班号</span>
+        <label class="ios-switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
+      </div>
+      <div class="list-item">
+        <span>搜索过滤隐藏其他</span>
+        <label class="ios-switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
+      </div>
+    </div>
+  </div>
 
-/* small switch in topbar */
-.small-switch { width:48px; height:26px; }
+  <div id="infoCard" class="ios-card hidden">
+    <div class="card-handle"></div>
+    <div id="cardContent">
+      </div>
+    <div class="card-actions">
+      <button id="btnFocusMode" class="ios-btn-large primary">
+        <span class="icon">✈️</span> 进入专注模式
+      </button>
+      <button id="cardClose" class="ios-btn-large ghost">关闭</button>
+    </div>
+  </div>
 
-/* ========== 地图位置（下方留出顶栏高度） ========== */
-#map { position: absolute; top:72px; bottom:0; left:0; right:0; z-index: 0; }
+  <div id="focusOverlay" class="hidden">
+    <div class="focus-bg-blur"></div>
+    
+    <div class="focus-header">
+      <button id="exitFocus" class="blur-btn square">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <div class="focus-pill">
+        <button class="active">地图</button>
+        <button>地球</button>
+      </div>
+    </div>
 
-/* ========== 设置面板 ========== */
-#settingsPanel {
-  position: fixed;
-  right: 12px;
-  top: 82px;
-  width: 320px;
-  background: var(--card-bg);
-  border-radius:10px;
-  padding:12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.16);
-  z-index:10025;
-}
-#settingsPanel.hidden { display:none; }
-.settings-header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-.setting-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.03); }
-.setting-row:last-child { border-bottom: none; }
+    <div class="focus-visual">
+      <img src="https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png" class="focus-plane" alt="Plane">
+      <div class="focus-line"></div>
+    </div>
 
-/* ========== switch 样式（通用） ========== */
-.switch { position: relative; display:inline-block; width:52px; height:28px; }
-.switch input { display:none; }
-.slider { position:absolute; top:0; left:0; right:0; bottom:0; background:gray; border-radius:28px; transition:0.3s; }
-.slider:before { position:absolute; content:""; height:20px; width:20px; left:4px; bottom:4px; background:white; border-radius:50%; transition:0.3s; }
-.switch input:checked + .slider { background:#2196F3; }
-.switch input:checked + .slider:before { transform: translateX(24px); }
+    <div class="focus-stats">
+      <div class="stat-block">
+        <div class="stat-label">剩余飞行时间</div>
+        <div class="stat-value" id="focusTime">-- <span class="unit">min</span></div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-label">剩余飞行距离</div>
+        <div class="stat-value" id="focusDist">-- <span class="unit">mi</span></div>
+      </div>
+    </div>
 
-/* ========== 信息卡片（含进度条） ========== */
-#infoCard {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 92%;
-  max-width:480px;
-  background: var(--card-bg);
-  padding:14px;
-  border-radius:12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-  z-index: 10030;
-}
-#infoCard.hidden { display:none; }
+    <audio id="cabinAudio" loop>
+      <source src="https://cdn.pixabay.com/download/audio/2022/03/24/audio_03d6d53258.mp3" type="audio/mpeg">
+    </audio>
+  </div>
 
-.progressWrap { background: rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; height:10px; margin-top:6px; }
-.progressBar { height:100%; width:0%; transition:width 0.3s linear; background: linear-gradient(90deg,var(--primary), #00c6ff); border-radius:8px; }
-
-/* flight label tooltip style kept if used */
-.flight-label { font-size:12px; padding:2px 6px; background:var(--card-bg); border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-
-/* ========== 机场同心圆样式 ========== */
-/* airport divIcon wrapper */
-.airport-marker {
-  display:flex;
-  align-items:center;
-  gap:10px; /* <-- 让同心圆与文本有距离 */
-  font-weight:700;
-  white-space:nowrap; /* 横向排列，不换行 */
-  pointer-events: auto;
-}
-.airport-circle {
-  width:18px; height:18px; border-radius:50%; position:relative; flex-shrink:0;
-}
-.airport-circle::before {
-  content:""; position:absolute; left:-6px; top:-6px; width:30px; height:30px; border-radius:50%;
-  border:2px solid rgba(11,95,255,0.12);
-}
-.airport-circle::after {
-  content:""; position:absolute; left:4px; top:4px; width:10px; height:10px; border-radius:50%;
-  background: #fff; border: 2px solid var(--primary);
-}
-.airport-label { display:flex; flex-direction:row; gap:6px; align-items:center; font-size:12px; }
-.airport-name { font-weight:700; }
-.airport-code { font-weight:600; opacity:0.9; }
-
-/* ========== plane icon inside divIcon ========== */
-.plane-icon { width:32px; height:32px; transform-origin:center center; display:block; }
-
-/* responsive adjustments */
-
-/* Medium screens */
-@media (max-width:900px) {
-  #topbar { padding:8px; }
-  #brand { flex: 0 0 auto; }
-  #searchContainer { max-width: 60%; }
-}
-
-/* Mobile & small screens: 保持单行显示，压缩搜索框，避免换行堆叠 */
-@media (max-width:600px) {
-  /* make topbar single-line and allow search to shrink (min-width:0 needed) */
-  #topbar { height:56px; flex-direction:row; align-items:center; padding:8px 10px; gap:8px; }
-  #brand { font-size:16px; margin-right:6px; }
-  #searchContainer { display:flex; gap:6px; align-items:center; flex:1; margin-left:0; min-width:0; }
-  #searchInput { min-width:80px; padding:6px 8px; font-size:14px; }
-  #searchButtons { gap:6px; }
-  #settingsPanel { width:92%; right:4%; left:4%; top:auto; bottom:110px; }
-  #map { top: 72px; } /* enough top space for single-row header */
-}
-
-/* 更小屏幕进一步压缩（例如很窄的手机） */
-@media (max-width:420px) {
-  #brand { font-size:15px; }
-  #searchInput { min-width:60px; font-size:13px; padding:6px; }
-  .btn { padding:6px 8px; font-size:13px; border-radius:6px; }
-  .small-switch { width:44px; height:24px; }
-}
+  <script src="script.js"></script>
+</body>
+</html>
