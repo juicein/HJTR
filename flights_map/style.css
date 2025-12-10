@@ -1,156 +1,284 @@
 :root {
-  --primary: #0b5fff;
-  --accent: #0b5fff; /* 高亮航线（蓝色） */
-  --orange: #ff8c2b; /* 未高亮航线颜色（橙色） */
-  --card-bg: rgba(255,255,255,0.95);
-  --text: #111;
-  --line: #e6eefc;
+  --ios-blue: #007AFF;
+  --ios-gray: #8E8E93;
+  --ios-bg: #F2F2F7;
+  --ios-card: rgba(255, 255, 255, 0.75);
+  --ios-blur: blur(20px) saturate(180%);
+  --text-primary: #000;
+  --text-secondary: rgba(60, 60, 67, 0.6);
+  --separator: rgba(60, 60, 67, 0.15);
+  --orange: #FF9500;
 }
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --card-bg: rgba(6,8,12,0.85);
-    --text: #eee;
-    --line: rgba(255,255,255,0.08);
+    --ios-bg: #000;
+    --ios-card: rgba(30, 30, 30, 0.75);
+    --text-primary: #FFF;
+    --text-secondary: rgba(235, 235, 245, 0.6);
+    --separator: rgba(84, 84, 88, 0.35);
   }
 }
-*{box-sizing:border-box}
-body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color:var(--text); }
 
-/* ========== 顶栏（固定在顶部） ========== */
-#topbar {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  height: 64px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding: 8px 14px;
-  background: var(--card-bg);
-  border-bottom: 1px solid var(--line);
-  z-index: 10020;
-  /* allow content to shrink on narrow screens */
-  min-width: 0;
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--ios-bg);
+  color: var(--text-primary);
+  overflow: hidden; /* 防止滚动 */
 }
-#brand { font-weight:700; font-size:18px; flex: 0 0 auto; white-space:nowrap; }
-#searchContainer { display:flex; gap:8px; align-items:center; flex:1; max-width:900px; margin-left:8px; min-width:0; }
-#searchInput { flex:1; padding:8px 12px; border-radius:8px; border:1px solid var(--line); min-width:120px; max-width:100%; }
-#searchButtons { display:flex; gap:8px; align-items:center; }
 
-/* top control group */
-#topControls { display:flex; gap:8px; align-items:center; flex:0 0 auto; }
-
-/* buttons */
-.btn { border:none; border-radius:8px; padding:8px 10px; font-weight:600; cursor:pointer; }
-.btn.primary { background:var(--primary); color:white; }
-.btn.secondary { background: #eef4ff; color:var(--primary); border:1px solid rgba(11,95,255,0.08); }
-.btn.ghost { background:transparent; color:var(--primary); border:1px solid var(--line); }
-
-/* small switch in topbar */
-.small-switch { width:48px; height:26px; }
-
-/* ========== 地图位置（下方留出顶栏高度） ========== */
-#map { position: absolute; top:72px; bottom:0; left:0; right:0; z-index: 0; }
-
-/* ========== 设置面板 ========== */
-#settingsPanel {
-  position: fixed;
-  right: 12px;
-  top: 82px;
-  width: 320px;
-  background: var(--card-bg);
-  border-radius:10px;
-  padding:12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.16);
-  z-index:10025;
+/* 地图 */
+#map {
+  position: absolute;
+  top: 0; bottom: 0; left: 0; right: 0;
+  z-index: 1;
 }
-#settingsPanel.hidden { display:none; }
-.settings-header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
-.setting-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.03); }
-.setting-row:last-child { border-bottom: none; }
 
-/* ========== switch 样式（通用） ========== */
-.switch { position: relative; display:inline-block; width:52px; height:28px; }
-.switch input { display:none; }
-.slider { position:absolute; top:0; left:0; right:0; bottom:0; background:gray; border-radius:28px; transition:0.3s; }
-.slider:before { position:absolute; content:""; height:20px; width:20px; left:4px; bottom:4px; background:white; border-radius:50%; transition:0.3s; }
-.switch input:checked + .slider { background:#2196F3; }
-.switch input:checked + .slider:before { transform: translateX(24px); }
-
-/* ========== 信息卡片（含进度条） ========== */
-#infoCard {
+/* ============ iOS 顶部栏 (悬浮岛设计) ============ */
+#iosHeader {
   position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 92%;
-  max-width:480px;
-  background: var(--card-bg);
-  padding:14px;
-  border-radius:12px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
-  z-index: 10030;
+  top: 16px; left: 16px; right: 16px;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+  pointer-events: none; /* 让两侧透过去可点地图 */
 }
-#infoCard.hidden { display:none; }
 
-.progressWrap { background: rgba(0,0,0,0.06); border-radius:8px; overflow:hidden; height:10px; margin-top:6px; }
-.progressBar { height:100%; width:0%; transition:width 0.3s linear; background: linear-gradient(90deg,var(--primary), #00c6ff); border-radius:8px; }
-
-/* flight label tooltip style kept if used */
-.flight-label { font-size:12px; padding:2px 6px; background:var(--card-bg); border-radius:5px; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-
-/* ========== 机场同心圆样式 ========== */
-/* airport divIcon wrapper */
-.airport-marker {
-  display:flex;
-  align-items:center;
-  gap:10px; /* <-- 让同心圆与文本有距离 */
-  font-weight:700;
-  white-space:nowrap; /* 横向排列，不换行 */
+.header-content {
   pointer-events: auto;
-}
-.airport-circle {
-  width:18px; height:18px; border-radius:50%; position:relative; flex-shrink:0;
-}
-.airport-circle::before {
-  content:""; position:absolute; left:-6px; top:-6px; width:30px; height:30px; border-radius:50%;
-  border:2px solid rgba(11,95,255,0.12);
-}
-.airport-circle::after {
-  content:""; position:absolute; left:4px; top:4px; width:10px; height:10px; border-radius:50%;
-  background: #fff; border: 2px solid var(--primary);
-}
-.airport-label { display:flex; flex-direction:row; gap:6px; align-items:center; font-size:12px; }
-.airport-name { font-weight:700; }
-.airport-code { font-weight:600; opacity:0.9; }
-
-/* ========== plane icon inside divIcon ========== */
-.plane-icon { width:32px; height:32px; transform-origin:center center; display:block; }
-
-/* responsive adjustments */
-
-/* Medium screens */
-@media (max-width:900px) {
-  #topbar { padding:8px; }
-  #brand { flex: 0 0 auto; }
-  #searchContainer { max-width: 60%; }
+  background: var(--ios-card);
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  padding: 8px 12px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+  max-width: 600px;
+  width: 100%;
 }
 
-/* Mobile & small screens: 保持单行显示，压缩搜索框，避免换行堆叠 */
-@media (max-width:600px) {
-  /* make topbar single-line and allow search to shrink (min-width:0 needed) */
-  #topbar { height:56px; flex-direction:row; align-items:center; padding:8px 10px; gap:8px; }
-  #brand { font-size:16px; margin-right:6px; }
-  #searchContainer { display:flex; gap:6px; align-items:center; flex:1; margin-left:0; min-width:0; }
-  #searchInput { min-width:80px; padding:6px 8px; font-size:14px; }
-  #searchButtons { gap:6px; }
-  #settingsPanel { width:92%; right:4%; left:4%; top:auto; bottom:110px; }
-  #map { top: 72px; } /* enough top space for single-row header */
+.brand { font-weight: 700; font-size: 17px; margin-right: 4px; }
+
+.search-bar {
+  flex: 1;
+  background: rgba(118, 118, 128, 0.12);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  color: var(--text-secondary);
 }
 
-/* 更小屏幕进一步压缩（例如很窄的手机） */
-@media (max-width:420px) {
-  #brand { font-size:15px; }
-  #searchInput { min-width:60px; font-size:13px; padding:6px; }
-  .btn { padding:6px 8px; font-size:13px; border-radius:6px; }
-  .small-switch { width:44px; height:24px; }
+.search-bar input {
+  border: none;
+  background: transparent;
+  margin-left: 6px;
+  width: 100%;
+  font-size: 16px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.icon-btn {
+  background: none; border: none;
+  color: var(--ios-blue);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ============ 设置面板 (Popover) ============ */
+.ios-popover {
+  position: fixed;
+  top: 70px; right: 16px; /* 适配顶部栏位置 */
+  width: 300px;
+  background: var(--ios-card);
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  z-index: 2000;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
+#settingsPanel:not(.hidden) { opacity: 1; transform: scale(1); }
+
+.popover-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.popover-header h3 { margin: 0; font-size: 18px; }
+.text-btn { background: none; border: none; color: var(--ios-blue); font-size: 16px; font-weight: 600; cursor: pointer; }
+
+.ios-list { background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
+.list-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px;
+  border-bottom: 0.5px solid var(--separator);
+  font-size: 15px;
+}
+.list-item:last-child { border-bottom: none; }
+
+/* iOS Switch */
+.ios-switch { position: relative; width: 51px; height: 31px; }
+.ios-switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #E9E9EA; border-radius: 34px; transition: .4s;
+}
+.ios-switch input:checked + .slider { background-color: #34C759; }
+.slider:before {
+  position: absolute; content: ""; height: 27px; width: 27px; left: 2px; bottom: 2px;
+  background-color: white; border-radius: 50%; transition: .4s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.ios-switch input:checked + .slider:before { transform: translateX(20px); }
+
+/* ============ 航班卡片 (Bottom Sheet) ============ */
+.ios-card {
+  position: fixed;
+  bottom: 24px; left: 16px; right: 16px;
+  margin: auto;
+  max-width: 500px;
+  background: var(--ios-card);
+  backdrop-filter: var(--ios-blur);
+  -webkit-backdrop-filter: var(--ios-blur);
+  border-radius: 22px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  z-index: 1500;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ios-card.hidden { transform: translateY(120%); opacity: 1; pointer-events: none; }
+
+.card-handle {
+  width: 40px; height: 5px; background: rgba(0,0,0,0.2);
+  border-radius: 3px; margin: 0 auto 16px auto;
+}
+
+.flight-info-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+.ap-code { font-size: 32px; font-weight: 800; line-height: 1; }
+.ap-time { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+.flight-arrow { color: var(--separator); font-size: 20px; display: flex; align-items: center; justify-content: center;}
+
+.progress-container { margin: 16px 0; }
+.progress-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
+.progress-bar-bg { height: 6px; background: rgba(0,0,0,0.08); border-radius: 3px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--ios-blue); width: 0%; transition: width 0.5s; }
+
+.card-actions { display: flex; gap: 10px; margin-top: 10px; }
+.ios-btn-large {
+  flex: 1; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.ios-btn-large.primary { background: var(--text-primary); color: var(--ios-bg); }
+.ios-btn-large.ghost { background: rgba(0,0,0,0.05); color: var(--text-primary); }
+
+/* ============ 专注/番茄钟模式 (Focus Mode) ============ */
+#focusOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #333; /* 图片是亮的背景 */
+}
+
+.focus-bg-blur {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(240, 240, 245, 0.4);
+  backdrop-filter: blur(50px);
+  -webkit-backdrop-filter: blur(50px);
+  z-index: -1;
+}
+
+.focus-header {
+  padding: 50px 24px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.blur-btn {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 12px;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.focus-pill {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 4px;
+  display: flex;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.focus-pill button {
+  background: none; border: none; padding: 6px 16px;
+  border-radius: 16px; font-weight: 600; font-size: 13px; color: #666;
+}
+.focus-pill button.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+/* 飞机动画区 */
+.focus-visual {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.focus-plane {
+  width: 220px;
+  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.15));
+  z-index: 2;
+  animation: floatPlane 3s ease-in-out infinite;
+}
+
+.focus-line {
+  position: absolute;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0) 100%);
+  z-index: 1;
+}
+
+@keyframes floatPlane {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-15px); }
+}
+
+/* 底部数据 */
+.focus-stats {
+  padding: 40px 30px 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.stat-block { text-align: left; }
+.stat-block:last-child { text-align: right; }
+.stat-label { font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.5); margin-bottom: 4px; letter-spacing: 0.5px; }
+.stat-value { font-size: 42px; font-weight: 800; font-family: "SF Pro Display", sans-serif; letter-spacing: -1px; }
+.stat-value .unit { font-size: 18px; font-weight: 600; color: rgba(0,0,0,0.4); }
+
+/* 移动端适配 */
+@media (max-width: 600px) {
+  #iosHeader { top: 10px; left: 10px; right: 10px; }
+  .header-content { padding: 8px; }
+  .search-bar input { font-size: 14px; }
+  .ios-card { bottom: 16px; left: 10px; right: 10px; padding: 16px; }
+  .stat-value { font-size: 32px; }
+  .focus-plane { width: 160px; }
 }
