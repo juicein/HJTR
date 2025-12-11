@@ -1,322 +1,241 @@
 :root {
-  --ios-blue: #007AFF;
-  --ios-gray: #8E8E93;
-  --ios-bg: #F2F2F7;
-  --ios-card: rgba(255, 255, 255, 0.75);
-  --ios-blur: blur(20px) saturate(180%);
-  --text-primary: #000;
-  --text-secondary: rgba(60, 60, 67, 0.6);
-  --separator: rgba(60, 60, 67, 0.15);
-  --orange: #FF9500;
+  --primary: #007AFF; /* Apple Blue */
+  --surface: rgba(255, 255, 255, 0.85); /* 浅色模式半透明 */
+  --surface-panel: rgba(255, 255, 255, 0.92);
+  --text-main: #000000;
+  --text-sec: #6e6e73;
+  --border: rgba(0,0,0,0.1);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.12);
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --focus-bg: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ios-bg: #000;
-    --ios-card: rgba(30, 30, 30, 0.75);
-    --text-primary: #FFF;
-    --text-secondary: rgba(235, 235, 245, 0.6);
-    --separator: rgba(84, 84, 88, 0.35);
+    --surface: rgba(30, 30, 30, 0.80);
+    --surface-panel: rgba(28, 28, 30, 0.92);
+    --text-main: #ffffff;
+    --text-sec: #98989d;
+    --border: rgba(255,255,255,0.15);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-md: 0 8px 24px rgba(0,0,0,0.5);
   }
 }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-  background-color: var(--ios-bg);
-  color: var(--text-primary);
-  overflow: hidden; /* 防止滚动 */
-}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; color: var(--text-main); background: #111; }
 
 /* 地图 */
-#map {
+#map { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #eef2f5; }
+
+/* 通用毛玻璃材质 */
+.surface-blur {
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+/* 悬浮组件布局 */
+#floatingSearch {
   position: absolute;
-  top: 0; bottom: 0; left: 0; right: 0;
-  z-index: 1;
-}
-
-/* ============ iOS 顶部栏 (悬浮岛设计) ============ */
-#iosHeader {
-  position: fixed;
-  top: 16px; left: 16px; right: 16px;
-  display: flex;
-  justify-content: center;
+  top: 16px; left: 16px;
+  width: 360px;
   z-index: 1000;
-  pointer-events: none; /* 让两侧透过去可点地图 */
+  transition: all 0.3s ease;
 }
-
-.header-content {
-  pointer-events: auto;
-  background: var(--ios-card);
-  backdrop-filter: var(--ios-blur);
-  -webkit-backdrop-filter: var(--ios-blur);
-  padding: 8px 12px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-  max-width: 600px;
-  width: 100%;
-}
-
-.brand { font-weight: 700; font-size: 17px; margin-right: 4px; }
 
 .search-bar {
-  flex: 1;
-  background: rgba(118, 118, 128, 0.12);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  color: var(--text-secondary);
+  display: flex; align-items: center;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  padding: 0 12px;
+  box-shadow: var(--shadow-sm);
 }
 
-.search-bar input {
-  border: none;
-  background: transparent;
-  margin-left: 6px;
-  width: 100%;
-  font-size: 16px;
-  color: var(--text-primary);
-  outline: none;
+.search-icon { color: var(--text-sec); display: flex; align-items: center; margin-right: 8px; }
+#searchInput {
+  border: none; background: transparent; flex: 1; outline: none;
+  font-size: 16px; color: var(--text-main);
+  height: 100%;
 }
-
-.icon-btn {
-  background: none; border: none;
-  color: var(--ios-blue);
-  cursor: pointer;
-  padding: 4px;
+.btn-icon {
+  background: transparent; border: none; cursor: pointer;
+  color: var(--primary); font-weight: 600; padding: 0 8px;
+  font-size: 14px;
 }
+.divider-vertical { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 
-/* ============ 设置面板 (Popover) ============ */
-.ios-popover {
-  position: fixed;
-  top: 70px; right: 16px; /* 适配顶部栏位置 */
-  width: 300px;
-  background: var(--ios-card);
-  backdrop-filter: var(--ios-blur);
-  -webkit-backdrop-filter: var(--ios-blur);
-  border-radius: 14px;
-  padding: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-  z-index: 2000;
-  transition: opacity 0.2s, transform 0.2s;
+/* 右上角控制按钮 */
+#topControls {
+  position: absolute; top: 16px; right: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+  z-index: 1000;
 }
-.hidden { opacity: 0; pointer-events: none; transform: scale(0.95); }
-#settingsPanel:not(.hidden) { opacity: 1; transform: scale(1); }
-
-.popover-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.popover-header h3 { margin: 0; font-size: 18px; }
-.text-btn { background: none; border: none; color: var(--ios-blue); font-size: 16px; font-weight: 600; cursor: pointer; }
-
-.ios-list { background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; }
-.list-item {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 16px;
-  border-bottom: 0.5px solid var(--separator);
-  font-size: 15px;
-}
-.list-item:last-child { border-bottom: none; }
-
-/* iOS Switch */
-.ios-switch { position: relative; width: 51px; height: 31px; }
-.ios-switch input { opacity: 0; width: 0; height: 0; }
-.slider {
-  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-  background-color: #E9E9EA; border-radius: 34px; transition: .4s;
-}
-.ios-switch input:checked + .slider { background-color: #34C759; }
-.slider:before {
-  position: absolute; content: ""; height: 27px; width: 27px; left: 2px; bottom: 2px;
-  background-color: white; border-radius: 50%; transition: .4s; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-.ios-switch input:checked + .slider:before { transform: translateX(20px); }
-
-/* ============ 航班卡片 (Bottom Sheet) ============ */
-.ios-card {
-  position: fixed;
-  bottom: 24px; left: 16px; right: 16px;
-  margin: auto;
-  max-width: 500px;
-  background: var(--ios-card);
-  backdrop-filter: var(--ios-blur);
-  -webkit-backdrop-filter: var(--ios-blur);
-  border-radius: 22px;
-  padding: 20px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-  z-index: 1500;
-  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.ios-card.hidden { transform: translateY(120%); opacity: 1; pointer-events: none; }
-
-.card-handle {
-  width: 40px; height: 5px; background: rgba(0,0,0,0.2);
-  border-radius: 3px; margin: 0 auto 16px auto;
-}
-
-.flight-info-grid {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 10px;
-  text-align: center;
-  margin-bottom: 20px;
-}
-.ap-code { font-size: 32px; font-weight: 800; line-height: 1; }
-.ap-time { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
-.flight-arrow { color: var(--separator); font-size: 20px; display: flex; align-items: center; justify-content: center;}
-
-.progress-container { margin: 16px 0; }
-.progress-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; }
-.progress-bar-bg { height: 6px; background: rgba(0,0,0,0.08); border-radius: 3px; overflow: hidden; }
-.progress-bar-fill { height: 100%; background: var(--ios-blue); width: 0%; transition: width 0.5s; }
-
-.card-actions { display: flex; gap: 10px; margin-top: 10px; }
-.ios-btn-large {
-  flex: 1; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-}
-.ios-btn-large.primary { background: var(--text-primary); color: var(--ios-bg); }
-.ios-btn-large.ghost { background: rgba(0,0,0,0.05); color: var(--text-primary); }
-
-/* ============ 专注/番茄钟模式 (Focus Mode) ============ */
-#focusOverlay {
-  position: fixed;
-  top: 0; left: 0; width: 100vw; height: 100vh;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  color: #333; /* 图片是亮的背景 */
-}
-
-.focus-bg-blur {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(240, 240, 245, 0.4);
-  backdrop-filter: blur(50px);
-  -webkit-backdrop-filter: blur(50px);
-  z-index: -1;
-}
-
-.focus-header {
-  padding: 50px 24px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.blur-btn {
-  background: rgba(255,255,255,0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0,0,0,0.05);
-  border-radius: 12px;
+.control-btn {
   width: 44px; height: 44px;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-main);
+  transition: transform 0.1s;
+}
+.control-btn:active { transform: scale(0.95); }
+
+/* 设置面板 & 信息卡片 - 统一样式 */
+.floating-panel, .floating-card {
+  position: absolute;
+  z-index: 1005;
+  background: var(--surface-panel);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s;
+}
+.hidden { display: none !important; opacity: 0; pointer-events: none; }
+
+/* 设置面板特定 */
+#settingsPanel {
+  top: 70px; right: 16px;
+  width: 300px;
+  padding: 16px;
+  transform-origin: top right;
+}
+.panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.panel-header h4 { margin: 0; font-size: 17px; font-weight: 600; }
+.btn-text { background: none; border: none; color: var(--primary); font-size: 15px; font-weight: 600; cursor: pointer; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.setting-row:last-child { border-bottom: none; }
+
+/* 航班卡片特定 */
+#infoCard {
+  bottom: 24px; left: 16px; width: 380px;
+  padding: 20px;
+  transform-origin: bottom left;
+}
+/* 卡片内部样式 */
+.card-flight-title { font-size: 24px; font-weight: 700; color: var(--primary); line-height: 1.2; }
+.card-sub { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+.card-route { display: flex; justify-content: space-between; margin-top: 16px; align-items: flex-end; }
+.card-city { font-size: 18px; font-weight: 600; }
+.card-time { font-size: 13px; color: var(--text-sec); }
+.card-progress-row { margin-top: 16px; }
+.progress-bar-bg { height: 6px; background: rgba(128,128,128,0.2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.progress-bar-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.5s; }
+.card-actions { display: flex; gap: 10px; margin-top: 20px; }
+.btn-action {
+  flex: 1; padding: 10px; border-radius: 10px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-secondary { background: rgba(128,128,128,0.15); color: var(--text-main); }
+
+/* 开关样式 (Switch) */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: #34C759; } /* Apple Green */
+input:checked + .slider:before { transform: translateX(20px); }
+
+/* 机场 Marker */
+.airport-marker-group { pointer-events: none; } /* 让图标不妨碍点击，点击逻辑在 invisible marker 上 */
+.airport-dot {
+  width: 10px; height: 10px; background: #fff; border: 2px solid var(--text-sec); border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3); transition: transform 0.2s;
+}
+.airport-dot.major { border-color: var(--primary); width: 12px; height: 12px; z-index: 100; }
+.airport-label-box {
+  margin-left: 14px; margin-top: -16px;
+  text-shadow: 0 1px 2px rgba(255,255,255,0.8);
+  font-size: 11px; font-weight: 600; color: #333; pointer-events: auto;
+}
+@media (prefers-color-scheme: dark) { .airport-label-box { color: #eee; text-shadow: 0 1px 3px rgba(0,0,0,0.9); } }
+
+/* ================== 专注模式 (Focus Mode) ================== */
+#focusOverlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  z-index: 9999;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.focus-bg {
+  position: absolute; top:0; left:0; width:100%; height:100%;
+  background: var(--focus-bg); /* 深海蓝渐变 */
+  z-index: 0;
+}
+/* 这里可以通过 JS 动态插入当前地图的模糊截图作为背景，或者只是简单的模糊 */
+.focus-content {
+  position: relative; z-index: 2; width: 100%; height: 100%;
+  display: flex; flex-direction: column; justify-content: space-between;
+  backdrop-filter: blur(15px); /* 全局模糊感 */
+  background: rgba(0,0,0,0.2);
+  padding: 20px; color: white;
+}
+.focus-header { display: flex; justify-content: space-between; align-items: center; margin-top: env(safe-area-inset-top); }
+.focus-status { font-size: 12px; font-weight: 700; letter-spacing: 1px; opacity: 0.8; border:1px solid rgba(255,255,255,0.3); padding:4px 8px; border-radius:4px; }
+.btn-glass {
+  background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.1);
+  color: white; padding: 8px 16px; border-radius: 20px;
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: 14px; backdrop-filter: blur(10px);
 }
 
-.focus-pill {
-  background: rgba(255,255,255,0.6);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 4px;
-  display: flex;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-.focus-pill button {
-  background: none; border: none; padding: 6px 16px;
-  border-radius: 16px; font-weight: 600; font-size: 13px; color: #666;
-}
-.focus-pill button.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
-/* 飞机动画区 */
-.focus-visual {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.focus-plane-container {
+  flex: 1; display: flex; align-items: center; justify-content: center;
   position: relative;
 }
-
-.focus-plane {
-  width: 220px;
-  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.15));
-  z-index: 2;
-  animation: floatPlane 3s ease-in-out infinite;
-}
-
-.focus-line {
-  position: absolute;
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.1) 60%, rgba(0,0,0,0) 100%);
-  z-index: 1;
-}
-
+/* 飞机呼吸动画 */
 @keyframes floatPlane {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(1deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+#focusPlaneImg {
+  width: 60%; max-width: 500px;
+  filter: drop-shadow(0 20px 30px rgba(0,0,0,0.5));
+  animation: floatPlane 4s ease-in-out infinite;
 }
 
-/* 底部数据 */
-.focus-stats {
-  padding: 40px 30px 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+.focus-info-panel {
+  background: rgba(0,0,0,0.3);
+  border-radius: 24px;
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(30px);
+  margin-bottom: env(safe-area-inset-bottom);
 }
-.stat-block { text-align: left; }
-.stat-block:last-child { text-align: right; }
-.stat-label { font-size: 14px; font-weight: 600; color: rgba(0,0,0,0.5); margin-bottom: 4px; letter-spacing: 0.5px; }
-.stat-value { font-size: 42px; font-weight: 800; font-family: "SF Pro Display", sans-serif; letter-spacing: -1px; }
-.stat-value .unit { font-size: 18px; font-weight: 600; color: rgba(0,0,0,0.4); }
 
-/* 移动端适配 */
+.focus-route { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.route-node { display: flex; flex-direction: column; }
+.focus-code { font-size: 32px; font-weight: 800; letter-spacing: 1px; }
+.focus-city { font-size: 14px; opacity: 0.7; }
+.focus-time { font-size: 14px; margin-top: 4px; color: #4ade80; }
+.text-right { text-align: right; }
+
+.route-line { flex: 1; margin: 0 20px; display: flex; flex-direction: column; align-items: center; }
+.route-progress-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; margin-top: 8px; overflow:hidden; }
+.route-progress-fill { height: 100%; background: #4ade80; width: 0%; box-shadow: 0 0 10px #4ade80; }
+.plane-icon-small { font-size: 16px; transform: rotate(90deg); color: white; margin-bottom: 4px; }
+
+.focus-stats { display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px; }
+.stat-box { text-align: center; }
+.stat-label { font-size: 12px; opacity: 0.6; margin-bottom: 4px; text-transform: uppercase; }
+.stat-value { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat-value small { font-size: 12px; opacity: 0.8; font-weight: 400; }
+
+.focus-flight-no { text-align: center; margin-top: 16px; font-size: 13px; opacity: 0.5; letter-spacing: 1px; }
+
+/* 响应式调整 */
 @media (max-width: 600px) {
-  #iosHeader { top: 10px; left: 10px; right: 10px; }
-  .header-content { padding: 8px; }
-  .search-bar input { font-size: 14px; }
-  .ios-card { bottom: 16px; left: 10px; right: 10px; padding: 16px; }
-  .stat-value { font-size: 32px; }
-  .focus-plane { width: 160px; }
+  /* 手机端：搜索栏沉底 */
+  #floatingSearch { top: auto; bottom: 30px; left: 16px; width: calc(100% - 32px); }
+  #topControls { top: 50px; } /* 避开原生刘海/状态栏 */
+  #infoCard { width: calc(100% - 32px); bottom: 90px; } /* 抬高，避开底部搜索栏 */
+  #focusPlaneImg { width: 90%; }
+  .focus-code { font-size: 24px; }
 }
-
-
-
-
-
-/* 机场点样式 */
-.airport-div-wrapper {
-  background: transparent;
-}
-.airport-marker-ios {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  transform: translate(0, 0); /* 硬件加速 */
-}
-.airport-marker-ios .dot {
-  background-color: #fff;
-  border: 3px solid var(--ios-blue);
-  border-radius: 50%;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-  transition: width 0.3s, height 0.3s;
-}
-.airport-label {
-  margin-top: 4px;
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(4px);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: #333;
-  white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  pointer-events: none; /* 让点击穿透到marker */
-  transition: opacity 0.3s;
-}
-
