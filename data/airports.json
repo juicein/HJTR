@@ -71,6 +71,15 @@
 "level": "4F",
 "runways": 2
 },
+    {
+    "name": "平城汉光",
+    "code": "HAN",
+    "lat": 32.4650,
+    "lon": 114.0450,
+    "aliases": ["云梦山河", "平城"],
+    "level": "4C",
+    "runways": 1
+  },
   {
     "name": "金钟淮海",
     "code": "JHA",
@@ -95,15 +104,6 @@
     "lat": 27.5829,
     "lon": 114.3069,
     "aliases": ["云梦山河"],
-    "level": "4C",
-    "runways": 1
-  },
-  {
-    "name": "平城汉光",
-    "code": "HAN",
-    "lat": 32.4650,
-    "lon": 114.0450,
-    "aliases": ["云梦山河", "平城"],
     "level": "4C",
     "runways": 1
   },
