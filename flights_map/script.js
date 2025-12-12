@@ -3,7 +3,7 @@ const AIRPORTS_PATH = "../data/airports.json";
 const FLIGHT_DATA_PATH = "../data/flight_data.txt";
 const PLANE_IMG = "https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png";
 const MP3_LIST = [
-  { title: "Pure.mp3", src: "music/Pure.mp3" },
+  { title: "Pure.mp3", src: "../music/Pure.mp3" },
   { title: "燃冬.mp3", src: "music/燃冬.mp3" },
   { title: "Gen Wo Yi Qi Feng.mp3", src: "music/Gen Wo Yi Qi Feng.mp3" },
   { title: "San Fransisco.mp3", src: "music/San Fransisco.mp3" }
