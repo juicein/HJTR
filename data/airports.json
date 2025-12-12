@@ -62,16 +62,8 @@
     "level": "4F",
     "runways": 1
 },
+
   {
-"name": "闸南香兰",
-"code": "ZXA",
-"lat": 24.55361,
-"lng": 118.35333,
-"aliases": ["枫海"],
-"level": "4F",
-"runways": 2
-},
-    {
     "name": "平城汉光",
     "code": "HAN",
     "lat": 32.4650,
@@ -116,6 +108,16 @@
     "level": "4C",
     "runways": 1
   },
+  {
+"name": "闸南香兰",
+"code": "ZXA",
+"lat": 24.55361,
+"lng": 118.35333,
+"aliases": ["枫海"],
+"level": "4F",
+"runways": 2
+},
+    
   {
   "name": "峡东海东",
 "code": "XCY",
