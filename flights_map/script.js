@@ -8,10 +8,10 @@ const AUTO_PLAY_MUSIC_ON_FOCUS = true;
 
 // 音乐列表 (支持 cover 属性，没有则显示默认)
 const MP3_LIST = [
-  { title: "Pure", src: "music/Pure.m4a", artist: "Micki Miller", cover: "music/cover_pure.jpg" }, // 示例封面
-  { title: "燃冬", src: "music/燃冬.mp3", artist: "电影原声", cover: "" },
-  { title: "Gen Wo Yi Qi Feng", src: "music/Gen Wo Yi Qi Feng.mp3", artist: "Beach Boys", cover: "" },
-  { title: "San Fransisco", src: "music/San Fransisco.mp3", artist: "Beach Boys", cover: "" }
+  { title: "Pure", src: "../music/Pure.m4a", artist: "Micki Miller", cover: "music/cover_pure.jpg" }, // 示例封面
+  { title: "冬", src: "music/燃冬.mp3", artist: "电影原声", cover: "" },
+  { title: "Gen  Feng", src: "music/Gen Wo Yi Qi Feng.mp3", artist: "Beach Boys", cover: "" },
+  { title: "San", src: "music/San Fransisco.mp3", artist: "Beach Boys", cover: "" }
 ];
 
 // 图层定义
