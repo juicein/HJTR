@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>航班实时地图 MD3 Pro+</title>
+  <title>航班实时地图 MD3 Pro+ (Ultimate)</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -16,12 +16,14 @@
   <header id="topbar">
     <div class="topbar-inner glass-card">
       <div id="brand">航班地图</div>
+      
       <div id="searchContainer">
         <span class="material-symbols-rounded search-icon">search</span>
         <input id="searchInput" placeholder="航班号 / 注册号 / 机场" autocomplete="off" />
         <button id="searchBtn" class="icon-btn" title="搜索"><span class="material-symbols-rounded">arrow_forward</span></button>
         <button id="clearBtn" class="icon-btn hidden" title="清除"><span class="material-symbols-rounded">close</span></button>
       </div>
+
       <button id="settingsBtn" class="icon-btn filled-tonal" title="设置">
         <span class="material-symbols-rounded">settings</span>
       </button>
@@ -81,10 +83,10 @@
     <div class="focus-ui-container">
       
       <div class="focus-tools left">
-         <button class="icon-btn glass-btn filled-surface" id="focusRotationBtn" title="切换方向">
+         <button class="icon-btn glass-btn solid-bg" id="focusRotationBtn" title="切换方向">
            <span class="material-symbols-rounded" id="rotIcon">explore</span>
          </button>
-         <button class="icon-btn glass-btn filled-surface" id="focusLayerBtn" title="切换图层">
+         <button class="icon-btn glass-btn solid-bg" id="focusLayerBtn" title="切换图层">
            <span class="material-symbols-rounded">layers</span>
          </button>
       </div>
@@ -95,11 +97,11 @@
         </button>
         <div class="focus-flight-no" id="focusFlightNo">--</div>
         <div class="focus-status">
-          <span class="status-dot"></span> 正在飞往 <span id="focusDest">--</span>
+          <span class="status-dot"></span> <span id="focusStatusText">正在飞往</span> <span id="focusDest">--</span>
         </div>
       </div>
 
-      <div id="miniMusicPlayer" class="mini-music right glass-btn">
+      <div id="miniMusicPlayer" class="mini-music right glass-btn solid-bg">
         <div class="mini-cover">
           <span class="material-symbols-rounded">music_note</span>
           <canvas id="miniProgress" width="32" height="32"></canvas>
@@ -144,16 +146,17 @@
         <button id="musicPrev" class="icon-btn filled-tonal"><span class="material-symbols-rounded">skip_previous</span></button>
         <button id="musicPlayLarge" class="icon-btn filled large"><span class="material-symbols-rounded">play_arrow</span></button>
         <button id="musicNext" class="icon-btn filled-tonal"><span class="material-symbols-rounded">skip_next</span></button>
+        <button class="icon-btn disabled"><span class="material-symbols-rounded">more_horiz</span></button>
       </div>
 
       <div id="playlistOverlay" class="playlist-overlay hidden">
-        <div class="playlist-header">
-           <div class="playlist-title">播放列表</div>
-           <button id="closePlaylistBtn" class="icon-btn small"><span class="material-symbols-rounded">close</span></button>
+        <div class="playlist-header-row">
+            <div class="playlist-title">播放列表</div>
+            <button id="closePlaylistBtn" class="icon-btn small"><span class="material-symbols-rounded">close</span></button>
         </div>
-        <div class="playlist-search-box">
-           <span class="material-symbols-rounded">search</span>
-           <input id="playlistSearchInput" placeholder="搜索歌曲..." />
+        <div class="playlist-search">
+            <span class="material-symbols-rounded">search</span>
+            <input type="text" id="playlistSearchInput" placeholder="搜索歌曲...">
         </div>
         <div id="playlistItems"></div>
       </div>
