@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>航班实时地图 MD3 Pro+ (Ultimate)</title>
+  <title>航班实时地图</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
@@ -19,7 +19,7 @@
       
       <div id="searchContainer">
         <span class="material-symbols-rounded search-icon">search</span>
-        <input id="searchInput" placeholder="航班号 / 注册号 / 机场" autocomplete="off" />
+        <input id="searchInput" placeholder="航班号/机场" autocomplete="off" />
         <button id="searchBtn" class="icon-btn" title="搜索"><span class="material-symbols-rounded">arrow_forward</span></button>
         <button id="clearBtn" class="icon-btn hidden" title="清除"><span class="material-symbols-rounded">close</span></button>
       </div>
@@ -62,11 +62,11 @@
         <label class="md3-switch"><input id="sw_showPlaneIcon" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>显示实时航线 (虚线)</span>
+        <span>显示实时航线</span>
         <label class="md3-switch"><input id="sw_showAllLines" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>专注模式过滤其他</span>
+        <span>专注模式过滤</span>
         <label class="md3-switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
       </div>
     </div>
@@ -166,7 +166,7 @@
       <div class="focus-data-row">
         <div class="data-item">
           <div class="data-label">剩余飞行时间</div>
-          <div class="data-value" id="focusTimeRem">-- <small>h</small> -- <small>min</small></div>
+          <div class="data-value" id="focusTimeRem">--<small>h</small>--<small>min</small></div>
         </div>
         <div class="divider-vertical"></div>
         <div class="data-item">
