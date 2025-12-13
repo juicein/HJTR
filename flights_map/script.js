@@ -210,8 +210,8 @@ function updateAirportCollisions() {
         };
 
         let overlap = false;
-        // 只有非常密集的缩放层级才开启强力碰撞检测
-        if (zoom < 9) {
+        // 只有非常密集的缩放层级才开启强力碰撞检测。9
+        if (zoom < 4) {
             for (let r of placedRects) {
                 // 简单的矩形碰撞
                 if (!(myRect.r < r.l || myRect.l > r.r || myRect.b < r.t || myRect.t > r.b)) {
@@ -410,9 +410,9 @@ function showAirportCard(ap) {
       <button class="icon-btn" onclick="closeInfoCard()"><span class="material-symbols-rounded">close</span></button>
     </div>
     <div style="font-size:14px; color:#555; padding:0 8px;">
-        <p><b>别名:</b> ${(ap.aliases||[]).join(', ')}</p>
+        <p><b>归属:</b> ${(ap.aliases||[]).join(', ')}</p>
         <p><b>ICAO:</b> ${ap.ICAO||'-'}</p>
-        <p><b>跑道数:</b> ${ap.runways||1}</p>
+        <p><b>跑道:</b> ${ap.runways||1}</p>
     </div>
   `;
   card.classList.remove("hidden");
