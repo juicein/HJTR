@@ -3,95 +3,81 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>航班实时地图 Pro</title>
+  <title>航班实时地图 MD3</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <style>
-    .rotated-map-pane { transition: transform 0.5s cubic-bezier(0.2, 0, 0, 1); }
-  </style>
 </head>
 <body>
 
-  <audio id="cabinAudio" loop>
-    <source src="https://www.soundjay.com/transportation/airplane-cabin-1.mp3" type="audio/mpeg">
-  </audio>
-  
-  <audio id="musicPlayerAudio"></audio>
+  <div id="map-wrapper">
+    <div id="map"></div>
+  </div>
 
   <header id="topbar">
-    <div class="topbar-inner">
-      <div class="topbar-left">
-        <div id="brand">FlightMap <span style="font-weight:400; font-size: 0.8em; opacity: 0.7;">Live</span></div>
-      </div>
-
+    <div class="topbar-content">
+      <div id="brand">航班地图</div>
+      
       <div id="searchContainer">
         <span class="material-symbols-rounded search-icon">search</span>
-        <input id="searchInput" placeholder="搜索航班 / 注册号 / 机场" autocomplete="off" />
+        <input id="searchInput" placeholder="航班号 / 机号 / 机场" autocomplete="off" />
         <button id="searchBtn" class="icon-btn small"><span class="material-symbols-rounded">arrow_forward</span></button>
         <button id="clearBtn" class="icon-btn small hidden"><span class="material-symbols-rounded">close</span></button>
       </div>
 
-      <div class="topbar-right">
-        <button id="musicToggleBtn" class="icon-btn filled-tonal" title="机上娱乐系统">
-          <span class="material-symbols-rounded">music_note</span>
-        </button>
-        <button id="settingsBtn" class="icon-btn filled-tonal" title="显示设置">
-          <span class="material-symbols-rounded">tune</span>
-        </button>
-      </div>
+      <button id="settingsBtn" class="icon-btn filled-tonal" title="显示设置">
+        <span class="material-symbols-rounded">tune</span>
+      </button>
     </div>
   </header>
 
-  <div id="layerControl">
-    <div class="layer-btn active" data-type="clean" title="简约地图">
+  <div id="layerControl" class="control-group right-side">
+    <div class="layer-btn active" data-type="clean" title="纯净地图">
       <span class="material-symbols-rounded">map</span>
     </div>
-    <div class="layer-btn" data-type="satellite" title="卫星影像">
+    <div class="layer-btn" data-type="satellite" title="卫星地图">
       <span class="material-symbols-rounded">satellite_alt</span>
     </div>
   </div>
 
   <div id="settingsPanel" class="md3-card hidden">
     <div class="settings-header">
-      <h4>显示偏好</h4>
-      <button id="settingsClose" class="icon-btn"><span class="material-symbols-rounded">close</span></button>
+      <h4>显示选项</h4>
+      <button id="settingsClose" class="icon-btn small"><span class="material-symbols-rounded">close</span></button>
     </div>
-    <div class="setting-group">
+    <div class="setting-scroll-area">
+      <div class="setting-group-title">地图元素</div>
       <div class="setting-row">
-        <span>显示机场名称</span>
+        <span>机场名称</span>
         <label class="md3-switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>显示机场三字码</span>
+        <span>机场三字码</span>
         <label class="md3-switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>显示航班号标签</span>
+        <span>显示所有航线 (虚线)</span>
+        <label class="md3-switch"><input id="sw_showRouteLines" type="checkbox"><span class="slider"></span></label>
+      </div>
+      
+      <div class="setting-group-title">飞机标签</div>
+      <div class="setting-row">
+        <span>显示航班号</span>
         <label class="md3-switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>大地图航线网络 (虚线)</span>
-        <label class="md3-switch"><input id="sw_showRouteLines" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>显示飞机图标</span>
+        <span>显示图标</span>
         <label class="md3-switch"><input id="sw_showPlaneIcon" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>专注模式过滤其他</span>
-        <label class="md3-switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
       </div>
     </div>
   </div>
-
-  <div id="map"></div>
 
   <div id="infoCard" class="md3-card bottom-sheet hidden">
     </div>
 
   <div id="focusOverlay" class="hidden">
+    
     <div class="focus-top-bar">
       <button id="exitFocusBtn" class="icon-btn glass-btn">
         <span class="material-symbols-rounded">expand_more</span>
@@ -102,50 +88,47 @@
           <span class="status-dot"></span> 飞往 <span id="focusDest">--</span>
         </div>
       </div>
+      <button id="musicToggleBtn" class="icon-btn glass-btn">
+        <span class="material-symbols-rounded">music_note</span>
+      </button>
     </div>
 
     <div class="focus-map-controls">
-      <button class="icon-btn glass-btn" id="focusLayerBtn" title="切换图层">
+      <button id="focusLayerBtn" class="control-btn glass-btn" title="切换图层">
         <span class="material-symbols-rounded">layers</span>
       </button>
-      <button class="icon-btn glass-btn" id="focusHeadingBtn" title="切换地图方向 (北向上/机头向上)">
-        <span class="material-symbols-rounded" id="focusHeadingIcon">explore</span>
-      </button>
+      <button id="focusRotateBtn" class="control-btn glass-btn" title="跟随方向">
+        <span class="material-symbols-rounded">explore</span> </button>
+      <button id="focusViewBtn" class="control-btn glass-btn" title="视图模式">
+        <span class="material-symbols-rounded">center_focus_strong</span> </button>
     </div>
 
-    <div id="musicPlayerCard" class="music-player-card hidden">
+    <div id="musicPlayer" class="music-card glass-panel hidden">
       <div class="music-header">
-        <span>In-Flight Entertainment</span>
-        <button class="icon-btn small" id="closeMusicBtn"><span class="material-symbols-rounded">close</span></button>
+        <div class="music-cover">
+          <span class="material-symbols-rounded">album</span>
+        </div>
+        <div class="music-info">
+          <div class="music-title" id="musicTitle">Pure</div>
+          <div class="music-artist">Cabin Ambience</div>
+        </div>
+        <button id="musicListBtn" class="icon-btn small"><span class="material-symbols-rounded">queue_music</span></button>
       </div>
       
-      <div id="musicListView" class="music-list-view hidden">
-        <div class="music-search-box">
-          <span class="material-symbols-rounded">search</span>
-          <input id="musicSearchInput" placeholder="Find Music..." />
-        </div>
-        <div class="music-list-content" id="musicListContainer">
-          </div>
+      <div class="music-controls">
+        <button id="musicModeBtn" class="icon-btn small"><span class="material-symbols-rounded">repeat</span></button>
+        <button id="musicPrevBtn" class="icon-btn"><span class="material-symbols-rounded">skip_previous</span></button>
+        <button id="musicPlayBtn" class="icon-btn filled"><span class="material-symbols-rounded">play_arrow</span></button>
+        <button id="musicNextBtn" class="icon-btn"><span class="material-symbols-rounded">skip_next</span></button>
       </div>
-
-      <div id="musicNowPlayingView" class="music-now-playing">
-        <div class="album-art" id="albumArt">
-          <span class="material-symbols-rounded">music_note</span>
+      
+      <div id="musicPlaylist" class="music-playlist hidden">
+        <div class="playlist-header">
+          <input type="text" id="musicSearch" placeholder="搜索音乐..." />
+          <button id="playlistClose" class="icon-btn small"><span class="material-symbols-rounded">close</span></button>
         </div>
-        <div class="track-info">
-          <div class="track-title" id="trackTitle">Pure</div>
-          <div class="track-artist" id="trackArtist">System Playlist</div>
-          <div class="track-controls">
-            <button class="ctrl-btn" id="btnPlayPrev"><span class="material-symbols-rounded">skip_previous</span></button>
-            <button class="ctrl-btn play-pause" id="btnPlayToggle"><span class="material-symbols-rounded">play_arrow</span></button>
-            <button class="ctrl-btn" id="btnPlayNext"><span class="material-symbols-rounded">skip_next</span></button>
-            <button class="ctrl-btn small" id="btnPlayMode"><span class="material-symbols-rounded">repeat</span></button>
-            <button class="ctrl-btn small" id="btnMusicList"><span class="material-symbols-rounded">queue_music</span></button>
+        <div class="playlist-items" id="playlistItems">
           </div>
-          <div class="track-progress">
-             <div class="progress-bg"><div class="progress-fill" id="musicProgress"></div></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -153,7 +136,7 @@
       <div class="focus-data-row">
         <div class="data-item">
           <div class="data-label">剩余时间</div>
-          <div class="data-value" id="focusTimeRem">-- <small>h</small> -- <small>min</small></div>
+          <div class="data-value" id="focusTimeRem">-- <small>min</small></div>
         </div>
         <div class="divider-vertical"></div>
         <div class="data-item">
@@ -163,12 +146,12 @@
       </div>
       
       <div class="focus-progress-container">
-        <div class="focus-route-text" id="routeTextClickArea" style="cursor: pointer;">
-          <span id="focusDepCode" class="airport-switcher">DEP</span>
+        <div class="focus-route-text">
+          <span id="focusDepCode">DEP</span>
           <div class="plane-track-line">
             <span class="material-symbols-rounded plane-glyph">flight</span>
           </div>
-          <span id="focusArrCode" class="airport-switcher">ARR</span>
+          <span id="focusArrCode">ARR</span>
         </div>
         <div class="focus-progress-bar-bg">
           <div id="focusProgressBar" class="focus-progress-bar-fill"></div>
@@ -176,6 +159,8 @@
       </div>
     </div>
   </div>
+
+  <audio id="bgMusic" preload="auto"></audio>
 
   <script src="script.js"></script>
 </body>
