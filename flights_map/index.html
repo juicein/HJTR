@@ -1,11 +1,11 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>航班实时地图 MD3 Pro+</title>
+  <title>航班实时地图 MD3 Pro</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 </head>
@@ -14,7 +14,7 @@
   <audio id="bgMusic" loop></audio>
 
   <header id="topbar">
-    <div class="topbar-inner glass-card">
+    <div class="topbar-inner">
       <div id="brand">航班地图</div>
       
       <div id="searchContainer">
@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  <div id="settingsPanel" class="md3-card hidden glass-card">
+  <div id="settingsPanel" class="md3-card hidden">
     <div class="settings-header">
       <h4>显示设置</h4>
       <button id="settingsClose" class="icon-btn"><span class="material-symbols-rounded">close</span></button>
@@ -62,125 +62,87 @@
         <label class="md3-switch"><input id="sw_showPlaneIcon" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>显示实时航线 (虚线)</span>
-        <label class="md3-switch"><input id="sw_showAllLines" type="checkbox"><span class="slider"></span></label>
+        <span>在大地图显示航线</span> <label class="md3-switch"><input id="sw_showAllLines" type="checkbox"><span class="slider"></span></label>
       </div>
       <div class="setting-row">
-        <span>专注模式过滤其他</span>
+        <span>专注模式过滤</span>
         <label class="md3-switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
       </div>
     </div>
   </div>
 
-  <div id="mapContainer">
-    <div id="map"></div>
-  </div>
+  <div id="map"></div>
 
-  <div id="infoCard" class="md3-card bottom-sheet hidden glass-card"></div>
+  <div id="infoCard" class="md3-card bottom-sheet hidden"></div>
 
   <div id="focusOverlay" class="hidden">
-    
-    <div class="focus-top-area">
-      
-      <div id="miniMusicPlayer" class="mini-music glass-btn">
-        <div class="mini-cover">
-          <span class="material-symbols-rounded">music_note</span>
-          <canvas id="miniProgress" width="32" height="32"></canvas>
-        </div>
-        <div class="mini-info">
-          <span id="miniTitle">Pure</span>
-          <span id="miniStatus">Paused</span>
-        </div>
-        <button id="miniPlayBtn" class="icon-btn small"><span class="material-symbols-rounded">play_arrow</span></button>
-      </div>
-
-      <div class="focus-top-bar">
-        <button id="exitFocusBtn" class="icon-btn glass-btn">
-          <span class="material-symbols-rounded">expand_more</span>
-        </button>
-        <div class="focus-flight-no" id="focusFlightNo">--</div>
-        <div class="focus-status">
-          <span class="status-dot"></span> 正在飞往 <span id="focusDest">--</span>
-        </div>
-      </div>
-
-      <div class="focus-tools">
-         <button class="icon-btn glass-btn" id="focusRotationBtn" title="切换方向">
-           <span class="material-symbols-rounded" id="rotIcon">explore</span>
-         </button>
-         <button class="icon-btn glass-btn" id="focusLayerBtn" title="切换图层">
-           <span class="material-symbols-rounded">layers</span>
-         </button>
+    <div class="focus-top-bar">
+      <button id="exitFocusBtn" class="icon-btn glass-btn">
+        <span class="material-symbols-rounded">expand_more</span>
+      </button>
+      <div class="focus-flight-no" id="focusFlightNo">--</div>
+      <div class="focus-status">
+        <span class="status-dot"></span> 正在飞往 <span id="focusDest">--</span>
       </div>
     </div>
 
-    <div id="musicExpandCard" class="music-expand-card glass-card hidden">
-      <div class="music-expand-header">
-        <button id="musicCollapseBtn" class="icon-btn"><span class="material-symbols-rounded">expand_less</span></button>
-        <span>正在播放</span>
-        <button id="musicListToggle" class="icon-btn"><span class="material-symbols-rounded">queue_music</span></button>
-      </div>
-      
-      <div class="music-cover-large">
-        <div class="cover-placeholder">
-          <span class="material-symbols-rounded">album</span>
-        </div>
-      </div>
-      
-      <div class="music-meta-large">
-        <div id="musicTitleLarge" class="music-title-l">Pure.mp3</div>
-        <div class="music-artist-l">Local Audio</div>
-      </div>
-
-      <div class="music-progress-bar">
-        <div class="progress-bg"><div id="musicFill" class="progress-fill"></div></div>
-        <div class="time-row">
-          <span id="currTime">0:00</span>
-          <span id="totalTime">--:--</span>
-        </div>
-      </div>
-
-      <div class="music-controls-large">
-        <button id="musicModeBtn" class="icon-btn" title="循环/随机"><span class="material-symbols-rounded">repeat</span></button>
-        <button id="musicPrev" class="icon-btn filled-tonal"><span class="material-symbols-rounded">skip_previous</span></button>
-        <button id="musicPlayLarge" class="icon-btn filled large"><span class="material-symbols-rounded">play_arrow</span></button>
-        <button id="musicNext" class="icon-btn filled-tonal"><span class="material-symbols-rounded">skip_next</span></button>
-        <button class="icon-btn disabled"><span class="material-symbols-rounded">more_horiz</span></button>
-      </div>
-
-      <div id="playlistOverlay" class="playlist-overlay hidden">
-        <div class="playlist-title">播放列表</div>
-        <div id="playlistItems"></div>
-      </div>
+    <div class="focus-layer-toggle">
+       <button class="icon-btn glass-btn" id="focusLayerBtn">
+         <span class="material-symbols-rounded">layers</span>
+       </button>
     </div>
 
-    <div class="focus-dashboard">
-      <div class="focus-data-row">
-        <div class="data-item">
-          <div class="data-label">剩余飞行时间</div>
-          <div class="data-value" id="focusTimeRem">-- <small>h</small> -- <small>min</small></div>
-        </div>
-        <div class="divider-vertical"></div>
-        <div class="data-item">
-          <div class="data-label">剩余飞行距离</div>
-          <div class="data-value" id="focusDistRem">-- <small>mi</small></div>
-        </div>
-      </div>
+    <div class="focus-bottom-container">
       
-      <div class="focus-progress-container">
-        <div class="focus-route-text">
-          <span id="focusDepCode">DEP</span>
-          <div class="plane-track-line">
-            <span class="material-symbols-rounded plane-glyph">flight</span>
+      <div class="music-player glass-panel">
+        <div class="music-info">
+          <div class="music-icon-wrap">
+            <span class="material-symbols-rounded music-note-icon">music_note</span>
           </div>
-          <span id="focusArrCode">ARR</span>
+          <div class="music-text">
+            <div id="musicTitle" class="music-title">Pure.mp3</div>
+            <div id="musicStatus" class="music-artist">Ready</div>
+          </div>
         </div>
-        <div class="focus-progress-bar-bg">
-          <div id="focusProgressBar" class="focus-progress-bar-fill"></div>
+        <div class="music-controls">
+          <button id="musicPrev" class="icon-btn small"><span class="material-symbols-rounded">skip_previous</span></button>
+          <button id="musicPlay" class="icon-btn filled"><span class="material-symbols-rounded">play_arrow</span></button>
+          <button id="musicNext" class="icon-btn small"><span class="material-symbols-rounded">skip_next</span></button>
+          <button id="musicListBtn" class="icon-btn small"><span class="material-symbols-rounded">queue_music</span></button>
+        </div>
+        <div id="playlistPopup" class="playlist-popup hidden">
+          <div class="playlist-header">播放列表</div>
+          <div id="playlistItems"></div>
+        </div>
+      </div>
+
+      <div class="focus-dashboard glass-panel">
+        <div class="focus-data-row">
+          <div class="data-item">
+            <div class="data-label">剩余飞行时间</div>
+            <div class="data-value" id="focusTimeRem">-- <small>min</small></div>
+          </div>
+          <div class="divider-vertical"></div>
+          <div class="data-item">
+            <div class="data-label">剩余飞行距离</div>
+            <div class="data-value" id="focusDistRem">-- <small>mi</small></div>
+          </div>
+        </div>
+        
+        <div class="focus-progress-container">
+          <div class="focus-route-text">
+            <span id="focusDepCode">DEP</span>
+            <div class="plane-track-line">
+              <span class="material-symbols-rounded plane-glyph">flight</span>
+            </div>
+            <span id="focusArrCode">ARR</span>
+          </div>
+          <div class="focus-progress-bar-bg">
+            <div id="focusProgressBar" class="focus-progress-bar-fill"></div>
+          </div>
         </div>
       </div>
     </div>
-
   </div>
 
   <script src="script.js"></script>
