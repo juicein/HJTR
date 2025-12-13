@@ -2,19 +2,32 @@
 const AIRPORTS_PATH = "../data/airports.json";
 const FLIGHT_DATA_PATH = "../data/flight_data.txt";
 const PLANE_IMG = "https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png";
+
+// 马赛克/中国大陆合规配置 (预留)
+const ENABLE_MOSAIC = false; // 需要时改为 true
+// 马赛克区域 (示例: 仅为代码结构演示，不代表特定政治立场)
+const RESTRICTED_AREAS = [
+    // 格式: [Lat, Lng]
+    // { center: [23.5, 121], size: [2, 1] } 
+];
+
 const MP3_LIST = [
   { title: "Pure", src: "music/Pure.mp3", artist: "Micki Miller" },
   { title: "燃冬", src: "music/燃冬.mp3", artist: "电影原声" },
   { title: "Gen Wo Yi Qi Feng", src: "music/Gen Wo Yi Qi Feng.mp3", artist: "Beach Boys" },
-  { title: "San Fransisco", src: "music/San Fransisco.mp3", artist: "Beach Boys" }
+  { title: "San Fransisco", src: "music/San Fransisco.mp3", artist: "Beach Boys" },
+  { title: "Night Flight", src: "music/night.mp3", artist: "Jazz Vibes" }
 ];
 
+// 图层定义 (使用无界线底图)
 const LAYERS = {
   clean: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy;OpenStreetMap, &copy;CartoDB', subdomains: 'abcd', maxZoom: 19
+    attribution: '&copy;OpenStreetMap, &copy;CartoDB', subdomains: 'abcd', maxZoom: 19,
+    className: 'leaflet-layer-clean' // 用于CSS反色
   }),
   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: '&copy;Esri', maxZoom: 17
+    attribution: '&copy;Esri', maxZoom: 17,
+    className: 'leaflet-layer-satellite'
   })
 };
 
@@ -27,32 +40,48 @@ let state = {
   hideOtherWhenFilter: JSON.parse(localStorage.getItem("hideOtherWhenFilter") || "false"),
   activeLayer: localStorage.getItem("activeLayer") || 'clean',
   
-  flights: [], sortedFlights: {}, airportDB: {},
+  airportDB: {},
+  flights: [], 
+  sortedFlights: {},
+  
+  markers: {}, // code -> L.marker (机场)
+  flightMarkers: {}, // key -> L.marker (飞机)
+  dashedLines: {},
+  solidLine: null,
+  
   selectedFlightKey: null,
   focusMode: false,
   focusFlight: null,
   mapRotationMode: 'north',
   
   musicIndex: 0,
-  playMode: 0,
+  playMode: 0, // 0: loop, 1: random
   isPlaying: false
-};
-
-let mapObjects = { 
-  dashedLines: {}, 
-  solidLine: null, 
-  markers: {}, 
-  airportMarkers: [] 
 };
 
 // 初始化地图
 const map = L.map('map', { 
   zoomControl: false, attributionControl: false, minZoom: 2, worldCopyJump: true 
 }).setView([35, 105], 4);
+
 LAYERS[state.activeLayer].addTo(map);
 document.querySelectorAll(`.layer-btn[data-type="${state.activeLayer}"]`).forEach(b => b.classList.add('active'));
 
-// ================== 时间核心 ==================
+// 预留: 渲染马赛克区域
+function renderRestrictedArea() {
+    if(!ENABLE_MOSAIC) return;
+    RESTRICTED_AREAS.forEach(area => {
+        // 简单矩形逻辑
+        const bounds = [
+            [area.center[0] - area.size[0], area.center[1] - area.size[1]],
+            [area.center[0] + area.size[0], area.center[1] + area.size[1]]
+        ];
+        L.rectangle(bounds, {color: "#e0e0e0", stroke: false, fillOpacity: 0.8}).addTo(map);
+    });
+}
+renderRestrictedArea();
+
+// ================== 时间 ==================
 function getBeijingTime() {
   const d = new Date();
   const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
@@ -64,22 +93,33 @@ function timeToMin(str) {
   return parseInt(p[0]) * 60 + parseInt(p[1]);
 }
 
-// ================== 数据与逻辑 ==================
+// ================== 数据加载与逻辑 ==================
 
 async function loadData() {
   try {
+    // 1. 加载机场
     const apData = await fetch(AIRPORTS_PATH).then(r => r.json());
     state.airportDB = {};
     (Array.isArray(apData) ? apData : []).forEach(ap => {
-      const key = ap.code || "UNK";
-      state.airportDB[key] = ap;
-      if(ap.name) state.airportDB[ap.name] = ap;
+       // 确保 code 存在
+       const code = ap.code || (ap.name ? ap.name.slice(0,3).toUpperCase() : "UNK");
+       
+       // 等级权重计算 (移植自参考代码)
+       let rank = 1;
+       if(ap.level) {
+          if(ap.level.includes("4F")) rank = 10;
+          else if(ap.level.includes("4E")) rank = 8;
+          else if(ap.level.includes("4D")) rank = 6;
+          else rank = 4;
+       }
+       state.airportDB[code] = { ...ap, code, rank };
     });
 
+    // 2. 加载航班
     const fltText = await fetch(FLIGHT_DATA_PATH).then(r => r.text());
     state.flights = parseFlightData(fltText);
     
-    // 排序逻辑
+    // 3. 上下程排序
     state.sortedFlights = {};
     state.flights.forEach(f => {
       if(f.reg && f.reg !== '<->') {
@@ -95,11 +135,9 @@ async function loadData() {
       });
     }
 
-    renderAirports(); // 渲染所有机场
-    updateDisplaySettings(); // 应用开关状态
+    renderAirports(); 
+    updateDisplaySettings(); 
     renderFlights(); 
-    updateCollisions(); // 仅用于飞机
-
   } catch (e) { console.error("Load Error", e); }
 }
 
@@ -129,24 +167,22 @@ function parseFlightData(raw) {
   return entries;
 }
 
-// ================== 渲染 ==================
+// ================== 机场渲染 (核心移植部分) ==================
 
-// 简单粗暴：渲染所有机场，不进行复杂的等级过滤
 function renderAirports() {
-  const processed = new Set();
-  
   for (let code in state.airportDB) {
+    if(state.markers[code]) continue;
     const ap = state.airportDB[code];
-    if (processed.has(ap.code) || !ap.lat || !ap.lng) continue;
-    processed.add(ap.code);
+    if (!ap.lat || !ap.lng) continue;
 
-    // MD3 Style Marker HTML
+    const isHighRank = ap.rank >= 8;
+    // HTML 结构: 分离 Code 和 Name，由 CSS body class 控制显隐
     const html = `
-      <div class="airport-marker-container">
+      <div class="airport-marker ${isHighRank?'rank-high':''}">
         <div class="airport-dot"></div>
         <div class="airport-label">
-          <span class="ap-name-span">${ap.name}</span>
-          <span class="ap-code-span">${ap.code}</span>
+          <span class="label-name">${ap.name}</span>
+          <span class="label-code">${ap.code}</span>
         </div>
       </div>
     `;
@@ -154,61 +190,76 @@ function renderAirports() {
     const icon = L.divIcon({ 
       className: '', 
       html: html, 
-      iconSize: [0, 0], // 让 CSS 控制布局
-      iconAnchor: [5, 5] // 中心对齐圆点
+      iconSize: [0, 0], 
+      iconAnchor: [0, 0] // CSS 处理居中
     });
 
     const marker = L.marker([ap.lat, ap.lng], { icon }).addTo(map);
+    marker.apData = ap;
     marker.on('click', () => showAirportCard(ap));
-    mapObjects.airportMarkers.push(marker);
+    state.markers[code] = marker;
   }
+  updateAirportVis();
 }
 
-// 通过 body class 控制显隐，性能最高
-function updateDisplaySettings() {
-  document.body.classList.toggle('show-ap-name', state.showAirportName);
-  document.body.classList.toggle('show-ap-code', state.showAirportCode);
-  updateCollisions(); // 重新计算飞机避让
-}
-
-// 飞机避让与图标更新
-function updateCollisions() {
+// 机场避让与显示逻辑
+function updateAirportVis() {
   const zoom = map.getZoom();
   const bounds = map.getBounds();
   
-  // 飞机避让
-  const planeSize = Math.max(20, zoom * 5);
-  document.documentElement.style.setProperty('--plane-size', planeSize + 'px');
-  
-  if (zoom < 6) {
-      const planes = [];
-      for(let k in mapObjects.markers) {
-          const m = mapObjects.markers[k];
-          if(bounds.contains(m.getLatLng())) planes.push({m, pt: map.latLngToLayerPoint(m.getLatLng()), key: k});
-      }
-      const pAccepted = [];
-      planes.forEach(p => {
-          if(p.key === state.selectedFlightKey) { pAccepted.push(p); return; }
-          let clash = false;
-          for(let acc of pAccepted) {
-              if(p.pt.distanceTo(acc.pt) < 30) { clash = true; break; }
-          }
-          const el = p.m.getElement();
-          if(el) {
-              if(clash) L.DomUtil.addClass(el, 'hidden');
-              else { L.DomUtil.removeClass(el, 'hidden'); pAccepted.push(p); }
-          }
-      });
-  } else {
-      for(let k in mapObjects.markers) {
-          const m = mapObjects.markers[k];
-          const el = m.getElement();
-          if(el) L.DomUtil.removeClass(el, 'hidden');
-      }
+  // 1. 全局开关类名处理
+  document.body.classList.toggle('show-ap-name', state.showAirportName);
+  document.body.classList.toggle('show-ap-code', state.showAirportCode);
+  document.body.classList.toggle('no-ap-labels', !state.showAirportName && !state.showAirportCode);
+
+  // 2. 收集可见机场
+  let visible = [];
+  for (let code in state.markers) {
+    const m = state.markers[code];
+    const el = m.getElement();
+    if (!el) continue;
+
+    if (bounds.contains(m.getLatLng())) {
+      const pt = map.latLngToLayerPoint(m.getLatLng());
+      visible.push({ marker: m, pt, rank: m.apData.rank });
+      // 先全部移除隐藏类，下面算法决定谁加上
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
   }
+
+  // 3. 避让算法 (等级高优先)
+  visible.sort((a,b) => b.rank - a.rank); 
+  const accepted = [];
+  const MIN_DIST = zoom < 5 ? 20 : 40; // 像素
+
+  visible.forEach(item => {
+    let clash = false;
+    for (let acc of accepted) {
+      const dx = item.pt.x - acc.pt.x;
+      const dy = item.pt.y - acc.pt.y;
+      if (Math.sqrt(dx*dx + dy*dy) < MIN_DIST) { clash = true; break; }
+    }
+    
+    const el = item.marker.getElement();
+    if (clash) {
+      el.classList.add('hidden'); // 碰撞则隐藏
+    } else {
+      accepted.push(item);
+      el.classList.remove('hidden');
+    }
+  });
 }
 
-map.on('zoomend moveend', updateCollisions);
+function updateDisplaySettings() {
+  updateAirportVis();
+  renderFlights();
+}
+
+map.on('zoomend moveend', updateAirportVis);
+
+// ================== 航班渲染 ==================
 
 function renderFlights() {
   const bjNow = getBeijingTime();
@@ -216,25 +267,35 @@ function renderFlights() {
   const nowTs = bjNow.getTime();
   const searchKey = document.getElementById("searchInput").value.trim().toUpperCase();
 
-  // 清除旧线
-  for(let k in mapObjects.dashedLines) { map.removeLayer(mapObjects.dashedLines[k]); }
-  mapObjects.dashedLines = {};
-  if (!state.selectedFlightKey && mapObjects.solidLine) {
-      map.removeLayer(mapObjects.solidLine);
-      mapObjects.solidLine = null;
+  // 清理
+  for(let k in state.dashedLines) { map.removeLayer(state.dashedLines[k]); }
+  state.dashedLines = {};
+  if (!state.selectedFlightKey && state.solidLine) {
+      map.removeLayer(state.solidLine); state.solidLine = null;
   }
 
+  // 存活的飞机 key
+  const activeKeys = new Set();
+  const planePoints = []; // 飞机避让
+
   state.flights.forEach(f => {
+    // 1. 专注模式过滤：如果开启了"过滤其他"且在专注模式，非当前航班直接跳过
+    if (state.focusMode && state.hideOtherWhenFilter) {
+        if (!state.focusFlight || f.key !== state.focusFlight.key) return;
+    }
+
     const depAp = getAirport(f.dep);
     const arrAp = getAirport(f.arr);
     if (!depAp || !arrAp) return;
 
+    // 时间进度计算
     const depMin = timeToMin(f.depTimeRaw);
     const arrMin = timeToMin(f.arrTimeRaw);
     let depTs = bjMid + depMin * 60000 + (f.depOffset * 86400000);
     let arrTs = bjMid + arrMin * 60000 + (f.arrOffset * 86400000);
 
     let progress = (nowTs - depTs) / (arrTs - depTs);
+    // 简单跨天修正
     if(progress < 0 || progress > 1) {
         const yDep = depTs - 86400000; const yArr = arrTs - 86400000;
         if(nowTs >= yDep && nowTs <= yArr) {
@@ -242,69 +303,104 @@ function renderFlights() {
             depTs = yDep; arrTs = yArr;
         }
     }
+    
     const isFlying = (progress > 0.001 && progress < 0.999);
     
+    // 搜索逻辑
     let isMatch = true;
     if (searchKey) isMatch = (f.flightNo.includes(searchKey) || (f.reg && f.reg.includes(searchKey)));
     
-    if (state.focusMode && state.focusFlight) {
-        if(f.key !== state.focusFlight.key) return;
-    } else {
+    // 普通模式下，非飞行中不显示
+    if (!state.focusMode) {
         if (state.hideOtherWhenFilter && searchKey && !isMatch) return;
         if (!isFlying) return;
+    } else {
+        // 专注模式：非当前专注航班，则按普通逻辑(飞才显)；如果是当前航班，允许稍微越界以保持连接
+        if (state.focusFlight && f.key !== state.focusFlight.key) {
+           if(!isFlying) return;
+        }
     }
+    
+    activeKeys.add(f.key);
+    
+    // 位置计算
+    const curPos = interpolate(depAp, arrAp, progress);
+    const angle = calcBearing(depAp.lat, depAp.lng, arrAp.lat, arrAp.lng);
 
+    // 绘制航线 (虚线)
     if (state.showAllLines && !state.focusMode) {
         const line = L.polyline([[depAp.lat, depAp.lng], [arrAp.lat, arrAp.lng]], {
-            color: '#ff8c2b', weight: 1, dashArray: '4, 4', opacity: 0.5, className: 'flight-line-dashed'
+            color: '#ff8c2b', weight: 1, dashArray: '4, 4', opacity: 0.5
         }).addTo(map);
-        mapObjects.dashedLines[f.key] = line;
+        state.dashedLines[f.key] = line;
     }
-
+    
+    // 绘制高亮实线
     if (state.selectedFlightKey === f.key && !state.focusMode) {
-        if (!mapObjects.solidLine) {
-            mapObjects.solidLine = L.polyline([[depAp.lat, depAp.lng], [arrAp.lat, arrAp.lng]], {
-                color: '#ff6d00', weight: 3, opacity: 1, className: 'flight-line-solid'
+        if (!state.solidLine) {
+            state.solidLine = L.polyline([[depAp.lat, depAp.lng], [arrAp.lat, arrAp.lng]], {
+                color: '#ff6d00', weight: 3, opacity: 1
             }).addTo(map);
         } else {
-            mapObjects.solidLine.setLatLngs([[depAp.lat, depAp.lng], [arrAp.lat, arrAp.lng]]);
+            state.solidLine.setLatLngs([[depAp.lat, depAp.lng], [arrAp.lat, arrAp.lng]]);
         }
     }
 
+    // 绘制飞机
     if (state.showPlaneIcon) {
-      const curPos = interpolate(depAp, arrAp, progress);
-      const angle = calcBearing(depAp.lat, depAp.lng, arrAp.lat, arrAp.lng);
+      // 简单飞机避让 (专注模式不避让)
+      let showPlane = true;
+      if (!state.focusMode && map.getZoom() < 6 && !searchKey) {
+          const pt = map.latLngToLayerPoint(curPos);
+          for(let p of planePoints) {
+              if(Math.abs(p.x - pt.x) < 20 && Math.abs(p.y - pt.y) < 20) { showPlane=false; break; }
+          }
+          if(showPlane) planePoints.push(pt);
+      }
       
+      if (!showPlane) {
+          if (state.flightMarkers[f.key]) { map.removeLayer(state.flightMarkers[f.key]); delete state.flightMarkers[f.key]; }
+          return;
+      }
+
       const html = `<div class="plane-wrap" style="transform: rotate(${angle}deg); transition: transform 0.5s;">
                       <img src="${PLANE_IMG}" style="width:30px; height:30px;">
                     </div>`;
       const icon = L.divIcon({ html, className: 'plane-icon', iconSize: [30, 30], iconAnchor: [15, 15] });
 
-      if (!mapObjects.markers[f.key]) {
+      if (!state.flightMarkers[f.key]) {
         const m = L.marker(curPos, { icon, zIndexOffset: 1000 }).addTo(map);
         m.on('click', () => onPlaneClick(f));
-        m.bindTooltip(f.flightNo, { permanent: true, direction: 'right', className: 'airport-label' }); // 复用Label样式
-        mapObjects.markers[f.key] = m;
+        m.bindTooltip(f.flightNo, { permanent: true, direction: 'right', className: 'airport-label' });
+        state.flightMarkers[f.key] = m;
       } else {
-        const m = mapObjects.markers[f.key];
+        const m = state.flightMarkers[f.key];
         m.setLatLng(curPos);
         const wrap = m.getElement().querySelector('.plane-wrap');
         if(wrap) wrap.style.transform = `rotate(${angle}deg)`;
         
+        // 专注模式核心更新
         if(state.focusMode && state.focusFlight && state.focusFlight.key === f.key) {
-            map.panTo(curPos, { animate: true, duration: 1 });
             updateFocusStats(f, progress);
             if(state.mapRotationMode === 'heading') {
                 document.getElementById('map').style.transform = `rotate(${-angle}deg) scale(1.5)`;
+                map.setView(curPos, 8, {animate: false});
             } else {
                 document.getElementById('map').style.transform = `none`;
+                map.panTo(curPos, { animate: true, duration: 1 });
             }
         }
       }
-      const tip = mapObjects.markers[f.key].getTooltip();
-      if(tip && tip.getElement()) tip.getElement().style.display = state.showFlightNo ? 'block' : 'none';
+      // 控制飞机标签
+      const tip = state.flightMarkers[f.key].getTooltip();
+      if(tip && tip.getElement()) tip.getElement().style.display = state.showFlightNo ? 'flex' : 'none';
     }
   });
+
+  // 清理
+  for(let k in state.flightMarkers) {
+      if(!activeKeys.has(k)) { map.removeLayer(state.flightMarkers[k]); delete state.flightMarkers[k]; }
+  }
 }
 
 function onPlaneClick(f) {
@@ -314,9 +410,10 @@ function onPlaneClick(f) {
     openFlightCard(f);
 }
 
-// ================== 卡片交互 ==================
+// ================== 卡片与工具 ==================
 
 function getAirport(key) { return state.airportDB[key] || state.airportDB[key.toUpperCase()]; }
+function getAirportName(key) { const ap = getAirport(key); return ap ? ap.name : key; }
 
 function showAirportCard(ap) {
   if(state.focusMode) return;
@@ -343,73 +440,38 @@ function showAirportCard(ap) {
   renderFlights();
 }
 
-let routeDisplayMode = 'code';
 function openFlightCard(f) {
   const card = document.getElementById("infoCard");
-  const depAp = getAirport(f.dep);
-  const arrAp = getAirport(f.arr);
-  routeDisplayMode = 'code';
-
-  const renderRoute = () => {
-    const dTxt = routeDisplayMode === 'code' ? (depAp?depAp.code:f.dep) : (depAp?depAp.name:f.dep);
-    const aTxt = routeDisplayMode === 'code' ? (arrAp?arrAp.code:f.arr) : (arrAp?arrAp.name:f.arr);
-    return `
-      <div class="ap-block"><div class="ap-code">${dTxt}</div><div class="ap-name-sub">出发</div><div class="time-lbl">${f.depTimeRaw}</div></div>
-      <span class="material-symbols-rounded" style="font-size:32px;opacity:0.3">flight_takeoff</span>
-      <div class="ap-block"><div class="ap-code">${aTxt}</div><div class="ap-name-sub">到达</div><div class="time-lbl">${f.arrTimeRaw}</div></div>
-    `;
-  };
-
+  const depAp = getAirport(f.dep); const arrAp = getAirport(f.arr);
   const html = `
     <div class="card-top">
       <div>
         <div class="flight-big-no">${f.flightNo}</div>
         <div class="flight-meta-row">
-          <span>${f.airline}</span>
-          <div class="flight-meta-sep"></div>
-          <span>${f.planeType||'机型未知'}</span>
-          <div class="flight-meta-sep"></div>
-          <span>${f.reg}</span>
+          <span>${f.airline}</span><div class="flight-meta-sep"></div><span>${f.planeType}</span>
         </div>
       </div>
       <button class="icon-btn" onclick="closeInfoCard()"><span class="material-symbols-rounded">close</span></button>
     </div>
-    <div class="route-display" id="routeDisplayBox">${renderRoute()}</div>
+    <div class="route-display">
+      <div class="ap-block"><div class="ap-code">${depAp?depAp.code:f.dep}</div><div class="ap-name-sub">${depAp?depAp.name:f.dep}</div><div class="time-lbl">${f.depTimeRaw}</div></div>
+      <span class="material-symbols-rounded" style="font-size:32px;opacity:0.3">flight_takeoff</span>
+      <div class="ap-block"><div class="ap-code">${arrAp?arrAp.code:f.arr}</div><div class="ap-name-sub">${arrAp?arrAp.name:f.arr}</div><div class="time-lbl">${f.arrTimeRaw}</div></div>
+    </div>
     <div class="flight-actions">
-      <button class="btn btn-tonal" onclick="switchLeg(this, '${f.reg}', -1)">上一程</button>
       <button class="btn btn-primary" onclick="enterFocusMode('${f.key}')">
         <span class="material-symbols-rounded">my_location</span> 跟踪
       </button>
-      <button class="btn btn-tonal" onclick="switchLeg(this, '${f.reg}', 1)">下一程</button>
     </div>
   `;
-  
   card.innerHTML = html;
   card.classList.remove("hidden");
-  document.getElementById("routeDisplayBox").onclick = function() {
-      routeDisplayMode = (routeDisplayMode === 'code' ? 'name' : 'code');
-      this.innerHTML = renderRoute();
-      this.animate([{opacity:0.5}, {opacity:1}], {duration:200});
-  };
 }
 
 function closeInfoCard() {
     document.getElementById("infoCard").classList.add("hidden");
     state.selectedFlightKey = null;
     renderFlights();
-}
-
-window.switchLeg = (btn, reg, dir) => {
-    const list = state.sortedFlights[reg];
-    if(!list) return;
-    const curr = list.findIndex(x => x.key === state.selectedFlightKey);
-    const nextF = list[curr + dir];
-    if(nextF) onPlaneClick(nextF);
-    else {
-        const oldTxt = btn.innerText;
-        btn.innerText = "无记录";
-        setTimeout(()=>btn.innerText = oldTxt, 1000);
-    }
 }
 
 // ================== 专注模式 ==================
@@ -463,24 +525,28 @@ function updateFocusStats(f, progress) {
     const m = remainMin % 60;
     
     document.getElementById("focusTimeRem").innerHTML = `${h}<small>h</small> ${m}<small>min</small>`;
-    document.getElementById("focusDistRem").innerHTML = `${Math.floor(remainMin * 8)}<small>mi</small>`;
+    document.getElementById("focusDistRem").innerHTML = `${Math.floor(remainMin * 13)}<small>km</small>`;
     document.getElementById("focusProgressBar").style.width = (progress * 100) + "%";
 }
 
-// ================== 音乐播放器 ==================
+// ================== 音乐播放器 (带搜索) ==================
 
 function initMusic() {
     const audio = document.getElementById("bgMusic");
     const cvs = document.getElementById("miniProgress");
     const ctx = cvs.getContext('2d');
     
+    // 当前显示的播放列表（用于搜索过滤）
+    let currentPlaylist = [...MP3_LIST];
+
     const loadSong = (idx) => {
         state.musicIndex = idx;
-        const s = MP3_LIST[idx];
+        const s = MP3_LIST[idx]; // 注意：这里始终用原始列表的索引
         audio.src = s.src;
         document.getElementById("miniTitle").innerText = s.title;
         document.getElementById("musicTitleLarge").innerText = s.title;
         document.querySelector(".music-artist-l").innerText = s.artist;
+        // 高亮当前
         renderPlaylist();
     };
     
@@ -500,6 +566,32 @@ function initMusic() {
         }
     };
     
+    // 播放列表渲染与搜索
+    const renderPlaylist = () => {
+        const div = document.getElementById("playlistItems");
+        div.innerHTML = "";
+        currentPlaylist.forEach((s) => {
+            // 在原始列表中的索引
+            const originalIndex = MP3_LIST.findIndex(x => x.src === s.src);
+            const item = document.createElement("div");
+            item.className = "pl-item " + (originalIndex === state.musicIndex ? 'active' : '');
+            item.innerHTML = `<span>${s.title}</span><span style="opacity:0.6;font-size:12px">${s.artist}</span>`;
+            item.onclick = () => { 
+                loadSong(originalIndex); audio.play(); 
+                document.getElementById("playlistOverlay").classList.add("hidden");
+                document.getElementById("miniPlayBtn").innerHTML = '<span class="material-symbols-rounded">pause</span>';
+            };
+            div.appendChild(item);
+        });
+    };
+
+    // 搜索事件
+    document.getElementById("playlistSearchInput").oninput = (e) => {
+        const val = e.target.value.toLowerCase();
+        currentPlaylist = MP3_LIST.filter(s => s.title.toLowerCase().includes(val) || s.artist.toLowerCase().includes(val));
+        renderPlaylist();
+    };
+
     audio.ontimeupdate = () => {
         const pct = audio.currentTime / audio.duration;
         ctx.clearRect(0,0,32,32);
@@ -521,50 +613,26 @@ function initMusic() {
         }
     };
 
+    // 绑定按钮
     document.getElementById("miniPlayBtn").onclick = (e) => { e.stopPropagation(); togglePlay(); };
     document.getElementById("musicPlayLarge").onclick = togglePlay;
     document.getElementById("miniMusicPlayer").onclick = () => document.getElementById("musicExpandCard").classList.remove("hidden");
     document.getElementById("musicCollapseBtn").onclick = () => document.getElementById("musicExpandCard").classList.add("hidden");
     
+    document.getElementById("musicListToggle").onclick = () => document.getElementById("playlistOverlay").classList.remove("hidden");
+    document.getElementById("closePlaylistBtn").onclick = () => document.getElementById("playlistOverlay").classList.add("hidden");
+
     document.getElementById("musicNext").onclick = () => {
         let next = state.musicIndex + 1; 
         if(next >= MP3_LIST.length) next=0; 
         loadSong(next); audio.play();
-        document.getElementById("miniPlayBtn").innerHTML = '<span class="material-symbols-rounded">pause</span>';
     };
     document.getElementById("musicPrev").onclick = () => {
         let prev = state.musicIndex - 1; 
         if(prev < 0) prev=MP3_LIST.length-1; 
         loadSong(prev); audio.play();
-        document.getElementById("miniPlayBtn").innerHTML = '<span class="material-symbols-rounded">pause</span>';
     };
     
-    const modeBtn = document.getElementById("musicModeBtn");
-    modeBtn.onclick = () => {
-        state.playMode = (state.playMode === 0 ? 1 : 0);
-        modeBtn.innerHTML = state.playMode===0 ? '<span class="material-symbols-rounded">repeat</span>' : '<span class="material-symbols-rounded">shuffle</span>';
-    };
-    
-    document.getElementById("musicListToggle").onclick = () => {
-        document.getElementById("playlistOverlay").classList.toggle("hidden");
-    };
-    
-    const renderPlaylist = () => {
-        const div = document.getElementById("playlistItems");
-        div.innerHTML = "";
-        MP3_LIST.forEach((s, i) => {
-            const item = document.createElement("div");
-            item.className = "pl-item " + (i===state.musicIndex?'active':'');
-            item.innerText = s.title;
-            item.onclick = () => { 
-                loadSong(i); audio.play(); 
-                document.getElementById("playlistOverlay").classList.add("hidden");
-                document.getElementById("miniPlayBtn").innerHTML = '<span class="material-symbols-rounded">pause</span>';
-            };
-            div.appendChild(item);
-        });
-    };
-
     loadSong(0);
 }
 
@@ -585,8 +653,8 @@ const fmtTime = (s) => {
             if(fn) fn();
         };
     };
-    bindSw("sw_showAirportName", "showAirportName", updateDisplaySettings);
-    bindSw("sw_showAirportCode", "showAirportCode", updateDisplaySettings);
+    bindSw("sw_showAirportName", "showAirportName", updateAirportVis);
+    bindSw("sw_showAirportCode", "showAirportCode", updateAirportVis);
     bindSw("sw_showFlightNo", "showFlightNo", renderFlights);
     bindSw("sw_showPlaneIcon", "showPlaneIcon", renderFlights);
     bindSw("sw_showAllLines", "showAllLines", renderFlights);
