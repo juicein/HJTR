@@ -7,14 +7,18 @@
   --md-sys-color-surface-container: #f0f4f8;
   --md-sys-color-outline: #72777f;
   
+  --highlight-orange: #ff6d00;
+  
+  /* 统一的高斯模糊变量 */
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-border: 1px solid rgba(255, 255, 255, 0.5);
   --blur-amt: 25px;
   
   --radius-lg: 24px;
+  --radius-md: 16px;
   --radius-full: 999px;
+  
   --safe-top: env(safe-area-inset-top, 20px);
-  --safe-bottom: env(safe-area-inset-bottom, 20px);
   --elevation-3: 0 10px 20px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.05);
 }
 
@@ -24,7 +28,7 @@
     --md-sys-color-surface-container: #202429;
     --md-sys-color-on-primary-container: #cbe6ff;
     --md-sys-color-primary: #8dcdff;
-    --glass-bg: rgba(30, 30, 30, 0.7);
+    --glass-bg: rgba(30, 30, 30, 0.75);
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
@@ -38,30 +42,26 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ============ Map Styling ============ */
+/* ============ Map Container ============ */
 #mapContainer {
   position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: 1;
-  background: #e6eefc; /* Default Light Ocean */
+  overflow: hidden; background: #e6eefc;
 }
 #map { 
   width: 100%; height: 100%; 
   transition: transform 0.5s cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* 黑暗模式：反转浅色地图使其变暗 (不影响卫星图，因为卫星图是单独Layer) */
+/* 暗黑模式下反转“纯净”地图的颜色，使其变暗 */
 @media (prefers-color-scheme: dark) {
-  #mapContainer { background: #121212; }
-  /* 只反转 clean 图层 */
-  .leaflet-layer-pane .leaflet-layer { filter: invert(100%) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
-  /* 排除卫星图层 (需要给卫星图层加个特定的class，或者利用 z-index 识别) */
-  /* 这里我们在JS里给Clean Layer加className */
-  .leaflet-tile-container img { opacity: 0.8; } 
+    #mapContainer { background: #0f1113; }
+    /* 只反转 class 包含 clean-tiles 的图层 */
+    .leaflet-tile-pane .clean-tiles {
+        filter: invert(100%) hue-rotate(180deg) brightness(0.8) contrast(0.9);
+    }
 }
-/* 卫星图复原 */
-.leaflet-layer-satellite { filter: none !important; }
 
-
-/* ============ Common ============ */
+/* ============ Generic Glass Styles ============ */
 .glass-card {
   background: var(--glass-bg) !important;
   backdrop-filter: blur(var(--blur-amt));
@@ -75,11 +75,11 @@ body {
   -webkit-backdrop-filter: blur(15px);
   border: var(--glass-border);
 }
-.icon-btn {
-  width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent;
-  color: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+/* 给专注模式按钮添加更实一点的背景，防止底色缺失 */
+.glass-btn.solid-bg {
+    background: var(--md-sys-color-surface-container);
+    opacity: 0.9;
 }
-.hidden { display: none !important; }
 
 /* ============ Top Bar ============ */
 #topbar {
@@ -87,28 +87,89 @@ body {
   pointer-events: none; display: flex; justify-content: center; padding: 8px 16px;
 }
 .topbar-inner {
-  pointer-events: auto; border-radius: var(--radius-full);
-  display: flex; align-items: center; padding: 4px 6px 4px 20px; gap: 12px;
+  pointer-events: auto;
+  border-radius: var(--radius-full);
+  display: flex; align-items: center;
+  padding: 4px 6px 4px 20px; gap: 12px;
   width: 100%; max-width: 800px; height: 56px; box-sizing: border-box;
 }
 #brand { font-weight: 800; font-size: 18px; color: var(--md-sys-color-primary); white-space: nowrap; }
 #searchContainer {
-  flex: 1; display: flex; align-items: center; background: rgba(0,0,0,0.05);
-  border-radius: var(--radius-full); padding: 0 12px; height: 40px; min-width: 0;
+  flex: 1; display: flex; align-items: center;
+  background: rgba(0,0,0,0.05);
+  border-radius: var(--radius-full);
+  padding: 0 8px 0 12px; height: 40px; min-width: 0;
 }
-#searchInput { border: none; background: transparent; flex: 1; height: 100%; font-size: 15px; outline: none; }
+#searchInput { border: none; background: transparent; flex: 1; height: 100%; font-size: 15px; outline: none; min-width: 50px; color: inherit; }
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent;
+  color: inherit; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.icon-btn.small { width: 32px; height: 32px; }
+.icon-btn.large { width: 56px; height: 56px; }
+.icon-btn.filled-tonal { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.icon-btn.filled { background: var(--md-sys-color-primary); color: white; }
+.hidden { display: none !important; }
 
-/* ============ Settings ============ */
+/* ============ Map Controls ============ */
+.layer-control {
+  position: fixed; top: calc(var(--safe-top) + 70px); right: 16px;
+  display: flex; flex-direction: column; gap: 8px; z-index: 999;
+}
+.layer-btn {
+  width: 44px; height: 44px; background: var(--md-sys-color-surface);
+  border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; color: var(--md-sys-color-outline);
+}
+.layer-btn.active { color: var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); }
+
+/* ============ Settings Panel ============ */
 .md3-card { border-radius: var(--radius-lg); padding: 20px; }
 #settingsPanel {
-  position: fixed; top: 90px; right: 16px; width: 300px; z-index: 1100;
+  position: fixed; top: calc(var(--safe-top) + 70px); 
+  right: 16px; width: 300px; z-index: 1100;
+  max-height: 80vh; overflow-y: auto;
 }
+@media (max-width: 600px) {
+  #settingsPanel { right: 50%; transform: translateX(50%); width: 90%; top: calc(var(--safe-top) + 80px); }
+}
+.settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.setting-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 14px; }
 .md3-switch { position: relative; width: 44px; height: 24px; display: flex; align-items: center; }
 .md3-switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-sys-color-outline); border-radius: 24px; transition: .3s; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--md-sys-color-outline); border-radius: 24px; transition: .3s; border: 2px solid transparent; }
 .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: #fff; border-radius: 50%; transition: .3s; }
-.md3-switch input:checked + .slider { background-color: var(--md-sys-color-primary); }
+.md3-switch input:checked + .slider { background-color: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
 .md3-switch input:checked + .slider:before { transform: translateX(20px); }
+
+/* ============ Flight Info Card ============ */
+#infoCard {
+  position: fixed; bottom: 24px; left: 16px; right: 16px;
+  max-width: 500px; margin: 0 auto; z-index: 1050;
+  animation: slideUp 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes slideUp { from { transform: translateY(120%); } to { transform: translateY(0); } }
+
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.flight-big-no { font-size: 26px; font-weight: 800; color: var(--md-sys-color-primary); }
+.flight-meta-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 13px; color: var(--md-sys-color-outline); font-weight: 500; }
+.flight-meta-sep { width: 3px; height: 3px; background: currentColor; border-radius: 50%; }
+
+.route-display { 
+  display: flex; align-items: center; justify-content: space-between; 
+  margin: 12px 0; padding: 16px; 
+  background: rgba(0,0,0,0.03); border-radius: 16px; 
+  cursor: pointer; transition: background 0.2s;
+}
+.route-display:active { background: rgba(0,0,0,0.06); }
+.ap-block { text-align: center; min-width: 80px; }
+.ap-code { font-size: 22px; font-weight: 800; line-height: 1.1; }
+.ap-name-sub { font-size: 12px; color: var(--md-sys-color-outline); margin-top: 2px; }
+.time-lbl { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.flight-actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn { flex: 1; height: 42px; border-radius: 21px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; }
+.btn-primary { background: var(--md-sys-color-primary); color: white; }
+.btn-tonal { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 
 /* ============ Focus Mode ============ */
 #focusOverlay {
@@ -118,135 +179,188 @@ body {
   position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
 }
 
-/* 左侧工具栏：手机适配重点 */
+/* 顶部左侧工具栏 - 提高Z轴防止被卡片遮挡 */
 .focus-tools.left {
   pointer-events: auto; position: absolute; 
   top: calc(var(--safe-top) + 24px); left: 16px;
-  display: flex; flex-direction: column; gap: 12px; z-index: 2050; /* Ensure on top */
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 2100; 
 }
-.filled-surface { background: var(--md-sys-color-surface); color: var(--md-sys-color-primary); }
 
-/* Top Flight Bar */
-.focus-top-bar {
-  pointer-events: auto; position: absolute;
-  top: calc(var(--safe-top) + 24px); 
-  left: 50%; transform: translateX(-50%);
-  width: 90%; max-width: 600px; height: 60px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border: var(--glass-border); border-radius: 30px;
-  display: flex; align-items: center; justify-content: center;
-  box-shadow: var(--elevation-3); z-index: 2010;
-}
-#exitFocusBtn { position: absolute; left: 8px; background: rgba(0,0,0,0.05); width: 36px; height: 36px; }
-.focus-flight-no { font-weight: 800; font-size: 20px; margin-right: 12px; margin-left: 20px; }
-.focus-status { font-size: 14px; display: flex; align-items: center; gap: 6px; }
-.status-dot { width: 8px; height: 8px; background: #00e676; border-radius: 50%; box-shadow: 0 0 8px #00e676; }
-
-/* Mini Player */
+/* 顶部右侧迷你播放器 */
 .mini-music.right {
   pointer-events: auto; position: absolute;
   top: calc(var(--safe-top) + 24px); right: 16px;
   display: flex; align-items: center; gap: 8px;
   padding: 6px 12px 6px 6px; border-radius: 32px;
-  box-shadow: var(--elevation-3); z-index: 2020;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer;
+  max-width: 140px; transition: 0.2s; z-index: 2100;
 }
+.mini-music:active { transform: scale(0.96); }
+.mini-cover { position: relative; width: 32px; height: 32px; border-radius: 50%; background: var(--md-sys-color-primary-container); display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-primary); }
+.mini-cover canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mini-info { display: flex; flex-direction: column; overflow: hidden; font-size: 12px; flex: 1; }
+#miniTitle { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#miniStatus { font-size: 10px; opacity: 0.7; }
+#miniPlayBtn { width: 28px; height: 28px; background: rgba(0,0,0,0.05); }
 
-/* ============ Mobile Adaptations (Phone) ============ */
-@media (max-width: 600px) {
-  /* 缩小并下移Top Bar，留出空间 */
-  .focus-top-bar {
-    top: calc(var(--safe-top) + 80px); /* 避开左右按钮 */
-    width: 85%;
-    transform: translateX(-50%) scale(0.9); /* 整体缩小 */
-  }
-  
-  /* 左侧按钮位置微调，确保不被卡住 */
-  .focus-tools.left {
-    top: calc(var(--safe-top) + 20px);
-  }
-  
-  /* 底部仪表盘缩小并留出边缘 */
-  .focus-dashboard {
-    width: 85% !important;
-    bottom: calc(var(--safe-bottom) + 30px) !important;
-    padding: 20px !important;
-    transform: translateX(-50%) scale(0.9) !important;
-    margin-bottom: 10px;
-  }
-  
-  /* 音乐全屏卡片居中适配 */
-  .music-expand-card {
-    position: fixed !important; top: 50% !important; left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 85% !important; max-height: 80vh;
-    animation: popCenter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-  }
+/* Top blur bar */
+.focus-top-bar {
+  pointer-events: auto;
+  position: absolute;
+  top: calc(var(--safe-top) + 24px); 
+  left: 50%; transform: translateX(-50%);
+  width: 90%; max-width: 600px;
+  height: 60px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: var(--glass-border);
+  border-radius: 30px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--elevation-3);
+  transition: top 0.3s;
 }
-@keyframes popCenter { from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+#exitFocusBtn { position: absolute; left: 8px; background: rgba(0,0,0,0.1); width: 36px; height: 36px; border:none; }
+.focus-flight-no { font-weight: 800; font-size: 20px; margin-right: 12px; margin-left: 20px; }
+.focus-status { font-size: 14px; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.status-dot { width: 8px; height: 8px; background: #00e676; border-radius: 50%; box-shadow: 0 0 8px #00e676; }
 
-/* ============ Bottom Dashboard ============ */
+/* Bottom Dashboard */
 .focus-dashboard {
-  pointer-events: auto; position: absolute;
+  pointer-events: auto;
+  position: absolute;
   bottom: 40px; left: 50%; transform: translateX(-50%);
   width: 90%; max-width: 600px;
   background: var(--glass-bg);
-  backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-  border: var(--glass-border); border-radius: 32px; padding: 24px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.3); z-index: 2010;
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: var(--glass-border);
+  border-radius: 32px;
+  padding: 24px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
 }
+
 .focus-data-row { display: flex; justify-content: space-around; align-items: center; margin-bottom: 24px; }
-.data-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 4px; text-align: center; }
-.data-value { font-size: 36px; font-weight: 300; font-feature-settings: "tnum"; text-align: center; }
+.data-item { text-align: center; }
+.data-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.6; margin-bottom: 4px; }
+.data-value { font-size: 36px; font-weight: 300; font-feature-settings: "tnum"; }
 .data-value small { font-size: 16px; font-weight: 500; }
 .divider-vertical { width: 1px; height: 40px; background: rgba(0,0,0,0.1); }
+
 .focus-progress-container { position: relative; }
 .focus-route-text { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 8px; align-items: center; }
 .plane-track-line { flex: 1; border-bottom: 2px dashed rgba(0,0,0,0.2); margin: 0 16px; position: relative; height: 1px; top: -5px;}
 .plane-glyph { position: absolute; left: 50%; top: -12px; transform: translateX(-50%) rotate(90deg); color: var(--md-sys-color-primary); }
-.focus-progress-bar-bg { height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden; }
-.focus-progress-bar-fill { height: 100%; background: var(--md-sys-color-primary); width: 0%; transition: width 1s linear; }
 
-/* ============ Music Expanded ============ */
+.focus-progress-bar-bg {
+  height: 6px; background: rgba(0,0,0,0.1); border-radius: 3px; overflow: hidden;
+}
+.focus-progress-bar-fill {
+  height: 100%; background: var(--md-sys-color-primary); width: 0%;
+  transition: width 1s linear;
+}
+
+/* ===== 手机端专注模式特别适配 ===== */
+@media (max-width: 600px) {
+  /* 顶部条：更紧凑，避开按钮 */
+  .focus-top-bar {
+    top: calc(var(--safe-top) + 80px); /* 位于工具栏下方 */
+    width: auto; left: 16px; right: 16px; transform: none; /* 拉伸占满 */
+    height: 50px; border-radius: 25px;
+  }
+  .focus-flight-no { font-size: 18px; margin-left: 48px; } /* 避开退出按钮 */
+  
+  /* 底部仪表盘：更紧凑 */
+  .focus-dashboard {
+    bottom: 20px;
+    width: 92%; padding: 16px; 
+    border-radius: 24px;
+  }
+  .focus-data-row { margin-bottom: 16px; }
+  .data-value { font-size: 28px; } /* 缩小字体 */
+  .data-label { font-size: 10px; }
+  .divider-vertical { height: 30px; }
+  
+  /* 确保按钮在最上层 */
+  .focus-tools.left, .mini-music.right { z-index: 2200; }
+}
+
+/* ============ Music Expand Card ============ */
 .music-expand-card {
-  pointer-events: auto; position: absolute; top: 90px; right: 16px; width: 320px;
+  pointer-events: auto; position: absolute; top: 90px; right: 16px; width: 300px; 
   border-radius: 28px; padding: 20px; z-index: 2100;
   display: flex; flex-direction: column; gap: 16px;
+  background: var(--glass-bg);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
   animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* 确保卡片不会超出屏幕高度 */
+  max-height: calc(100vh - 120px);
 }
+
 @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.music-expand-header { display: flex; justify-content: space-between; align-items: center; font-weight: 700; opacity: 0.8; }
-.music-cover-large { width: 100%; aspect-ratio: 1; border-radius: 16px; background: var(--md-sys-color-surface-container); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
-.music-meta-large { text-align: left; }
+
+@media (max-width: 600px) {
+  .music-expand-card { 
+    right: 50%; transform: translateX(50%) !important; 
+    top: calc(var(--safe-top) + 80px); 
+    width: 85%; /* 留边距 */
+    max-height: 70vh; /* 避免太高 */
+  }
+}
+
+.music-expand-header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 700; opacity: 0.8; flex-shrink: 0; }
+.music-cover-large { 
+  width: 100%; aspect-ratio: 1; border-radius: 16px; background: var(--md-sys-color-surface-container); 
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15); flex-shrink: 0;
+  /* 手机上允许封面缩小 */
+  min-height: 0;
+}
+@media (max-width: 600px) {
+    .music-cover-large { aspect-ratio: auto; height: 180px; }
+}
+
+.cover-placeholder span { font-size: 64px; opacity: 0.2; }
+.music-meta-large { text-align: left; flex-shrink: 0; }
 .music-title-l { font-size: 20px; font-weight: 800; }
 .music-artist-l { font-size: 14px; opacity: 0.6; }
-.music-controls-large { display: flex; justify-content: space-between; align-items: center; }
+.music-progress-bar { width: 100%; flex-shrink: 0; }
+.progress-bg { height: 4px; background: rgba(0,0,0,0.1); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--md-sys-color-primary); width: 30%; }
+.time-row { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.5; margin-top: 6px; }
+.music-controls-large { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; flex-shrink: 0; }
 
-/* Playlist with Search */
+/* Playlist Overlay */
 .playlist-overlay {
   position: absolute; top: 0; left: 0; right: 0; bottom: 0;
   background: var(--md-sys-color-surface); border-radius: 28px; padding: 20px; z-index: 10;
   display: flex; flex-direction: column;
 }
-.playlist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.playlist-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .playlist-title { font-size: 18px; font-weight: 800; }
-.playlist-search-box {
-  display: flex; align-items: center; background: rgba(0,0,0,0.05);
-  border-radius: 12px; padding: 8px 12px; margin-bottom: 12px; gap: 8px;
+
+.playlist-search {
+    display: flex; align-items: center; background: rgba(0,0,0,0.05);
+    border-radius: 12px; padding: 0 12px; height: 36px; margin-bottom: 12px; gap: 8px;
 }
-.playlist-search-box input { border: none; background: transparent; flex: 1; outline: none; font-size: 14px; }
+.playlist-search input { border:none; background:transparent; flex:1; outline:none; color:inherit; font-size:14px; }
+
 #playlistItems { flex: 1; overflow-y: auto; }
-.pl-item { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; }
+.pl-item { padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 14px; cursor: pointer; }
 .pl-item.active { color: var(--md-sys-color-primary); font-weight: 700; }
 
-/* ============ Airport Markers (New Logic) ============ */
-.airport-marker {
+/* ============ MD3 Airport Marker ============ */
+.airport-marker-container {
   display: flex; flex-direction: row; align-items: center; gap: 6px; white-space: nowrap;
-  transform: translate(-50%, -50%); pointer-events: none;
+  transform: translate(-50%, -50%);
+  pointer-events: none; /* Make container click-through, but children auto */
 }
 .airport-dot {
-  width: 10px; height: 10px; border-radius: 50%; background: white; border: 3px solid #5f6368;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3); pointer-events: auto; cursor: pointer; z-index: 10;
+  width: 10px; height: 10px; min-width: 10px;
+  border-radius: 50%; background: white; border: 3px solid #5f6368;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  pointer-events: auto; cursor: pointer; z-index: 10;
 }
 .airport-label {
   pointer-events: auto;
@@ -255,31 +369,25 @@ body {
   padding: 2px 8px; border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   font-size: 12px; color: #1f1f1f; font-weight: 600;
-  display: flex; gap: 4px;
+  display: flex; /* 默认flex，由JS控制显隐 */
+  align-items: baseline; gap: 4px;
+  transition: opacity 0.2s;
 }
-/* 默认隐藏，通过 JS 碰撞计算后 remove 'hidden' class */
-.airport-marker.hidden { opacity: 0; pointer-events: none; }
 
-/* 名字和Code的独立开关 */
-.label-name, .label-code { display: none; }
-body.show-ap-name .label-name { display: inline; }
-body.show-ap-code .label-code { display: inline; }
+/* 机场内容的显隐逻辑 */
+.ap-name-span { display: none; }
+.ap-code-span { display: none; color: var(--md-sys-color-primary); font-weight: 700; }
 
-/* 如果两个都关闭，隐藏整个 label 背景 */
-body.no-ap-labels .airport-label { display: none !important; }
+body.show-ap-name .ap-name-span { display: inline; }
+body.show-ap-code .ap-code-span { display: inline; }
 
-/* High Rank Styling */
-.rank-high .airport-dot { border-color: var(--md-sys-color-primary); width: 12px; height: 12px; }
-.rank-high .airport-label { font-weight: 800; background: var(--md-sys-color-surface); border: 1px solid var(--md-sys-color-primary); color: var(--md-sys-color-primary); }
+/* 碰撞检测：JS会给marker添加 .collision-hidden */
+.airport-marker-container.collision-hidden .airport-label { opacity: 0; pointer-events: none; }
+/* 如果全都不显示，也隐藏标签背景 */
+body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !important; }
 
-/* Layer Control */
-.layer-control {
-  position: fixed; top: 100px; right: 16px;
-  display: flex; flex-direction: column; gap: 8px; z-index: 999;
-}
-.layer-btn {
-  width: 44px; height: 44px; background: var(--md-sys-color-surface);
-  border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1); cursor: pointer; color: var(--md-sys-color-outline);
-}
-.layer-btn.active { color: var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); }
+/* Plane & Lines */
+.plane-icon { transition: opacity 0.3s; }
+.plane-icon.dimmed { opacity: 0.2; pointer-events: none; }
+.flight-line-dashed { pointer-events: none; }
+.flight-line-solid { stroke: var(--highlight-orange); stroke-width: 3px; stroke-dasharray: none; opacity: 1; z-index: 500; }
