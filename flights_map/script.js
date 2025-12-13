@@ -3,10 +3,10 @@ const AIRPORTS_PATH = "../data/airports.json";
 const FLIGHT_DATA_PATH = "../data/flight_data.txt";
 const PLANE_IMG = "https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png";
 const MP3_LIST = [
-  { title: "Pure", src: "music/Pure.mp3", artist: "Micki Miller" },
-  { title: "燃冬", src: "music/燃冬.mp3", artist: "电影原声" },
-  { title: "Gen Wo Yi Qi Feng", src: "music/Gen Wo Yi Qi Feng.mp3", artist: "Beach Boys" },
-  { title: "San Fransisco", src: "music/San Fransisco.mp3", artist: "Beach Boys" }
+  { title: "Pure", src: "../music/Pure.m4a", artist: "Micki Miller" },
+  { title: "冬", src: "music/燃冬.mp3", artist: "电影原声" },
+  { title: "Gen  Feng", src: "music/Gen Wo Yi Qi Feng.mp3", artist: "Beach Boys" },
+  { title: "San Fran", src: "music/San Fransisco.mp3", artist: "Beach Boys" }
 ];
 
 // 使用 class='clean-tiles' 以便于 CSS 反转颜色
@@ -674,6 +674,12 @@ function initSensitiveAreas() {
     // 2. 无国界底图
     // 当前使用的 CartoDB Light NoLabels 已经是无国界线的底图。
     // 如果需要更彻底的纯色背景，可以将 CSS 中 #mapContainer 的 background 设为纯色并调高透明度。
+
+      const sensitivePoly = L.polygon([
+       [20, 115], [26, 118], [26, 123], [20, 123] // 粗略示例区域
+    ], { color: 'transparent', fillColor: '#e6eefc', fillOpacity: 0.8 }).addTo(map);
+
+  
 }
 
 // ================== 初始化 ==================
