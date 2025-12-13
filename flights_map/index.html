@@ -1,189 +1,984 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>航班实时地图 MD3 Pro+</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flight Tracker Pro</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
+    
+    <style>
+        /* ================== 全局变量与基础样式 ================== */
+        :root {
+            --primary: #2196F3;
+            --accent: #FF9800;
+            --surface: #ffffff;
+            --surface-trans: rgba(255, 255, 255, 0.95);
+            --text-main: #1a1a1a;
+            --text-sub: #666666;
+            --outline: #e0e0e0;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --radius: 16px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --surface: #1e1e1e;
+                --surface-trans: rgba(30, 30, 30, 0.95);
+                --text-main: #f5f5f5;
+                --text-sub: #aaaaaa;
+                --outline: #333333;
+            }
+        }
+
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Inter', sans-serif; overflow: hidden; background: #000; }
+        
+        /* ================== 地图相关 ================== */
+        #map { width: 100%; height: 100%; background: #f0f0f0; transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        
+        /* 暗黑模式底图反转 (仅针对 clean 图层) */
+        @media (prefers-color-scheme: dark) {
+            .leaflet-layer.clean-layer {
+                filter: invert(100%) hue-rotate(180deg) brightness(80%) contrast(90%);
+            }
+            #map { background: #121212; }
+        }
+
+        /* 马赛克/模糊遮罩样式 (用于合规) */
+        .compliance-mask {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px) pixelate(10px); /* 核心模糊效果 */
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,0,0,0.1); /* 调试用，实际可去掉 */
+            pointer-events: none; /* 让点击穿透 */
+        }
+
+        /* 飞机图标 */
+        .plane-divicon { background: transparent; border: none; }
+        .plane-img { width: 32px; height: 32px; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); transition: transform 1s linear; }
+        .plane-tooltip { background: var(--surface); color: var(--text-main); border: none; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-weight: 600; padding: 4px 8px; border-radius: 4px; }
+
+        /* ================== 核心：机场样式 (完全复用) ================== */
+        .custom-ap-icon { background: none; border: none; }
+        .airport-marker {
+            position: relative; display: flex; align-items: center; justify-content: center;
+            width: 0; height: 0; /* Center anchor */
+        }
+        /* 圆点 */
+        .airport-dot {
+            width: 8px; height: 8px; background: var(--text-sub); border: 2px solid var(--surface);
+            border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            position: absolute; left: -6px; top: -6px;
+            transition: all 0.3s ease;
+        }
+        /* 高等级机场圆点 */
+        .airport-marker.rank-high .airport-dot {
+            width: 12px; height: 12px; background: var(--primary); left: -8px; top: -8px; z-index: 10;
+        }
+        /* 标签容器 */
+        .airport-label {
+            position: absolute; left: 10px; top: -12px;
+            background: var(--surface-trans); backdrop-filter: blur(4px);
+            padding: 2px 6px; border-radius: 4px; border: 1px solid var(--outline);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            white-space: nowrap; font-size: 11px; color: var(--text-main);
+            display: flex; gap: 4px; align-items: center; pointer-events: none;
+        }
+        .airport-marker.rank-high .airport-label {
+            font-weight: 700; font-size: 12px; border-color: var(--primary);
+        }
+        .label-name { display: block; }
+        .label-code { color: var(--text-sub); font-size: 0.9em; font-weight: 500; }
+        .airport-marker.hidden { display: none; } /* 碰撞隐藏 */
+
+
+        /* ================== 顶部导航与搜索 ================== */
+        .top-ui { position: absolute; top: 16px; left: 16px; right: 16px; z-index: 1000; display: flex; gap: 12px; pointer-events: none; }
+        .top-ui > * { pointer-events: auto; }
+        
+        .search-box {
+            flex: 1; max-width: 400px; background: var(--surface); border-radius: var(--radius);
+            box-shadow: var(--shadow); display: flex; align-items: center; padding: 0 12px; height: 48px;
+        }
+        .search-box input { border: none; outline: none; background: transparent; flex: 1; margin: 0 8px; color: var(--text-main); font-size: 16px; }
+        
+        .btn-circle {
+            width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: none;
+            box-shadow: var(--shadow); color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+
+        /* ================== 设置面板 ================== */
+        .panel-float {
+            position: absolute; top: 70px; right: 16px; width: 260px; background: var(--surface);
+            border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px; z-index: 1001;
+        }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 14px; color: var(--text-main); }
+        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* ================== 底部卡片 (普通模式) ================== */
+        .info-card {
+            position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 500px; background: var(--surface); border-radius: var(--radius);
+            box-shadow: var(--shadow); padding: 20px; z-index: 1000;
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+        .card-title-lg { font-size: 24px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
+        .card-sub { font-size: 13px; color: var(--text-sub); }
+        .route-row { display: flex; justify-content: space-between; align-items: center; margin: 20px 0; cursor: pointer; }
+        .airport-display { text-align: center; flex: 1; }
+        .ap-code { font-size: 32px; font-weight: 800; display: block; color: var(--primary); line-height: 1; }
+        .ap-name { font-size: 12px; color: var(--text-sub); margin-top: 4px; display: none; } /* 默认隐藏名称 */
+        .show-name .ap-code { display: none; }
+        .show-name .ap-name { display: block; font-size: 18px; font-weight: 700; color: var(--text-main); }
+        .time-tag { background: rgba(33, 150, 243, 0.1); color: var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; margin-top: 6px; }
+        .action-row { display: flex; gap: 8px; margin-top: 16px; }
+        .btn { flex: 1; height: 40px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-family: inherit; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-outline { background: transparent; border: 1px solid var(--outline); color: var(--text-main); }
+        .icon-btn { background: none; border: none; color: var(--text-sub); cursor: pointer; }
+
+        /* ================== 专注模式 (Focus Mode) ================== */
+        #focusOverlay { position: absolute; inset: 0; z-index: 2000; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+        #focusOverlay > * { pointer-events: auto; }
+
+        /* 顶部状态栏 */
+        .focus-top {
+            margin: 16px; padding: 16px 24px; background: var(--surface-trans); backdrop-filter: blur(10px);
+            border-radius: var(--radius); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center;
+        }
+        .flight-big { font-size: 28px; font-weight: 800; letter-spacing: 1px; color: var(--text-main); }
+        .flight-route { font-size: 14px; color: var(--text-sub); margin-left: 12px; display: inline-block; }
+        
+        /* 底部仪表盘 */
+        .focus-bottom {
+            margin: 24px; padding: 24px; background: var(--surface-trans); backdrop-filter: blur(10px);
+            border-radius: var(--radius); box-shadow: var(--shadow); position: relative;
+        }
+        .dash-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center; margin-bottom: 20px; }
+        .dash-item .label { font-size: 12px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .dash-item .value { font-size: 24px; font-weight: 700; color: var(--text-main); }
+        .progress-track { height: 6px; background: var(--outline); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.5s; }
+
+        /* 悬浮按钮组 (专注模式) */
+        .floating-controls {
+            position: absolute; right: 24px; bottom: 160px; /* 默认在底部卡片上方 */
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .fab {
+            width: 56px; height: 56px; border-radius: 50%; background: var(--surface); color: var(--text-main);
+            border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .fab.filled { background: var(--primary); color: white; }
+        .fab:active { transform: scale(0.95); }
+
+        /* 音乐播放器小部件 */
+        .music-widget {
+            position: absolute; top: 100px; left: 16px; background: var(--surface);
+            padding: 12px; border-radius: 12px; box-shadow: var(--shadow); width: 220px;
+            display: flex; align-items: center; gap: 10px; z-index: 2010;
+        }
+        .music-cover { width: 40px; height: 40px; background: #333; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; }
+        .music-info { flex: 1; overflow: hidden; }
+        .music-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .music-artist { font-size: 11px; color: var(--text-sub); }
+        
+        /* 播放列表弹窗 */
+        .playlist-modal {
+            position: absolute; top: 100px; left: 250px; width: 280px; max-height: 400px;
+            background: var(--surface); border-radius: 12px; box-shadow: var(--shadow);
+            display: flex; flex-direction: column; overflow: hidden; z-index: 2020;
+        }
+        .playlist-header { padding: 12px; border-bottom: 1px solid var(--outline); display: flex; justify-content: space-between; }
+        .playlist-search { padding: 8px 12px; border-bottom: 1px solid var(--outline); }
+        .playlist-search input { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid var(--outline); background: rgba(0,0,0,0.05); color: var(--text-main);}
+        .playlist-items { flex: 1; overflow-y: auto; padding: 8px 0; }
+        .playlist-item { padding: 8px 16px; cursor: pointer; display: flex; justify-content: space-between; font-size: 13px; color: var(--text-main); }
+        .playlist-item:hover { background: rgba(0,0,0,0.05); }
+        .playlist-item.active { color: var(--primary); font-weight: 600; }
+
+        /* ================== 移动端适配 (核心修改) ================== */
+        @media (max-width: 768px) {
+            /* 1. 顶部搜索栏缩小 */
+            .top-ui { top: 12px; left: 12px; right: 12px; }
+            .btn-circle { width: 40px; height: 40px; }
+            .search-box { height: 40px; }
+
+            /* 2. 专注模式 - 顶部卡片缩小 & 留边 */
+            .focus-top {
+                margin: 12px 12px 0 12px;
+                padding: 12px 16px;
+                flex-direction: column; align-items: flex-start; gap: 4px;
+            }
+            .flight-big { font-size: 20px; }
+            .flight-route { margin-left: 0; font-size: 12px; }
+            /* 退出按钮绝对定位到右侧 */
+            #exitFocusBtn { position: absolute; right: 16px; top: 16px; }
+
+            /* 3. 专注模式 - 底部卡片缩小 & 留边 */
+            .focus-bottom {
+                margin: 0 12px 24px 12px; /* 底部留多一点空间 */
+                padding: 16px;
+            }
+            .dash-grid { gap: 10px; margin-bottom: 12px; }
+            .dash-item .value { font-size: 18px; }
+            .dash-item .label { font-size: 10px; }
+            
+            /* 4. 专注模式 - 悬浮按钮防遮挡 */
+            .floating-controls {
+                right: 16px;
+                bottom: 140px; /* 提高位置，避免被底部卡片遮挡 */
+            }
+            .fab { width: 44px; height: 44px; background: var(--surface); } /* 强制背景色，防止透明 */
+
+            /* 5. 音乐播放器适配 */
+            .music-widget {
+                top: 90px; left: 12px; width: 140px; padding: 8px;
+            }
+            .music-info { display: none; } /* 手机上只显示控制按钮，太窄了 */
+            .music-cover { width: 32px; height: 32px; }
+            
+            /* 音乐列表全屏化 */
+            .playlist-modal {
+                top: auto; bottom: 0; left: 0; right: 0; width: 100%; border-radius: 16px 16px 0 0;
+            }
+        }
+
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
 
-  <audio id="bgMusic" loop></audio>
-
-  <header id="topbar">
-    <div class="topbar-inner glass-card">
-      <div id="brand">航班地图</div>
-      
-      <div id="searchContainer">
-        <span class="material-symbols-rounded search-icon">search</span>
-        <input id="searchInput" placeholder="航班号 / 注册号 / 机场" autocomplete="off" />
-        <button id="searchBtn" class="icon-btn" title="搜索"><span class="material-symbols-rounded">arrow_forward</span></button>
-        <button id="clearBtn" class="icon-btn hidden" title="清除"><span class="material-symbols-rounded">close</span></button>
-      </div>
-
-      <button id="settingsBtn" class="icon-btn filled-tonal" title="设置">
-        <span class="material-symbols-rounded">settings</span>
-      </button>
-    </div>
-  </header>
-
-  <div id="layerControl" class="layer-control">
-    <div class="layer-btn active" data-type="clean" title="纯净地图">
-      <span class="material-symbols-rounded">map</span>
-    </div>
-    <div class="layer-btn" data-type="satellite" title="卫星地图">
-      <span class="material-symbols-rounded">satellite_alt</span>
-    </div>
-  </div>
-
-  <div id="settingsPanel" class="md3-card hidden glass-card">
-    <div class="settings-header">
-      <h4>显示设置</h4>
-      <button id="settingsClose" class="icon-btn"><span class="material-symbols-rounded">close</span></button>
-    </div>
-    <div class="setting-group">
-      <div class="setting-row">
-        <span>显示机场名称</span>
-        <label class="md3-switch"><input id="sw_showAirportName" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>显示机场三字码</span>
-        <label class="md3-switch"><input id="sw_showAirportCode" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>显示航班号标签</span>
-        <label class="md3-switch"><input id="sw_showFlightNo" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>显示飞机图标</span>
-        <label class="md3-switch"><input id="sw_showPlaneIcon" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>显示实时航线 (虚线)</span>
-        <label class="md3-switch"><input id="sw_showAllLines" type="checkbox"><span class="slider"></span></label>
-      </div>
-      <div class="setting-row">
-        <span>专注模式过滤其他</span>
-        <label class="md3-switch"><input id="sw_hideOtherWhenFilter" type="checkbox"><span class="slider"></span></label>
-      </div>
-    </div>
-  </div>
-
-  <div id="mapContainer">
     <div id="map"></div>
-  </div>
+    <audio id="bgMusic" loop></audio>
 
-  <div id="infoCard" class="md3-card bottom-sheet hidden glass-card"></div>
-
-  <div id="focusOverlay" class="hidden">
-    
-    <div class="focus-ui-container">
-      
-      <div class="focus-tools left">
-         <button class="icon-btn glass-btn" id="focusRotationBtn" title="切换方向">
-           <span class="material-symbols-rounded" id="rotIcon">explore</span>
-         </button>
-         <button class="icon-btn glass-btn" id="focusLayerBtn" title="切换图层">
-           <span class="material-symbols-rounded">layers</span>
-         </button>
-      </div>
-
-      <div class="focus-top-bar">
-        <button id="exitFocusBtn" class="icon-btn glass-btn">
-          <span class="material-symbols-rounded">expand_more</span>
-        </button>
-        <div class="focus-flight-no" id="focusFlightNo">--</div>
-        <div class="focus-status">
-          <span class="status-dot"></span> 正在飞往 <span id="focusDest">--</span>
+    <div id="topbar" class="top-ui">
+        <div class="search-box">
+            <span class="material-symbols-rounded" style="color:var(--text-sub)">search</span>
+            <input type="text" id="searchInput" placeholder="搜索航班 / 机场 / 注册号...">
+            <button class="icon-btn hidden" id="clearBtn"><span class="material-symbols-rounded">close</span></button>
         </div>
-      </div>
-
-      <div id="miniMusicPlayer" class="mini-music right glass-btn">
-        <div class="mini-cover">
-          <span class="material-symbols-rounded">music_note</span>
-          <canvas id="miniProgress" width="32" height="32"></canvas>
+        <button class="btn-circle" id="searchBtn"><span class="material-symbols-rounded">arrow_forward</span></button>
+        <button class="btn-circle" id="settingsBtn"><span class="material-symbols-rounded">tune</span></button>
+        
+        <div id="layerControl" class="btn-circle" style="width:auto; padding:0 6px; gap:4px; border-radius:24px;">
+            <button class="icon-btn layer-btn active" data-type="clean" title="简洁"><span class="material-symbols-rounded">map</span></button>
+            <div style="width:1px; height:20px; background:var(--outline)"></div>
+            <button class="icon-btn layer-btn" data-type="satellite" title="卫星"><span class="material-symbols-rounded">satellite_alt</span></button>
         </div>
-        <div class="mini-info">
-          <span id="miniTitle">Pure</span>
-          <span id="miniStatus">Paused</span>
-        </div>
-        <button id="miniPlayBtn" class="icon-btn small"><span class="material-symbols-rounded">play_arrow</span></button>
-      </div>
-
     </div>
 
-    <div id="musicExpandCard" class="music-expand-card glass-card hidden">
-      <div class="music-expand-header">
-        <button id="musicCollapseBtn" class="icon-btn"><span class="material-symbols-rounded">expand_less</span></button>
-        <span>正在播放</span>
-        <button id="musicListToggle" class="icon-btn"><span class="material-symbols-rounded">queue_music</span></button>
-      </div>
-      
-      <div class="music-cover-large">
-        <div class="cover-placeholder">
-          <span class="material-symbols-rounded">album</span>
+    <div id="settingsPanel" class="panel-float hidden">
+        <div class="card-header">
+            <span style="font-weight:700">显示设置</span>
+            <button class="icon-btn" id="settingsClose"><span class="material-symbols-rounded">close</span></button>
         </div>
-      </div>
-      
-      <div class="music-meta-large">
-        <div id="musicTitleLarge" class="music-title-l">Pure.mp3</div>
-        <div class="music-artist-l">Local Audio</div>
-      </div>
-
-      <div class="music-progress-bar">
-        <div class="progress-bg"><div id="musicFill" class="progress-fill"></div></div>
-        <div class="time-row">
-          <span id="currTime">0:00</span>
-          <span id="totalTime">--:--</span>
-        </div>
-      </div>
-
-      <div class="music-controls-large">
-        <button id="musicModeBtn" class="icon-btn" title="循环/随机"><span class="material-symbols-rounded">repeat</span></button>
-        <button id="musicPrev" class="icon-btn filled-tonal"><span class="material-symbols-rounded">skip_previous</span></button>
-        <button id="musicPlayLarge" class="icon-btn filled large"><span class="material-symbols-rounded">play_arrow</span></button>
-        <button id="musicNext" class="icon-btn filled-tonal"><span class="material-symbols-rounded">skip_next</span></button>
-        <button class="icon-btn disabled"><span class="material-symbols-rounded">more_horiz</span></button>
-      </div>
-
-      <div id="playlistOverlay" class="playlist-overlay hidden">
-        <div class="playlist-title">播放列表</div>
-        <div id="playlistItems"></div>
-      </div>
+        <div class="setting-row"><span>显示机场名称</span><label class="switch"><input type="checkbox" id="sw_showAirportName"><span class="slider"></span></label></div>
+        <div class="setting-row"><span>显示机场三字码</span><label class="switch"><input type="checkbox" id="sw_showAirportCode"><span class="slider"></span></label></div>
+        <div class="setting-row"><span>显示航班号</span><label class="switch"><input type="checkbox" id="sw_showFlightNo"><span class="slider"></span></label></div>
+        <div class="setting-row"><span>显示飞机图标</span><label class="switch"><input type="checkbox" id="sw_showPlaneIcon"><span class="slider"></span></label></div>
+        <div class="setting-row"><span>显示所有航线 (虚线)</span><label class="switch"><input type="checkbox" id="sw_showRouteLines"><span class="slider"></span></label></div>
     </div>
 
-    <div class="focus-dashboard">
-      <div class="focus-data-row">
-        <div class="data-item">
-          <div class="data-label">剩余飞行时间</div>
-          <div class="data-value" id="focusTimeRem">-- <small>h</small> -- <small>min</small></div>
+    <div id="infoCard" class="info-card hidden"></div>
+
+    <div id="focusOverlay" class="hidden">
+        <div class="focus-top">
+            <div>
+                <div class="flight-big" id="focusFlightNo">MU5183</div>
+                <div class="flight-route">
+                    <span id="focusDepCode">PEK</span> ➔ <span id="focusArrCode">SHA</span>
+                    <span style="opacity:0.6; margin-left:8px">前往 <span id="focusDest">上海虹桥</span></span>
+                </div>
+            </div>
+            <button class="btn btn-outline" id="exitFocusBtn" style="width:auto; padding:0 16px; border-color:var(--text-sub)">
+                退出
+            </button>
         </div>
-        <div class="divider-vertical"></div>
-        <div class="data-item">
-          <div class="data-label">剩余飞行距离</div>
-          <div class="data-value" id="focusDistRem">-- <small>mi</small></div>
+
+        <div class="floating-controls">
+            <button class="fab" id="focusLayerBtn"><span class="material-symbols-rounded">layers</span></button>
+            <button class="fab" id="focusRotateBtn"><span class="material-symbols-rounded">explore</span></button>
+            <button class="fab filled" id="focusViewBtn"><span class="material-symbols-rounded">center_focus_strong</span></button>
         </div>
-      </div>
-      
-      <div class="focus-progress-container">
-        <div class="focus-route-text">
-          <span id="focusDepCode">DEP</span>
-          <div class="plane-track-line">
-            <span class="material-symbols-rounded plane-glyph">flight</span>
-          </div>
-          <span id="focusArrCode">ARR</span>
+
+        <div id="musicPlayer" class="music-widget hidden">
+            <div class="music-cover"><span class="material-symbols-rounded">music_note</span></div>
+            <div class="music-info">
+                <div class="music-title" id="musicTitle">Not Playing</div>
+                <div class="music-artist" id="musicArtist">-</div>
+            </div>
+            <button class="icon-btn" id="musicPrevBtn"><span class="material-symbols-rounded">skip_previous</span></button>
+            <button class="icon-btn" id="musicPlayBtn"><span class="material-symbols-rounded">play_arrow</span></button>
+            <button class="icon-btn" id="musicNextBtn"><span class="material-symbols-rounded">skip_next</span></button>
+            <button class="icon-btn" id="musicListBtn"><span class="material-symbols-rounded">queue_music</span></button>
         </div>
-        <div class="focus-progress-bar-bg">
-          <div id="focusProgressBar" class="focus-progress-bar-fill"></div>
+
+        <div id="musicPlaylist" class="playlist-modal hidden">
+            <div class="playlist-header">
+                <span>播放列表</span>
+                <button class="icon-btn" id="playlistClose"><span class="material-symbols-rounded">expand_more</span></button>
+            </div>
+            <div class="playlist-search">
+                <input type="text" id="musicSearch" placeholder="搜索歌曲...">
+            </div>
+            <div class="playlist-items" id="playlistItems"></div>
         </div>
-      </div>
+
+        <div class="focus-bottom">
+            <div class="dash-grid">
+                <div class="dash-item">
+                    <div class="label">剩余时间</div>
+                    <div class="value" id="focusTimeRem">--</div>
+                </div>
+                <div class="dash-item">
+                    <div class="label">剩余距离</div>
+                    <div class="value" id="focusDistRem">--</div>
+                </div>
+                <div class="dash-item">
+                    <div class="label">速度 (估)</div>
+                    <div class="value">800 <small>km/h</small></div>
+                </div>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="focusProgressBar"></div>
+            </div>
+        </div>
     </div>
 
-  </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ================== 全局常量 ==================
+        const AIRPORTS_PATH = "Data/airports.json"; // 假设路径
+        const FLIGHT_DATA_PATH = "Data/flight_data.txt"; // 假设路径
+        const PLANE_IMG = "https://img.mcwfmtr.cc/i/2025/12/01/5dp56s.png";
+        
+        // 使用无国界线/极简底图 (CartoDB Light No Labels) - 大陆合规首选
+        // 配合 CSS filter 在暗黑模式下变黑
+        const LAYERS = {
+            clean: L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy;OpenStreetMap, &copy;CartoDB', subdomains: 'abcd', maxZoom: 19,
+                className: 'clean-layer' // 用于 CSS 滤镜定位
+            }),
+            satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri', maxZoom: 17
+            })
+        };
 
-  <script src="script.js"></script>
+        // 状态管理
+        let state = {
+            // 设置
+            showAirportName: JSON.parse(localStorage.getItem("showAirportName") || "true"),
+            showAirportCode: JSON.parse(localStorage.getItem("showAirportCode") || "true"),
+            showRouteLines: JSON.parse(localStorage.getItem("showRouteLines") || "true"),
+            showFlightNo: JSON.parse(localStorage.getItem("showFlightNo") || "false"),
+            showPlaneIcon: JSON.parse(localStorage.getItem("showPlaneIcon") || "true"),
+            
+            airportDB: {},
+            flights: [],
+            markers: {},     // code -> L.marker
+            flightLines: {}, // key -> L.polyline
+            flightMarkers: {}, // key -> L.marker
+            highlightLine: null, 
+            
+            // 专注模式
+            focusMode: false,
+            focusFlight: null,
+            mapRotationMode: false,
+            followMode: 'follow',
+        };
+
+        // 初始化地图
+        const map = L.map('map', { 
+            zoomControl: false, 
+            attributionControl: false,
+            minZoom: 3,
+            maxZoom: 18,
+            worldCopyJump: true,
+            zoomAnimation: true
+        }).setView([35, 105], 4);
+
+        LAYERS.clean.addTo(map);
+
+        // ================== 中国大陆合规遮罩 (马赛克逻辑) ==================
+        // 请在此处开启马赛克以符合规定。默认关闭。
+        function addComplianceMask() {
+            // 示例：对某争议区域添加马赛克遮罩
+            // 这是一个矩形示例，实际请使用 L.polygon 配合具体 GeoJSON 坐标
+            /*
+            const bounds = [[26.0, 91.0], [29.0, 97.0]]; // 示例区域
+            const mask = L.rectangle(bounds, {
+                stroke: false,
+                fill: true,
+                fillOpacity: 0, // 透明填充
+                className: 'compliance-mask', // 触发 CSS backdrop-filter
+                interactive: false
+            }).addTo(map);
+            */
+            // 如果需要纯大陆轮廓，通常需要加载一个 GeoJSON layer 覆盖在底图上，这里不做展开。
+        }
+        addComplianceMask(); // 调用预留函数
+
+        // ================== 时间系统 ==================
+        function getBeijingTime() {
+            const d = new Date();
+            const utc = d.getTime() + d.getTimezoneOffset() * 60000;
+            return new Date(utc + 3600000 * 8); // UTC+8
+        }
+        function getBeijingTodayBase() {
+            const bj = getBeijingTime();
+            bj.setHours(0,0,0,0);
+            return bj.getTime();
+        }
+        function timeToMin(str) {
+            if (!str) return null;
+            const p = str.split(":");
+            return parseInt(p[0])*60 + parseInt(p[1]);
+        }
+
+        // ================== 数据加载 ==================
+        async function loadData() {
+            try {
+                // 1. 机场数据
+                if (Object.keys(state.airportDB).length === 0) {
+                    const apRes = await fetch(AIRPORTS_PATH);
+                    let apData = await apRes.json();
+                    if (!Array.isArray(apData)) apData = Object.values(apData); 
+                    
+                    state.airportDB = {};
+                    apData.forEach(ap => {
+                        const code = ap.code || (ap.name ? ap.name.slice(0,3).toUpperCase() : "UNK");
+                        // 你的逻辑：等级权重修正
+                        let rank = 1;
+                        if(ap.level) {
+                            if(ap.level.includes("4F")) rank = 10;
+                            else if(ap.level.includes("4E")) rank = 8;
+                            else if(ap.level.includes("4D")) rank = 6;
+                            else rank = 4;
+                        }
+                        state.airportDB[code] = { ...ap, code, rank };
+                    });
+                    renderAirports();
+                }
+
+                // 2. 航班数据
+                const fltText = await fetch(FLIGHT_DATA_PATH).then(r => r.text());
+                state.flights = parseFlightData(fltText);
+                renderFlights();
+                
+            } catch (e) {
+                console.error("Data Load Error:", e);
+            }
+        }
+
+        function parseFlightData(raw) {
+            const entries = [];
+            const parts = raw.split("《航班结束》");
+            for (let block of parts) {
+                block = block.trim();
+                if (!block) continue;
+                const getVal = (reg) => { const m = block.match(reg); return m ? m[1].trim() : ""; };
+                
+                const flightNo = getVal(/【\s*([^\]　]+)\s*】/);
+                const planeType = getVal(/〔\s*([^\]　]+)\s*〕/);
+                const airline = getVal(/『\s*([^』]+)\s*』/);
+                const reg = getVal(/<\s*([^>]+)\s*>/);
+                const depMatch = block.match(/《\s*([^》]+?)出发\s*》\s*\{([^}]+)\}\s*(\#\+\d+\#)?/i);
+                const arrMatch = block.match(/《\s*([^》]+?)到达\s*》\s*\{([^}]+)\}\s*(\#\+\d+\#)?/i);
+
+                if (flightNo && depMatch && arrMatch) {
+                    entries.push({ 
+                        flightNo, planeType, airline, reg, 
+                        dep: depMatch[1].trim(), depTimeRaw: depMatch[2].trim(), depOffset: depMatch[3] ? Number(depMatch[3].replace(/\D/g,"")) : 0,
+                        arr: arrMatch[1].trim(), arrTimeRaw: arrMatch[2].trim(), arrOffset: arrMatch[3] ? Number(arrMatch[3].replace(/\D/g,"")) : 0,
+                        raw: block 
+                    });
+                }
+            }
+            return entries;
+        }
+
+        // ================== 核心：机场渲染 (复用你的逻辑) ==================
+        function renderAirports() {
+            for (let code in state.airportDB) {
+                if (state.markers[code]) continue;
+                const ap = state.airportDB[code];
+                if (!ap.lat || !ap.lng) continue;
+
+                const isHighRank = ap.rank >= 8;
+                const html = `
+                  <div class="airport-marker ${isHighRank?'rank-high':''}">
+                    <div class="airport-dot"></div>
+                    <div class="airport-label">
+                      <span class="label-name">${ap.name}</span>
+                      <span class="label-code">${ap.code}</span>
+                    </div>
+                  </div>
+                `;
+                const icon = L.divIcon({ className: 'custom-ap-icon', html: html, iconAnchor: [0, 0] });
+                const marker = L.marker([ap.lat, ap.lng], { icon }).addTo(map);
+                marker.apData = ap;
+                marker.on('click', () => showAirportCard(ap));
+                state.markers[code] = marker;
+            }
+            updateAirportVis();
+        }
+
+        function updateAirportVis() {
+            const zoom = map.getZoom();
+            const bounds = map.getBounds();
+            
+            let visible = [];
+            for (let code in state.markers) {
+                const m = state.markers[code];
+                const el = m.getElement();
+                if (!el) continue;
+
+                if (bounds.contains(m.getLatLng())) {
+                    const pt = map.latLngToLayerPoint(m.getLatLng());
+                    visible.push({ marker: m, pt, rank: m.apData.rank });
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            }
+            
+            // 避让检测
+            visible.sort((a,b) => b.rank - a.rank); 
+            const accepted = [];
+            const MIN_DIST = zoom < 5 ? 20 : 40; 
+
+            visible.forEach(item => {
+                let clash = false;
+                for (let acc of accepted) {
+                    const dx = item.pt.x - acc.pt.x;
+                    const dy = item.pt.y - acc.pt.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < MIN_DIST) { clash = true; break; }
+                }
+                
+                const el = item.marker.getElement();
+                const lblName = el.querySelector('.label-name');
+                const lblCode = el.querySelector('.label-code');
+                const labelContainer = el.querySelector('.airport-label');
+
+                if (clash) {
+                    el.classList.add('hidden');
+                } else {
+                    accepted.push(item);
+                    el.classList.remove('hidden');
+                    
+                    if (lblName) lblName.style.display = state.showAirportName ? 'block' : 'none';
+                    if (lblCode) lblCode.style.display = state.showAirportCode ? 'block' : 'none';
+                    if (labelContainer) {
+                        labelContainer.style.display = (state.showAirportName || state.showAirportCode) ? 'flex' : 'none';
+                    }
+                }
+            });
+        }
+
+        // ================== 航班渲染 ==================
+        function renderFlights() {
+            const now = getBeijingTime();
+            const todayBase = getBeijingTodayBase();
+            const currentMinOffset = (now.getTime() - todayBase) / 60000;
+            const searchVal = document.getElementById("searchInput").value.trim().toUpperCase();
+            
+            const activeKeys = new Set();
+            const planePositions = [];
+
+            // 1. 如果专注模式，先清理掉所有不相关的 (严格过滤)
+            if (state.focusMode && state.focusFlight) {
+                // 清理非专注航班的 Marker
+                for (let k in state.flightMarkers) {
+                    // key 生成逻辑要一致： reg || flightNo+depTime
+                    const f = state.focusFlight;
+                    const focusKey = f.reg || (f.flightNo + f.depTimeRaw);
+                    if (k !== focusKey) {
+                        map.removeLayer(state.flightMarkers[k]);
+                        delete state.flightMarkers[k];
+                        if(state.flightLines[k]) { map.removeLayer(state.flightLines[k]); delete state.flightLines[k]; }
+                    }
+                }
+            }
+
+            state.flights.forEach(f => {
+                // 专注模式：严格检查 raw 字符串是否一致
+                if (state.focusMode && state.focusFlight) {
+                    if (f.raw !== state.focusFlight.raw) return; 
+                }
+
+                const depAp = getAirport(f.dep);
+                const arrAp = getAirport(f.arr);
+                if (!depAp || !arrAp) return;
+
+                const tDep = timeToMin(f.depTimeRaw) + (f.depOffset * 1440);
+                const tArr = timeToMin(f.arrTimeRaw) + (f.arrOffset * 1440);
+                let progress = (currentMinOffset - tDep) / (tArr - tDep);
+
+                // 状态检查
+                if (progress < 0 || progress > 1) {
+                    if (state.focusMode && f.raw === state.focusFlight?.raw) {
+                        // 专注模式下，允许稍微越界显示(模拟未起飞/已落地状态)
+                        progress = Math.max(0, Math.min(1, progress));
+                    } else {
+                        return;
+                    }
+                }
+
+                // 搜索过滤 (非专注模式下)
+                if (!state.focusMode && searchVal) {
+                    const match = f.flightNo.includes(searchVal) || 
+                                  (f.reg && f.reg.includes(searchVal)) ||
+                                  f.dep.includes(searchVal) || f.arr.includes(searchVal);
+                    if (!match) return;
+                }
+
+                const key = f.reg || (f.flightNo + f.depTimeRaw);
+                activeKeys.add(key);
+
+                // 位置计算
+                const lat1 = depAp.lat, lng1 = depAp.lng;
+                const lat2 = arrAp.lat, lng2 = arrAp.lng;
+                const curLat = lat1 + (lat2 - lat1) * progress;
+                const curLng = lng1 + (lng2 - lng1) * progress;
+                const angle = calcBearing(lat1, lng1, lat2, lng2);
+
+                // 绘制航线 (虚线)
+                if (state.showRouteLines && !state.focusMode) {
+                    if (!state.flightLines[key]) {
+                        state.flightLines[key] = L.polyline([[lat1, lng1], [lat2, lng2]], {
+                            color: '#ff8c2b', weight: 1, dashArray: '4, 4', opacity: 0.6
+                        }).addTo(map);
+                        state.flightLines[key].on('click', () => { showFlightCard(f); highlightRoute(f, true); });
+                    }
+                }
+
+                // 绘制飞机
+                if (state.showPlaneIcon) {
+                    // 拥挤检测
+                    let showPlane = true;
+                    if (!state.focusMode && map.getZoom() < 6 && !searchVal) {
+                        const pt = map.latLngToLayerPoint([curLat, curLng]);
+                        for (let p of planePositions) {
+                            if (Math.abs(p.x - pt.x) < 20 && Math.abs(p.y - pt.y) < 20) { showPlane = false; break; }
+                        }
+                        if (showPlane) planePositions.push(pt);
+                    }
+
+                    if (showPlane || state.focusMode) {
+                        const planeHtml = `<img src="${PLANE_IMG}" class="plane-img" style="transform: rotate(${angle}deg);">`;
+                        const icon = L.divIcon({ html: planeHtml, className: 'plane-divicon', iconSize: [32, 32], iconAnchor: [16, 16] });
+
+                        if (!state.flightMarkers[key]) {
+                            const m = L.marker([curLat, curLng], { icon, zIndexOffset: 1000 }).addTo(map);
+                            m.on('click', () => { showFlightCard(f); highlightRoute(f, true); });
+                            state.flightMarkers[key] = m;
+                        } else {
+                            const m = state.flightMarkers[key];
+                            m.setLatLng([curLat, curLng]);
+                            m.setIcon(icon);
+                            if (state.showFlightNo) {
+                                if(!m.getTooltip()) m.bindTooltip(f.flightNo, { permanent: true, direction: 'right', className: 'plane-tooltip' });
+                            } else {
+                                if(m.getTooltip()) m.unbindTooltip();
+                            }
+                        }
+
+                        if (state.focusMode) updateFocusState(f, curLat, curLng, angle, progress);
+                    } else {
+                        if (state.flightMarkers[key]) { map.removeLayer(state.flightMarkers[key]); delete state.flightMarkers[key]; }
+                    }
+                }
+            });
+
+            // 清理消失的
+            for (let k in state.flightMarkers) {
+                if (!activeKeys.has(k)) {
+                    map.removeLayer(state.flightMarkers[k]);
+                    delete state.flightMarkers[k];
+                }
+            }
+            for (let k in state.flightLines) {
+                if (!activeKeys.has(k)) {
+                    map.removeLayer(state.flightLines[k]);
+                    delete state.flightLines[k];
+                }
+            }
+        }
+
+        // ================== 辅助逻辑 ==================
+        function getAirport(key) {
+            if(!key) return null;
+            const k = key.toUpperCase();
+            if (state.airportDB[k]) return state.airportDB[k];
+            for (let c in state.airportDB) {
+                const ap = state.airportDB[c];
+                if (ap.name === key || (ap.aliases && ap.aliases.includes(key))) return ap;
+            }
+            return null;
+        }
+
+        function calcBearing(lat1, lon1, lat2, lon2) {
+            const toRad = d => d * Math.PI / 180;
+            const toDeg = r => r * 180 / Math.PI;
+            const y = Math.sin(toRad(lon2-lon1)) * Math.cos(toRad(lat2));
+            const x = Math.cos(toRad(lat1))*Math.sin(toRad(lat2)) - Math.sin(toRad(lat1))*Math.cos(toRad(lat2))*Math.cos(toRad(lon2-lon1));
+            return (toDeg(Math.atan2(y, x)) + 360) % 360;
+        }
+
+        function highlightRoute(f, show) {
+            if (state.highlightLine) { map.removeLayer(state.highlightLine); state.highlightLine = null; }
+            if (show) {
+                const depAp = getAirport(f.dep);
+                const arrAp = getAirport(f.arr);
+                if (depAp && arrAp) {
+                    state.highlightLine = L.polyline([[depAp.lat, depAp.lng], [arrAp.lat, arrAp.lng]], {
+                        color: '#ff6d00', weight: 3, opacity: 1
+                    }).addTo(map);
+                }
+            }
+        }
+
+        // ================== UI 交互 ==================
+        function showFlightCard(f) {
+            if (state.focusMode) return;
+            const card = document.getElementById("infoCard");
+            const depAp = getAirport(f.dep);
+            const arrAp = getAirport(f.arr);
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <div><div class="card-title-lg">${f.flightNo}</div><div class="card-sub">${f.airline} · ${f.planeType}</div></div>
+                    <button class="icon-btn" onclick="closeFlightCard()"><span class="material-symbols-rounded">close</span></button>
+                </div>
+                <div class="route-row">
+                    <div class="airport-display"><span class="ap-code">${depAp?depAp.code:f.dep}</span><div class="time-tag">${f.depTimeRaw}</div></div>
+                    <div class="material-symbols-rounded">flight_takeoff</div>
+                    <div class="airport-display"><span class="ap-code">${arrAp?arrAp.code:f.arr}</span><div class="time-tag">${f.arrTimeRaw}</div></div>
+                </div>
+                <div class="action-row">
+                    <button class="btn btn-primary" id="btnFocus"><span class="material-symbols-rounded">my_location</span>跟踪航班</button>
+                </div>
+            `;
+            card.classList.remove("hidden");
+            document.getElementById("btnFocus").onclick = () => enterFocusMode(f);
+        }
+
+        function closeFlightCard() {
+            document.getElementById("infoCard").classList.add("hidden");
+            highlightRoute(null, false);
+        }
+
+        function showAirportCard(ap) {
+            if (state.focusMode) return;
+            const card = document.getElementById("infoCard");
+            card.innerHTML = `
+                <div class="card-header">
+                    <div><div class="card-title-lg">${ap.code}</div><div class="card-sub">${ap.name}</div></div>
+                    <button class="icon-btn" onclick="document.getElementById('infoCard').classList.add('hidden')"><span class="material-symbols-rounded">close</span></button>
+                </div>
+            `;
+            card.classList.remove("hidden");
+            highlightRoute(null, false);
+        }
+
+        // ================== 专注模式 ==================
+        function enterFocusMode(f) {
+            state.focusMode = true;
+            state.focusFlight = f;
+            state.followMode = 'follow';
+            closeFlightCard();
+
+            document.getElementById("topbar").classList.add("hidden");
+            document.getElementById("focusOverlay").classList.remove("hidden");
+            
+            document.getElementById("focusFlightNo").innerText = f.flightNo;
+            document.getElementById("focusDest").innerText = f.arr;
+            const depAp = getAirport(f.dep); const arrAp = getAirport(f.arr);
+            document.getElementById("focusDepCode").innerText = depAp ? depAp.code : "DEP";
+            document.getElementById("focusArrCode").innerText = arrAp ? arrAp.code : "ARR";
+
+            highlightRoute(f, true);
+            renderFlights();
+            document.getElementById("musicPlayer").classList.remove("hidden"); // 显示播放器
+        }
+
+        function exitFocusMode() {
+            state.focusMode = false;
+            state.focusFlight = null;
+            state.mapRotationMode = false;
+            state.highlightLine = null;
+            
+            document.getElementById("map").style.transform = `rotate(0deg)`;
+            map.invalidateSize();
+
+            document.getElementById("focusOverlay").classList.add("hidden");
+            document.getElementById("topbar").classList.remove("hidden");
+            document.getElementById("bgMusic").pause();
+            
+            map.setZoom(4);
+            renderFlights();
+        }
+
+        function updateFocusState(f, lat, lng, angle, progress) {
+            // 视角控制
+            if (state.followMode === 'follow') {
+                if (state.mapRotationMode) {
+                    const mapDiv = document.getElementById("map");
+                    mapDiv.style.transform = `rotate(${-angle}deg)`;
+                    map.setView([lat, lng], 8, { animate: false });
+                } else {
+                    document.getElementById("map").style.transform = `rotate(0deg)`;
+                    map.panTo([lat, lng], { animate: true, duration: 1 });
+                }
+            }
+
+            // 数据更新
+            const tArr = timeToMin(f.arrTimeRaw) + (f.arrOffset * 1440);
+            const now = getBeijingTime();
+            const nowMin = (now.getTime() - getBeijingTodayBase()) / 60000;
+            let remMin = Math.max(0, Math.floor(tArr - nowMin));
+            
+            document.getElementById("focusTimeRem").innerHTML = `${Math.floor(remMin/60)}<small>h</small> ${remMin%60}<small>m</small>`;
+            document.getElementById("focusDistRem").innerHTML = `${Math.floor(remMin*13)} <small>km</small>`;
+            document.getElementById("focusProgressBar").style.width = `${Math.min(100, progress*100)}%`;
+        }
+
+        // ================== 音乐播放器 (含搜索) ==================
+        const PLAYLIST = [
+            { title: "Pure", artist: "Cabin Ambience", url: "https://www.soundjay.com/transportation/airplane-cabin-1.mp3" },
+            { title: "Above Clouds", artist: "Chill Lo-Fi", url: "https://www.soundjay.com/nature/rain-01.mp3" },
+            { title: "Night Flight", artist: "Jazz Vibes", url: "https://www.soundjay.com/nature/wind-01.mp3" },
+            { title: "Departure", artist: "Piano", url: "" },
+            { title: "Arrival", artist: "Cinematic", url: "" }
+        ];
+        let musicState = { idx: 0, playing: false };
+
+        function initMusicPlayer() {
+            const listDiv = document.getElementById("playlistItems");
+            const renderList = (filter = "") => {
+                listDiv.innerHTML = PLAYLIST.map((s, i) => {
+                    if (filter && !s.title.toLowerCase().includes(filter) && !s.artist.toLowerCase().includes(filter)) return "";
+                    return `
+                    <div class="playlist-item ${i===musicState.idx?'active':''}" onclick="playMusic(${i})">
+                        <span>${s.title}</span><span style="opacity:0.6">${s.artist}</span>
+                    </div>`;
+                }).join("");
+            };
+            renderList();
+
+            // 搜索功能
+            document.getElementById("musicSearch").oninput = (e) => {
+                renderList(e.target.value.toLowerCase().trim());
+            };
+
+            window.playMusic = (idx) => {
+                musicState.idx = idx;
+                const audio = document.getElementById("bgMusic");
+                audio.src = PLAYLIST[idx].url || "";
+                if(audio.src) audio.play();
+                musicState.playing = true;
+                updatePlayerUI();
+            };
+
+            const updatePlayerUI = () => {
+                const s = PLAYLIST[musicState.idx];
+                document.getElementById("musicTitle").innerText = s.title;
+                document.getElementById("musicArtist").innerText = s.artist;
+                document.getElementById("musicPlayBtn").innerHTML = musicState.playing ? 
+                    '<span class="material-symbols-rounded">pause</span>' : '<span class="material-symbols-rounded">play_arrow</span>';
+                renderList(document.getElementById("musicSearch").value.toLowerCase().trim());
+            };
+
+            document.getElementById("musicPlayBtn").onclick = () => {
+                const audio = document.getElementById("bgMusic");
+                if (musicState.playing) { audio.pause(); musicState.playing = false; }
+                else { if(!audio.src) playMusic(0); else audio.play(); musicState.playing = true; }
+                updatePlayerUI();
+            };
+            document.getElementById("musicNextBtn").onclick = () => playMusic((musicState.idx + 1) % PLAYLIST.length);
+            document.getElementById("musicPrevBtn").onclick = () => playMusic((musicState.idx - 1 + PLAYLIST.length) % PLAYLIST.length);
+            document.getElementById("musicListBtn").onclick = () => document.getElementById("musicPlaylist").classList.remove("hidden");
+            document.getElementById("playlistClose").onclick = () => document.getElementById("musicPlaylist").classList.add("hidden");
+        }
+
+        // ================== 初始化 ==================
+        function initUI() {
+            // 搜索
+            let timer;
+            document.getElementById("searchInput").oninput = () => {
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    renderFlights();
+                    document.getElementById("clearBtn").classList.remove("hidden");
+                }, 500);
+            };
+            document.getElementById("clearBtn").onclick = () => {
+                document.getElementById("searchInput").value = "";
+                document.getElementById("clearBtn").classList.add("hidden");
+                renderFlights();
+            };
+
+            // 设置
+            document.getElementById("settingsBtn").onclick = () => document.getElementById("settingsPanel").classList.toggle("hidden");
+            document.getElementById("settingsClose").onclick = () => document.getElementById("settingsPanel").classList.add("hidden");
+            const bindSw = (id, key, action) => {
+                const el = document.getElementById(id);
+                el.checked = state[key];
+                el.onchange = () => { state[key] = el.checked; localStorage.setItem(key, JSON.stringify(state[key])); action(); };
+            };
+            bindSw("sw_showAirportName", "showAirportName", updateAirportVis);
+            bindSw("sw_showAirportCode", "showAirportCode", updateAirportVis);
+            bindSw("sw_showFlightNo", "showFlightNo", renderFlights);
+            bindSw("sw_showPlaneIcon", "showPlaneIcon", renderFlights);
+            bindSw("sw_showRouteLines", "showRouteLines", renderFlights);
+
+            // 图层
+            document.querySelectorAll(".layer-btn").forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll(".layer-btn").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    const type = btn.dataset.type;
+                    map.eachLayer(l => { if(l._url) map.removeLayer(l); });
+                    LAYERS[type].addTo(map);
+                };
+            });
+
+            // 专注模式按钮
+            document.getElementById("exitFocusBtn").onclick = exitFocusMode;
+            document.getElementById("focusRotateBtn").onclick = function() {
+                state.mapRotationMode = !state.mapRotationMode;
+                this.classList.toggle("filled", state.mapRotationMode);
+                renderFlights();
+            };
+            document.getElementById("focusViewBtn").onclick = function() {
+                state.followMode = state.followMode === 'follow' ? 'overview' : 'follow';
+                this.classList.toggle("filled", state.followMode === 'follow');
+            };
+            document.getElementById("focusLayerBtn").onclick = () => {
+                const isClean = map.hasLayer(LAYERS.clean);
+                map.eachLayer(l => { if(l._url) map.removeLayer(l); });
+                (isClean ? LAYERS.satellite : LAYERS.clean).addTo(map);
+            };
+
+            map.on('zoomend moveend', updateAirportVis);
+            map.on('zoomend', renderFlights);
+            
+            initMusicPlayer();
+        }
+
+        initUI();
+        loadData();
+        setInterval(renderFlights, 2000);
+        setInterval(loadData, 60000);
+
+    </script>
 </body>
 </html>
