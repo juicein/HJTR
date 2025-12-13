@@ -391,3 +391,107 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 .plane-icon.dimmed { opacity: 0.2; pointer-events: none; }
 .flight-line-dashed { pointer-events: none; }
 .flight-line-solid { stroke: var(--highlight-orange); stroke-width: 3px; stroke-dasharray: none; opacity: 1; z-index: 500; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ============ 1. 机场卡片 UI 更新 (替换原有的 #infoCard 相关样式) ============ */
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+
+/* 标题行容器 */
+.card-title-row {
+    display: flex;
+    align-items: baseline; /* 基线对齐，让文字底部对齐 */
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.card-main-title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--md-sys-color-on-primary-container);
+    line-height: 1.2;
+}
+
+.card-sub-code {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--md-sys-color-primary); /* 三字码使用强调色 */
+    font-family: monospace; /* 等宽字体更有机场感 */
+}
+
+/* 机场等级标签 */
+.airport-level-badge {
+    display: inline-block;
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+/* ============ 2. 音乐封面 (更新 .music-cover-large) ============ */
+.music-cover-large { 
+  width: 100%; aspect-ratio: 1; 
+  border-radius: 16px; 
+  background: var(--md-sys-color-surface-container); 
+  display: flex; align-items: center; justify-content: center; 
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
+  flex-shrink: 0;
+  min-height: 0;
+  position: relative;
+}
+
+/* 如果有图片 */
+.music-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ============ 3. 碰撞检测隐藏样式 ============ */
+/* 当 JS 判断需要隐藏整个机场（点+字）时添加此 class */
+.airport-marker-container.fully-hidden {
+    display: none !important;
+}
+
+/* 仅隐藏文字，保留点（原有逻辑） */
+.airport-marker-container.label-hidden .airport-label {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ============ 4. 遮盖层 (马赛克/敏感区域) ============ */
+/* 使用 SVG path 或 Leaflet path 的 class */
+.sensitive-mask {
+    fill: #e6eefc; /* 浅色模式下的地图背景色 */
+    stroke: none;
+    pointer-events: none; /* 让点击穿透 */
+}
+
+@media (prefers-color-scheme: dark) {
+    .sensitive-mask {
+        fill: #0f1113; /* 深色模式下的地图背景色 */
+    }
+}
+
