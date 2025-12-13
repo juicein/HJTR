@@ -8,7 +8,7 @@ const AUTO_PLAY_MUSIC_ON_FOCUS = true;
 
 // 音乐列表 (支持 cover 属性，没有则显示默认)
 const MP3_LIST = [
-  { title: "Pure", src: "music/Pure.mp3", artist: "Micki Miller", cover: "music/cover_pure.jpg" }, // 示例封面
+  { title: "Pure", src: "music/Pure.m4a", artist: "Micki Miller", cover: "music/cover_pure.jpg" }, // 示例封面
   { title: "燃冬", src: "music/燃冬.mp3", artist: "电影原声", cover: "" },
   { title: "Gen Wo Yi Qi Feng", src: "music/Gen Wo Yi Qi Feng.mp3", artist: "Beach Boys", cover: "" },
   { title: "San Fransisco", src: "music/San Fransisco.mp3", artist: "Beach Boys", cover: "" }
@@ -812,7 +812,7 @@ const fmtTime = (s) => {
 
 // ================== 马赛克/遮盖层 ==================
 function initSensitiveAreas() {
-    // 藏南地区大致多边形 (需要更精确可自行调整坐标)
+    // 地区大致多边形 (需要更精确可自行调整坐标)
     const arunachalCoords = [
        [27.9, 91.5], [29.4, 93.0], [29.5, 95.5], [29.8, 96.0],
        [28.0, 97.5], [26.5, 92.0]
