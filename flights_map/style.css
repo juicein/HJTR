@@ -495,3 +495,19 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+/*禁用双击 谨慎使用 */
+body {
+    touch-action: manipulation;
+}
