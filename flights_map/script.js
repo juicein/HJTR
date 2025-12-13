@@ -919,3 +919,20 @@ function updateSensitiveLayer() {
         return (toDeg(Math.atan2(y, x)) + 360) % 360;
     };
 })();
+
+
+
+
+
+
+
+
+
+
+// 阻止双指及以上的手势，防止捏合缩放
+document.addEventListener('touchstart', function(event) {
+    if (event.touches.length > 1) {
+        event.preventDefault(); 
+    }
+}, { passive: false });
+
