@@ -229,8 +229,9 @@ body {
 /* Bottom Dashboard */
 .focus-dashboard {
   pointer-events: auto;
-  position: absolute;
-  bottom: 40px; left: 50%; transform: translateX(-50%);
+  position: fixed;
+  bottom: calc(var(--safe-bottom, 0px) + 24px);
+  left: 50%; transform: translateX(-50%);
   width: 90%; max-width: 600px;
   background: var(--glass-bg);
   backdrop-filter: blur(25px);
@@ -274,8 +275,9 @@ body {
   /* 底部仪表盘：更紧凑 */
   .focus-dashboard {
     bottom: 20px;
-    width: 92%; padding: 16px; 
-    border-radius: 24px;
+    width: auto; left: 16px; right: 16px; transform: none; /* 拉伸占满 */
+    padding: 16px; 
+    border-radius: 25px;
   }
   .focus-data-row { margin-bottom: 16px; }
   .data-value { font-size: 28px; } /* 缩小字体 */
@@ -506,6 +508,79 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 
 
 
+
+
+
+
+
+
+
+
+
+/* ===== Focus 顶部元素统一层级 ===== */
+.focus-top-bar,
+.mini-music.right,
+.focus-tools.left {
+  z-index: 2300;
+}
+
+@media (max-width: 700px) {
+
+  /* 顶部主条：永远第一层 */
+  .focus-top-bar {
+    position: fixed;
+    top: calc(var(--safe-top) + 16px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    height: 50px;
+  }
+
+  /* 左下角工具按钮 */
+  .focus-tools.left {
+    position: fixed;
+    top: calc(var(--safe-top) + 16px + 50px + 18px);
+    left: 16px;
+    flex-direction: column;
+  }
+
+  /* 右下角迷你播放器 */
+  .mini-music.right {
+    position: fixed;
+    top: calc(var(--safe-top) + 16px + 50px + 18px);
+    right: 16px;
+  }
+}
+
+@media (min-width: 701px) {
+
+  /* 左侧工具 */
+  .focus-tools.left {
+    position: fixed;
+    top: calc(var(--safe-top) + 24px);
+    left: 16px;
+    flex-direction: column;
+  }
+
+  /* 中间主条 */
+  .focus-top-bar {
+    position: fixed;
+    top: calc(var(--safe-top) + 24px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90%;
+    max-width: 600px;
+    height: 60px;
+  }
+
+  /* 右侧播放器 */
+  .mini-music.right {
+    position: fixed;
+    top: calc(var(--safe-top) + 24px);
+    right: 16px;
+  }
+}
 
 
 
