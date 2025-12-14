@@ -484,6 +484,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 /* ============ 4. 遮盖层 (马赛克/敏感区域) ============ */
 .sensitive-mask {
     /* 这里的颜色是为了模拟地图背景色，让用户感觉那里是“空的” */
+  fill-opacity: 1 !important; 
     fill: #e6eefc; 
     stroke: none;
     pointer-events: none; /* 让点击穿透 */
@@ -496,29 +497,6 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 @media (prefers-color-scheme: dark) {
     .sensitive-mask {
         fill: #0f1113; /* 深色模式下的地图背景色 */
-    }
-}
-
-
-
-
-
-.sensitive-mask {
-    /* 将填充色设为半透明，以便让模糊滤镜生效 */
-    fill: rgba(230, 238, 252, 0.5); 
-    fill-opacity: 1 !important;
-    stroke: none;
-    pointer-events: none;
-    
-    /* [核心] 添加高斯模糊滤镜 (类似 iOS 毛玻璃) */
-    backdrop-filter: blur(10px); 
-    -webkit-backdrop-filter: blur(10px);
-}
-
-@media (prefers-color-scheme: dark) {
-    .sensitive-mask {
-        /* 深色模式下的半透明填充 */
-        fill: rgba(15, 17, 19, 0.5); 
     }
 }
 
