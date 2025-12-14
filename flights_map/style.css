@@ -500,32 +500,6 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 
 
 
-/* 敏感区域遮罩样式 */
-.sensitive-mask {
-    /* 这里控制遮罩本身的颜色，建议用半透明白色或灰色 */
-    fill: rgba(255, 255, 255, 0.1); 
-    fill-opacity: 1; /* 必须设为1，透明度由 rgba 控制，否则滤镜可能异常 */
-    
-    /* 核心：背景模糊滤镜 (毛玻璃效果) */
-    /* blur(10px) 数值越大越模糊 */
-    backdrop-filter: blur(10px) saturate(180%);
-    -webkit-backdrop-filter: blur(10px) saturate(180%); /* 兼容 Safari */
-    
-    /* 移除边框，防止有清晰的轮廓线 */
-    stroke: false;
-    stroke-width: 0;
-    
-    /* 可选：给边缘也加一点羽化，让遮罩不那么生硬 */
-    /* 注意：Leaflet 的 SVG 渲染有时候对 filter 支持不如 backdrop-filter 完美，视浏览器而定 */
-    /* filter: blur(2px); */ 
-}
-
-/* 适配暗色模式 (Dark Mode) - 如果您有这个需求 */
-@media (prefers-color-scheme: dark) {
-    .sensitive-mask {
-        fill: rgba(0, 0, 0, 0.3); /* 暗色模式下用深色半透明遮罩 */
-    }
-}
 
 
 
