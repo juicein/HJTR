@@ -26,8 +26,9 @@
   :root {
     --md-sys-color-surface: #1a1c1e;
     --md-sys-color-surface-container: #202429;
-    --md-sys-color-on-primary-container: #006495;
-    --md-sys-color-primary: #8dcdff;
+    --md-sys-color-on-primary-container: #ffffff;
+    --md-sys-color-primary-container: #006495;
+    --md-sys-color-primary: #93cae4;
     --glass-bg: rgba(30, 30, 30, 0.75);
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
   }
