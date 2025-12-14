@@ -484,7 +484,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 /* ============ 4. 遮盖层 (马赛克/敏感区域) ============ */
 /* 使用 SVG path 或 Leaflet path 的 class */
 .sensitive-mask {
-    fill: #ffffff; /* 浅色模式下的地图背景色#e6eefc */
+    fill: #ffe6e8e7; /* 浅色模式下的地图背景色#e6eefc */
     stroke: none;
     pointer-events: none; /* 让点击穿透 */
 }
