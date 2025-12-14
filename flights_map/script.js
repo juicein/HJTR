@@ -815,10 +815,6 @@ function initSensitiveAreas() {
     // 地区大致多边形 (需要更精确可自行调整坐标)
     const arunachalCoords = [
        [27.9, 91.5], [29.4, 93.0], [29.5, 95.5], [29.8, 96.0],
-       [28.0, 97.5], [26.5, 92.0], 
-      [27.9, 91.5], [29.4, 93.0], [29.5, 95.5], [29.8, 96.0],
-       [28.0, 97.5], [26.5, 92.0],
-      [27.9, 91.5], [29.4, 93.0], [29.5, 95.5], [29.8, 96.0],
        [28.0, 97.5], [26.5, 92.0]
     ];
     
@@ -828,7 +824,7 @@ function initSensitiveAreas() {
         className: 'sensitive-mask',
         stroke: false,
         interactive: false // 允许点击穿透
-      fillOpacity: 1 
+    //  fillOpacity: 1 
     });
 
     updateSensitiveLayer(); // 初始化时判断一次
