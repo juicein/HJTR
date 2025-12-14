@@ -1,11 +1,12 @@
 [
   {
     "name": "拜科努尔",
-    "code": "BAY",
+    "code": "BKE",
    "lat": 31.1443,
     "lng": 121.8083,
     "aliases": ["北联","拜科努尔机场"],
     "level": "4C",
+    "ICAO": "BKEE",
     "runways": 1
   },
   {
