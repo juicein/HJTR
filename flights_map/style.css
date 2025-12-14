@@ -26,7 +26,7 @@
   :root {
     --md-sys-color-surface: #1a1c1e;
     --md-sys-color-surface-container: #202429;
-    --md-sys-color-on-primary-container: #cbe6ff;
+    --md-sys-color-on-primary-container: #006495;
     --md-sys-color-primary: #8dcdff;
     --glass-bg: rgba(30, 30, 30, 0.75);
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
@@ -305,7 +305,7 @@ body {
 @media (max-width: 600px) {
   .music-expand-card { 
     right: 50%; transform: translateX(50%) !important; 
-    top: calc(var(--safe-top) + 80px); 
+    top: calc(var(--safe-top) + 80px + 105px); 
     width: 85%; /* 留边距 */
     max-height: 70vh; /* 避免太高 */
   }
@@ -524,7 +524,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
   z-index: 2300;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 650px) {
 
   /* 顶部主条：永远第一层 */
   .focus-top-bar {
@@ -553,7 +553,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
   }
 }
 
-@media (min-width: 701px) {
+@media (min-width: 651px) {
 
   /* 左侧工具 */
   .focus-tools.left {
@@ -581,10 +581,6 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
     right: 16px;
   }
 }
-
-
-
-
 
 /*禁用双击 谨慎使用 */
 body {
