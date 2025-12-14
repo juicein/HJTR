@@ -485,7 +485,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 /* 使用 SVG path 或 Leaflet path 的 class */
 .sensitive-mask {
     fill: #ffe6e8e7; /* 浅色模式下的地图背景色#e6eefc */
-    stroke: none;
+    /* stroke: none; */
     pointer-events: none; /* 让点击穿透 */
 }
 
