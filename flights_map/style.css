@@ -489,7 +489,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
     stroke: none;
     pointer-events: none; /* 让点击穿透 */
 
-    
+    fill-opacity: 0.8 !important; 
     /* [新增] 强制不透明度为 1 (100% 不透明) */
   
 }
