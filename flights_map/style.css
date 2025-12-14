@@ -502,6 +502,24 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 
 
 
+.sensitive-mask {
+    /* 将填充色设为半透明，以便让模糊滤镜生效 */
+    fill: rgba(230, 238, 252, 0.5); 
+    fill-opacity: 1 !important;
+    stroke: none;
+    pointer-events: none;
+    
+    /* [核心] 添加高斯模糊滤镜 (类似 iOS 毛玻璃) */
+    backdrop-filter: blur(10px); 
+    -webkit-backdrop-filter: blur(10px);
+}
+
+@media (prefers-color-scheme: dark) {
+    .sensitive-mask {
+        /* 深色模式下的半透明填充 */
+        fill: rgba(15, 17, 19, 0.5); 
+    }
+}
 
 
 
