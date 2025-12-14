@@ -485,9 +485,9 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 .sensitive-mask {
     /* 这里的颜色是为了模拟地图背景色，让用户感觉那里是“空的” */
  
-    fill: #e6eefc; 
+    fill: #fffafaf8; 
     stroke: none;
-    pointer-events: none; /* 让点击穿透 */
+    pointer-events: none; /* e6eefc点击穿透 */
 
     fill-opacity: 0.8 !important; 
     /* [新增] 强制不透明度为 1 (100% 不透明) */
@@ -497,6 +497,7 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
 @media (prefers-color-scheme: dark) {
     .sensitive-mask {
         fill: #0f1113; /* 深色模式下的地图背景色 */
+      fill-opacity: 0.8 !important; 
     }
 }
 
