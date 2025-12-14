@@ -828,6 +828,7 @@ function initSensitiveAreas() {
         className: 'sensitive-mask',
         stroke: false,
         interactive: false // 允许点击穿透
+      fillOpacity: 1 
     });
 
     updateSensitiveLayer(); // 初始化时判断一次
