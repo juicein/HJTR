@@ -940,6 +940,15 @@ function updateSensitiveLayer() {
 
 
 
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+    const now = (new Date()).getTime();
+    // 检查两次触摸结束的时间间隔是否小于 300ms
+    if (now - lastTouchEnd <= 300) {
+        event.preventDefault(); // 阻止默认的缩放行为
+    }
+    lastTouchEnd = now;
+}, false);
 
 
 // 阻止双指及以上的手势，防止捏合缩放
