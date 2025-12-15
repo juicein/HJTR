@@ -1,14 +1,14 @@
-[
+[ 
   {
-    "name": "拜科努尔",
-    "code": "BKE",
-    "lat": 31.1443,
-    "lng": 121.8083,
-    "aliases": ["北联"],
-    "level": "4E",
-    "ICAO": "BKEE",
-    "runways": 1
-  },
+   "name": "拜科努尔",
+   "code": "BKE",
+  "lat": 31.19225,
+   "lng": 121.33404,
+   "aliases": ["北联"],
+   "level": "4E",
+   "ICAO": "BKEE",
+   "runways": 1
+ },
   {
     "name": "千里马",
     "code": "KLM",
