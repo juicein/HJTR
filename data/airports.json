@@ -1,4 +1,13 @@
 [
+   {
+    "name": "北江凌海",
+    "code": "BKI",
+    "lat": 28.5827,
+    "lng": 121.3651,
+    "aliases": ["云梦山河", "北江"],
+    "level": "4C",
+    "runways": 1
+  },
  {
    "name": "拜科努尔",
    "code": "BKE",
