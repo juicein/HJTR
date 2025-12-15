@@ -1,5 +1,105 @@
 [
-   {
+  {
+    "name": "拜科努尔",
+    "code": "BKE",
+    "lat": 31.1443,
+    "lng": 121.8083,
+    "aliases": ["北联"],
+    "level": "4E",
+    "ICAO": "BKEE",
+    "runways": 1
+  },
+  {
+    "name": "千里马",
+    "code": "KLM",
+    "lat": 13.4110,
+    "lng": 100.4512,
+    "aliases": ["潮涌"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "新裕古湖",
+    "code": "AHF",
+    "lat": 30.76618,
+    "lng": 122.74676,
+    "aliases": ["新裕"],
+    "level": "4D",
+    "runways": 1
+  },
+  {
+    "name": "新裕艮山",
+    "code": "GES",
+    "lat": 30.69976,
+    "lng": 122.83605,
+    "aliases": ["新裕"],
+    "level": "3C",
+    "runways": 1
+  },
+  {
+    "name": "临东金桦",
+    "code": "LHC",
+    "lat": 41.639496,
+    "lng": 123.495322,
+    "aliases": ["临东"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "临东北关岭",
+    "code": "FJB",
+    "lat": 41.875300,
+    "lng": 123.444800,
+    "aliases": ["临东"],
+    "level": "4C",
+    "runways": 1
+  },
+  {
+    "name": "新清云索恩",
+    "code": "QNE",
+    "lat": 1.35917,
+    "lng": 103.98944,
+    "aliases": ["新清云"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "平城汉光",
+    "code": "HAN",
+    "lat": 32.4650,
+    "lng": 114.0450,
+    "aliases": ["云梦山河", "平城"],
+    "level": "4C",
+    "runways": 1
+  },
+  {
+    "name": "金钟淮海",
+    "code": "JHA",
+    "lat": 32.44,
+    "lng": 119.66,
+    "aliases": ["云梦山河"],
+    "level": "4F",
+    "runways": 2
+  },
+  {
+    "name": "新洲双家",
+    "code": "THA",
+    "lat": 25.7966,
+    "lng": 113.0334,
+    "aliases": ["云梦山河"],
+    "level": "4C",
+    "runways": 1
+  },
+  {
+    "name": "西苑江秋",
+    "code": "SYX",
+    "lat": 27.5829,
+    "lng": 114.3069,
+    "aliases": ["云梦山河"],
+    "level": "4C",
+    "runways": 1
+  },
+  {
     "name": "北江凌海",
     "code": "BKI",
     "lat": 28.5827,
@@ -8,15 +108,193 @@
     "level": "4C",
     "runways": 1
   },
- {
-   "name": "拜科努尔",
-   "code": "BKE",
-  "lat": 31.1443,
-   "lng": 121.8083,
-   "aliases": ["北联"],
-   "level": "4E",
-   "ICAO": "BKEE",
-   "runways": 1
- }
-   
+  {
+    "name": "闸南香兰",
+    "code": "ZXA",
+    "lat": 24.55361,
+    "lng": 118.35333,
+    "aliases": ["枫海"],
+    "level": "4F",
+    "runways": 2
+  },
+  {
+    "name": "峡东海东",
+    "code": "XCY",
+    "lat": -6.12556,
+    "lng": 106.65583,
+    "aliases": ["峡东"],
+    "level": "4F",
+    "runways": 2
+  },
+  {
+    "name": "万方沂川",
+    "code": "YIC",
+    "lat": 23.39646,
+    "lng": 113.30750,
+    "aliases": ["万方"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "都城",
+    "code": "TSG",
+    "lat": 22.15625,
+    "lng": 113.58765,
+    "aliases": ["都城"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "星羽天琴",
+    "code": "XYU",
+    "lat": 22.00815,
+    "lng": 113.37856,
+    "aliases": ["星羽"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "嘎联龙昌湾",
+    "code": "LCB",
+    "lat": 22.31355,
+    "lng": 113.91346,
+    "aliases": ["嘎联"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "梦海梦天",
+    "code": "MHM",
+    "lat": 40.07991,
+    "lng": 116.60305,
+    "aliases": ["梦海"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "南海水平",
+    "code": "SHP",
+    "lat": 39.66277,
+    "lng": 119.06364,
+    "aliases": ["南海"],
+    "level": "4C",
+    "runways": 1
+  },
+  {
+    "name": "帆叶蓝里",
+    "code": "NII",
+    "lat": 26.20067,
+    "lng": 127.64654,
+    "aliases": ["帆叶"],
+    "level": "3C",
+    "runways": 1
+  },
+  {
+    "name": "绚火海之韵",
+    "code": "HCR",
+    "lat": -41.32457,
+    "lng": 174.80713,
+    "aliases": ["绚火"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "糖果斯威特",
+    "code": "SWT",
+    "lat": 30.23623,
+    "lng": 120.43865,
+    "aliases": ["糖果"],
+    "level": "3C",
+    "runways": 1
+  },
+  {
+    "name": "南谷",
+    "code": "NGN",
+    "lat": 31.49865,
+    "lng": 120.43522,
+    "aliases": ["南谷"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "北联里海",
+    "code": "CNS",
+    "lat": 31.14436,
+    "lng": 121.80817,
+    "aliases": ["北联"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "清云",
+    "code": "QEC",
+    "lat": -15.86896,
+    "lng": -47.91915,
+    "aliases": ["清云"],
+    "level": "4F",
+    "runways": 1
+  },
+  {
+    "name": "梅林流亭",
+    "code": "LUT",
+    "lat": 36.26620,
+    "lng": 120.38719,
+    "aliases": ["梅林"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "谷风新涵",
+    "code": "GXH",
+    "lat": 25.09585,
+    "lng": 102.92854,
+    "aliases": ["谷风城"],
+    "level": "4C",
+    "runways": 1
+  },
+  {
+    "name": "青岚新城",
+    "code": "QLN",
+    "lat": 34.43700,
+    "lng": 108.76015,
+    "aliases": ["青岚"],
+    "level": "4F",
+    "runways": 2
+  },
+  {
+    "name": "韶城启明",
+    "code": "KAM",
+    "lat": 21.21226,
+    "lng": 110.36591,
+    "aliases": ["韶城"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "祁云兴泽",
+    "code": "CBM",
+    "lat": 38.32264,
+    "lng": 106.38858,
+    "aliases": ["跨系"],
+    "level": "4E",
+    "runways": 1
+  },
+  {
+    "name": "新港未央",
+    "code": "XWG",
+    "lat": 49.00792,
+    "lng": 2.55072,
+    "aliases": ["新港"],
+    "level": "4F",
+    "runways": 2
+  },
+  {
+    "name": "茶花泯山",
+    "code": "CHX",
+    "lat": 60.19786,
+    "lng": 11.09636,
+    "aliases": ["茶花"],
+    "level": "4E",
+    "runways": 2
+  }
 ]
