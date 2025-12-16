@@ -3,221 +3,157 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>404 · 页面不存在</title>
+<title>404</title>
 
 <style>
 /* ===============================
-   Material 3 Design Tokens
+   Material 3 Tokens (你的原始变量)
 ================================ */
 :root {
   --md-sys-color-primary: #006495;
-  --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #cbe6ff;
   --md-sys-color-on-primary-container: #001e30;
   --md-sys-color-surface: #fdfcff;
-  --md-sys-color-surface-container: #f0f4f8;
   --md-sys-color-outline: #72777f;
-
-  --highlight-orange: #ff6d00;
-
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.5);
-  --blur-amt: 25px;
-
-  --radius-lg: 24px;
-  --radius-md: 16px;
-  --radius-full: 999px;
-
-  --safe-top: env(safe-area-inset-top, 20px);
-  --elevation-3: 0 10px 20px rgba(0,0,0,0.1),
-                  0 3px 6px rgba(0,0,0,0.05);
 
   --motion-emphasized: cubic-bezier(.2, 0, 0, 1);
 }
 
-/* Dark Mode */
 @media (prefers-color-scheme: dark) {
   :root {
     --md-sys-color-surface: #1a1c1e;
-    --md-sys-color-surface-container: #202429;
-    --md-sys-color-on-primary-container: #ffffff;
-    --md-sys-color-primary-container: #006495;
     --md-sys-color-primary: #93cae4;
-    --glass-bg: rgba(30, 30, 30, 0.75);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --md-sys-color-primary-container: #006495;
+    --md-sys-color-on-primary-container: #ffffff;
   }
 }
 
 /* ===============================
    Base
 ================================ */
-* {
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
-  min-height: 100vh;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  height: 100vh;
   background: linear-gradient(
     160deg,
     var(--md-sys-color-primary-container),
     var(--md-sys-color-surface)
   );
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--md-sys-color-on-primary-container);
   overflow: hidden;
 }
 
 /* ===============================
-   Background Motion (Expressive)
+   Animated 404 SVG
 ================================ */
-.bg-orb {
-  position: absolute;
-  width: 420px;
-  height: 420px;
-  background: radial-gradient(
-    circle,
-    var(--md-sys-color-primary) 0%,
-    transparent 70%
-  );
-  filter: blur(90px);
-  opacity: 0.25;
-  animation: float 12s infinite alternate ease-in-out;
+.svg-wrap {
+  width: min(90vw, 520px);
 }
 
-.bg-orb:nth-child(1) { top: -100px; left: -100px; }
-.bg-orb:nth-child(2) { bottom: -120px; right: -120px; animation-delay: 2s; }
+svg {
+  width: 100%;
+  height: auto;
+}
+
+path {
+  fill: none;
+  stroke: var(--md-sys-color-primary);
+  stroke-width: 14;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 1.4s var(--motion-emphasized) forwards;
+}
+
+path:nth-child(2) { animation-delay: 0.15s; }
+path:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ===============================
+   Floating Motion (Expressive)
+================================ */
+.svg-wrap {
+  animation: float 6s ease-in-out infinite alternate;
+}
 
 @keyframes float {
   from { transform: translateY(0); }
-  to   { transform: translateY(60px); }
+  to   { transform: translateY(-16px); }
 }
 
 /* ===============================
-   Card
+   Text
 ================================ */
-.card {
-  position: relative;
-  max-width: 420px;
-  padding: 32px 28px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--blur-amt));
-  border-radius: var(--radius-lg);
-  border: var(--glass-border);
-  box-shadow: var(--elevation-3);
-  text-align: center;
-  animation: enter 600ms var(--motion-emphasized);
-}
-
-@keyframes enter {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-/* ===============================
-   Typography
-================================ */
-.error-code {
-  font-size: 96px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -2px;
-  color: var(--md-sys-color-primary);
-  animation: pop 700ms var(--motion-emphasized);
-}
-
-@keyframes pop {
-  0%   { transform: scale(0.8); opacity: 0; }
-  70%  { transform: scale(1.08); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
 .title {
-  font-size: 22px;
+  margin-top: 24px;
+  font-size: 20px;
   font-weight: 600;
-  margin-top: 12px;
 }
 
 .desc {
-  margin-top: 10px;
+  margin-top: 8px;
   font-size: 14px;
   color: var(--md-sys-color-outline);
 }
 
 /* ===============================
-   Button (M3 Expressive)
+   Actions
 ================================ */
 .actions {
-  margin-top: 24px;
+  margin-top: 28px;
   display: flex;
-  justify-content: center;
-  gap: 12px;
+  gap: 16px;
 }
 
-.btn {
-  padding: 12px 22px;
-  border-radius: var(--radius-full);
+button {
+  background: none;
   border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
   cursor: pointer;
   font-size: 14px;
-  font-weight: 500;
-  transition:
-    transform 200ms var(--motion-emphasized),
-    box-shadow 200ms,
-    background 200ms;
-}
-
-.btn-primary {
-  background: var(--md-sys-color-primary);
-  color: var(--md-sys-color-on-primary);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.2);
-}
-
-.btn-text {
-  background: transparent;
   color: var(--md-sys-color-primary);
+  transition: background 200ms;
 }
 
-.btn-text:hover {
-  background: rgba(0,0,0,0.05);
+button:hover {
+  background: rgba(0,0,0,0.06);
 }
-
 </style>
 </head>
 
 <body>
 
-<div class="bg-orb"></div>
-<div class="bg-orb"></div>
+<div class="svg-wrap">
+  <!-- 404 非字体，SVG 路径绘制 -->
+  <svg viewBox="0 0 600 200">
+    <!-- 4 -->
+    <path d="M80 40 L80 160 M80 100 L140 100 M140 40 L140 160" />
+    <!-- 0 -->
+    <path d="M260 40
+             C210 40,210 160,260 160
+             C310 160,310 40,260 40 Z" />
+    <!-- 4 -->
+    <path d="M420 40 L420 160 M420 100 L480 100 M480 40 L480 160" />
+  </svg>
+</div>
 
-<div class="card">
-  <div class="error-code">404</div>
-  <div class="title">页面不存在</div>
-  <div class="desc">
-    你访问的页面可能已被移动、删除，或暂时不可用。
-  </div>
+<div class="title">页面不存在</div>
+<div class="desc">你访问的地址可能已被移动或删除</div>
 
-  <div class="actions">
-    <button class="btn btn-primary" onclick="location.href='/'">
-      返回首页
-    </button>
-    <button class="btn btn-text" onclick="history.back()">
-      返回上一页
-    </button>
-  </div>
+<div class="actions">
+  <button onclick="location.href='/'">返回首页</button>
+  <button onclick="history.back()">返回上一页</button>
 </div>
 
 </body>
