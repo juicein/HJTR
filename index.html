@@ -4,57 +4,78 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HAOJIN News</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="assets/style.css">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 </head>
 <body>
 
-<div class="app-container">
-    <nav class="side-nav" style="display: none;">
-        <span class="material-icons-outlined">home</span>
-        <span class="material-icons-outlined" style="margin-top: 24px;">settings</span>
-    </nav>
+    <header class="top-bar">
+        <div class="logo">HAOJIN</div>
+        
+        <div class="actions">
+            <button class="icon-btn" id="btn-search">
+                <span class="material-symbols-outlined">search</span>
+            </button>
+            <button class="icon-btn" id="btn-settings">
+                <span class="material-symbols-outlined">settings</span>
+            </button>
+        </div>
+    </header>
 
-    <div style="flex: 1;">
-        <header class="top-bar">
-            <div class="logo">HAOJIN</div>
-            <div>
-                <button onclick="toggleSearch()" class="material-icons-outlined" style="background:none; border:none; cursor:pointer;">search</button>
-                <button onclick="toggleSettings()" class="material-icons-outlined" style="background:none; border:none; cursor:pointer; margin-left: 16px;">settings</button>
-            </div>
-        </header>
-
-        <main id="main-content">
-            <section class="left-column">
-                <div id="headline-container"></div>
-
-                <div class="menu-section">
-                    <div class="menu-header" onclick="toggleMenu()">
-                        <span>功能入口</span>
-                        <span class="material-icons-outlined" id="menu-arrow">expand_more</span>
-                    </div>
-                    <div class="menu-content" id="nav-menu">
-                        <div class="menu-item"><i class="material-icons-outlined">flight</i><span>航空功能</span></div>
-                        <div class="menu-item"><i class="material-icons-outlined">map</i><span>航图显示</span></div>
-                        <div class="menu-item"><i class="material-icons-outlined">directions_bus</i><span>公交查询</span></div>
-                        <div class="menu-item"><i class="material-icons-outlined">train</i><span>轨道交通</span></div>
-                    </div>
-                </div>
+    <main class="app-container">
+        
+        <section id="hero-section">
             </section>
 
-            <section class="news-grid" id="news-list">
-                </section>
-        </main>
-    </div>
-</div>
+        <section id="menu-section" class="menu-container">
+            <div class="menu-header">
+                <h3>Services</h3>
+                <span class="material-symbols-outlined" id="menu-toggle-icon">expand_less</span>
+            </div>
+            <div class="menu-grid" id="menu-grid">
+                </div>
+        </section>
 
-<div class="search-modal" id="searchModal" onclick="if(event.target==this)toggleSearch()">
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="搜索新闻或功能..." oninput="handleSearch(this.value)">
-        <div id="search-results" style="margin-top: 16px;"></div>
-    </div>
-</div>
+        <section id="news-section">
+            <div class="news-header">Latest News</div>
+            <div class="news-list" id="news-list">
+                </div>
+        </section>
 
-<script src="assets/script.js"></script>
+    </main>
+
+    <dialog id="search-dialog">
+        <h3 class="dialog-title">Search</h3>
+        <input type="text" id="search-input" class="input-field" placeholder="Search news or functions...">
+        <div id="search-results" class="search-results"></div>
+        <div class="btn-group" style="margin-top:16px;">
+            <button class="btn" onclick="document.getElementById('search-dialog').close()">Close</button>
+        </div>
+    </dialog>
+
+    <dialog id="settings-dialog">
+        <h3 class="dialog-title">Settings</h3>
+        
+        <p style="margin-bottom:8px; font-weight:bold;">Hero Mode</p>
+        <select id="mode-switch" class="input-field">
+            <option value="news">Latest Headlines</option>
+            <option value="brand">Brand Showcase</option>
+        </select>
+
+        <p style="margin-bottom:8px; font-weight:bold;">Archives</p>
+        <select id="archive-select" class="input-field">
+            <option value="all">All Time</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+        </select>
+
+        <div class="btn-group">
+            <button class="btn btn-filled" onclick="document.getElementById('settings-dialog').close()">Done</button>
+        </div>
+    </dialog>
+
+    <script src="assets/menu_data.js"></script>
+    <script src="assets/script.js"></script>
 </body>
 </html>
