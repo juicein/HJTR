@@ -3,7 +3,7 @@
 // 1. 模拟 JSON 数据读取
 // 在实际项目中，你会使用 fetch('data/news_content.json')
 // 但为了演示，我这里直接定义，并模拟 ID 生成过程
-fetch('news_content.json')
+fetch('../news_content.json')
 
 // 2. 核心：处理数据并生成 ID
 let db = [];
