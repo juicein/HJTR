@@ -1,235 +1,45 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HAOJIN博客主页</title>
-  <link rel="stylesheet" href="assets/style.css">
-
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Haojin">
-
-<!-- 自动亮/暗匹配状态栏 -->
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-
-<link rel="apple-touch-icon" href="/data/icon_ios.png">
-<link rel="icon" type="image/png" href="/data/icon.png">
-  
- <link rel="apple-touch-startup-image" 
-      href="/data/icon_ios.png"
-      media="screen and (device-width: 390px) 
-       and (device-height: 844px) 
-       and (-webkit-device-pixel-ratio: 3) 
-       and (orientation: portrait)">
-  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HAOJIN</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <header class="top-bar">
+        <div class="logo">
+            <span class="material-symbols-outlined" style="font-size:32px;">directions_bus</span>
+            HAOJIN
+        </div>
+        <div class="top-actions">
+            <span class="material-symbols-outlined">search</span>
+            <span class="material-symbols-outlined">settings</span>
+            <span class="material-symbols-outlined">account_circle</span>
+        </div>
+    </header>
 
+    <div class="main-layout">
+        
+        <div id="hero-container">
+            </div>
 
-  
+        <div id="menu-container">
+            <div class="menu-box">
+                <div class="menu-grid" id="menu-grid">
+                    </div>
+            </div>
+        </div>
 
-<header class="topbar">
-  <div class="topbar-left">
-    <div class="logo-box">
-      <img src="image/icon_white.png" alt="Logo" class="logo-icon">
-      <span class="logo-text">Haojin</span>
-    </div>
-  </div>
+        <div id="news-list-container">
+            <h3 style="margin:0 0 16px 4px; opacity:0.7;">最新动态</h3>
+            <div class="news-list" id="news-list">
+                </div>
+        </div>
 
-  <div class="topbar-center">
-    <div class="search-box">
-      <img src="image/search.svg" class="search-icon" alt="Search">
-      <input type="text" id="search" placeholder="查询" class="search-input">
-    </div>
-  </div>
-
-  <div class="topbar-right">
-    <button class="user-btn">
-      <img src="image/menu.svg" alt="User">
-    </button>
-  </div>
-</header>
-
-  
-
-
-  <div class="menu-wrapper">
-  <div class="menu-title">Top Stories</div>
-
-  <div class="menu-container">
-
-    <div class="menu-unit">
-      <div class="menu-item active" onclick="goTo('subway.html')">
-        <img src="icons/subway.png">
-        <span>地铁线网</span>
-      </div>
-
-      <div class="menu-item" onclick="goTo('bus.html')">
-        <img src="icons/bus.png">
-        <span>公交线路</span>
-      </div>
-
-      <div class="menu-item" onclick="goTo('wiki.html')">
-        <img src="icons/wiki.png">
-        <span>Wiki</span>
-      </div>
     </div>
 
-    <div class="show-all-btn" onclick="goTo('all.html')">
-      显示全部
-    </div>
-  </div>
-</div> 
-
-  
-  <!-- 顶栏 
-  <header class="site-header">
-    <div class="logo">
-      <img src="https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png" alt="网站Logo">
-    </div>
-    <nav class="nav-links">
-      <a href=" ">首页</a >
-      <a href="flights">航空</a >
-      <a href="#">联系我们</a >
-    </nav>
-  </header>   -->
-
-
-  
-  <!-- 预留板块位 
-  <section class="hero-section">
-    <h2>轮播图 / 广告 </h2>
-  </section>
--->
-  <!-- 搜索框 
-  <section class="search-section">
-    <input type="text" id="search" placeholder="搜索新闻..." />
-  </section>
--->
-
-  
-  <!-- 新闻卡片区域 -->
-  <main id="news-container"></main>
-
-  <!-- 查看更多按钮 -->
-  <div class="load-more-container">
-    <button id="load-more">查看更多</button>
-  </div>
-
-
-
-
-
-<footer class="bbc-footer">
-
-  <!-- 顶部 BBC Logo -->
-  <div class="footer-logo">
-    <img src="/data/icon.png" alt="Logo">
-  </div>
-
-  <!-- 顶部导航区 -->
-  <nav class="footer-nav">
-    <a href="#">Home</a>
-    <a href="#">News</a>
-    <a href="#">Sport</a>
-    <a href="#">Business</a>
-    <a href="#">Innovation</a>
-    <a href="#">Culture</a>
-    <a href="#">Travel</a>
-    <a href="#">Earth</a>
-    <a href="#">Audio</a>
-    <a href="#">Video</a>
-    <a href="#">Weather</a>
-    <a href="#">Shop</a>
-  </nav>
-
-  <!-- 分隔线 -->
-  <hr class="footer-divider">
-
-  <!-- 语言选择 + 社交图标区 -->
-  <div class="footer-social-section">
-    <select class="lang-select">
-      <option>in other languages</option>
-      <option>中文</option>
-      <option>日本語</option>
-      <option>Español</option>
-    </select>
-
-    <div class="footer-social">
-      <span>Follow  on:</span>
-      <a href="#"><img src="assets/icons/x.svg" alt="X"></a>
-      <a href="#"><img src="assets/icons/facebook.svg" alt="Facebook"></a>
-      <a href="#"><img src="assets/icons/instagram.svg" alt="Instagram"></a>
-      <a href="#"><img src="assets/icons/tiktok.svg" alt="TikTok"></a>
-      <a href="#"><img src="assets/icons/youtube.svg" alt="YouTube"></a>
-    </div>
-  </div>
-
-  <hr class="footer-divider">
-
-  <!-- 底部版权区 -->
-  <div class="footer-bottom">
-    <div class="footer-links">
-      <a href="#">Terms of Use</a>
-      <a href="#">Privacy Policy</a>
-      <a href="#">Cookies</a>
-      <a href="#">Accessibility Help</a>
-      <a href="#">Contact the </a>
-      <a href="#">Advertise with us</a>
-      <a href="#">Help & FAQs</a>
-    </div>
-
-    <p class="footer-copy">
-      © 2025 BBC Clone. All rights reserved.  
-      豪金HAOJIN"及其它相关网站中出现的各类组织、品牌均为虚构，其本体基于多个《我的世界》基岩版（Minecraft Bedrock Edition）服务器进行玩法扩展。
-      <a href="#">更多精彩功能请下载APP获取完整体验。</a>
-    </p>
-  </div>
-
-</footer>
-  <script src="assets/script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
-
-  
-  <!-- 底栏 
-  <footer class="site-footer">
-
-<link rel="apple-touch-icon" href="/data/icon.png">
-    
-<div style="text-align: center; margin-top: 50px;">
-  <a href="data/Haojin_2.2.10.apk" download style="
-    display: inline-flex;
-    align-items: center;
-    padding: 10px 20px;
-    background-color: #3DDC84; /* 安卓绿色 */
-    color: white;
-    text-decoration: none;
-    border-radius: 8px;
-    font-size: 18px;
-    font-weight: bold;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: background-color 0.3s ease;
-  " onmouseover="this.style.backgroundColor='#34b977'" onmouseout="this.style.backgroundColor='#3DDC84'">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/d/d7/Android_robot.svg" 
-         alt="Android" 
-         style="width: 28px; height: 28px; margin-right: 10px;">
-    下载 Android 客户端
-  </a >
-  <p style="margin-top: 8px; font-size: 14px; color: gray;">
-    版本：2.2.10 | 大小：15MB
-  </p >
-</div>
-
-    
-    <p>© 2025 . All Rights Reserved.</p >
-    <p>“豪金HAOJIN"及其它相关网站中出现的各类组织、品牌均为虚构，其本体基于多个《我的世界》基岩版（Minecraft Bedrock Edition）服务器进行玩法扩展，更多精彩功能请下载APP获取完整体验。</p >
-  </footer>
-
-  <script src="assets/script.js"></script>
-</body>
-</html>
-
-  -->
