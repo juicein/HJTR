@@ -3,43 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HAOJIN</title>
+    <title>HAOJIN News</title>
     <link rel="stylesheet" href="assets/style.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 </head>
 <body>
 
-    <header class="top-bar">
-        <div class="logo">
-            <span class="material-symbols-outlined" style="font-size:32px;">directions_bus</span>
-            HAOJIN
-        </div>
-        <div class="top-actions">
-            <span class="material-symbols-outlined">search</span>
-            <span class="material-symbols-outlined">settings</span>
-            <span class="material-symbols-outlined">account_circle</span>
-        </div>
-    </header>
+<div class="app-container">
+    <nav class="side-nav" style="display: none;">
+        <span class="material-icons-outlined">home</span>
+        <span class="material-icons-outlined" style="margin-top: 24px;">settings</span>
+    </nav>
 
-    <div class="main-layout">
-        
-        <div id="hero-container">
+    <div style="flex: 1;">
+        <header class="top-bar">
+            <div class="logo">HAOJIN</div>
+            <div>
+                <button onclick="toggleSearch()" class="material-icons-outlined" style="background:none; border:none; cursor:pointer;">search</button>
+                <button onclick="toggleSettings()" class="material-icons-outlined" style="background:none; border:none; cursor:pointer; margin-left: 16px;">settings</button>
             </div>
+        </header>
 
-        <div id="menu-container">
-            <div class="menu-box">
-                <div class="menu-grid" id="menu-grid">
+        <main id="main-content">
+            <section class="left-column">
+                <div id="headline-container"></div>
+
+                <div class="menu-section">
+                    <div class="menu-header" onclick="toggleMenu()">
+                        <span>功能入口</span>
+                        <span class="material-icons-outlined" id="menu-arrow">expand_more</span>
                     </div>
-            </div>
-        </div>
-
-        <div id="news-list-container">
-            <h3 style="margin:0 0 16px 4px; opacity:0.7;">最新动态</h3>
-            <div class="news-list" id="news-list">
+                    <div class="menu-content" id="nav-menu">
+                        <div class="menu-item"><i class="material-icons-outlined">flight</i><span>航空功能</span></div>
+                        <div class="menu-item"><i class="material-icons-outlined">map</i><span>航图显示</span></div>
+                        <div class="menu-item"><i class="material-icons-outlined">directions_bus</i><span>公交查询</span></div>
+                        <div class="menu-item"><i class="material-icons-outlined">train</i><span>轨道交通</span></div>
+                    </div>
                 </div>
-        </div>
+            </section>
 
+            <section class="news-grid" id="news-list">
+                </section>
+        </main>
     </div>
+</div>
 
-    <script src="assets/script.js"></script>
+<div class="search-modal" id="searchModal" onclick="if(event.target==this)toggleSearch()">
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="搜索新闻或功能..." oninput="handleSearch(this.value)">
+        <div id="search-results" style="margin-top: 16px;"></div>
+    </div>
+</div>
+
+<script src="assets/script.js"></script>
 </body>
 </html>
