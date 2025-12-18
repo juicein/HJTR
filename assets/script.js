@@ -1,121 +1,94 @@
-/* script.js */
+/* script.js */// assets/script.js
 
-// 1. 模拟 JSON 数据读取
-// 在实际项目中，你会使用 fetch('data/news_content.json')
-// 但为了演示，我这里直接定义，并模拟 ID 生成过程
-fetch('../news_content.json')
+let newsData = [];
+let headlineMode = localStorage.getItem('headlineMode') || 'news'; // 'news' or 'brand'
 
-// 2. 核心：处理数据并生成 ID
-let db = [];
-
-async function loadData() {
-    // === 如果你有本地服务器，解开下面几行注释 ===
-    // const response = await fetch('data/news_content.json');
-    // const json = await response.json();
-    // const data = json; 
-    
-    // === 暂时使用上面的 rawData ===
-    const data = rawData;
-
-    // 自动生成 ID (Sequential ID Generation)
-    // 我们使用 map 给每个对象添加一个 'id' 属性，索引值即为 ID
-    db = data.map((item, index) => {
-        return {
-            ...item,
-            id: index // 0, 1, 2...
-        };
-    });
-
-    console.log("Database initialized with IDs:", db);
-    renderApp();
+// 初始化数据
+async function init() {
+    try {
+        const response = await fetch('data/news_content.json');
+        const rawData = await response.json();
+        
+        // 自动生成 ID (按顺序)
+        newsData = rawData.map((item, index) => ({ ...item, id: index }));
+        
+        renderHeadline();
+        renderNewsList();
+    } catch (e) {
+        console.error("加载数据失败", e);
+    }
 }
 
-// 菜单数据
-const menuItems = [
-    { name: "地铁线网", icon: "train" },
-    { name: "公交线路", icon: "directions_bus" },
-    { name: "临途出行", icon: "departure_board" },
-    { name: "电子地图", icon: "map" },
-    { name: "失物招领", icon: "manage_search" },
-    { name: "客服中心", icon: "support_agent" },
-    { name: "时刻表", icon: "schedule" },
-    { name: "更多", icon: "apps" }
-];
+// 渲染头条
+function renderHeadline(specifiedId = null) {
+    const container = document.getElementById('headline-container');
+    const headlineNews = specifiedId !== null ? newsData[specifiedId] : newsData[0];
 
-// 3. 渲染逻辑
-function renderApp() {
-    renderHero();
-    renderMenu();
-    renderList();
+    if (headlineMode === 'brand') {
+        container.innerHTML = `
+            <div class="headline-card headline-brand">
+                <div class="brand-bg-effect"></div>
+                <div class="brand-content">
+                    <h1>HAOJIN</h1>
+                    <p>探索未来的无限可能</p>
+                </div>
+            </div>`;
+    } else {
+        container.innerHTML = `
+            <div class="headline-card" onclick="location.href='news_detail.html?id=${headlineNews.id}'">
+                ${headlineNews.image ? `<img src="${headlineNews.image}">` : `<div style="background:var(--md-sys-color-primary); height:100%"></div>`}
+                <div class="headline-info">
+                    <h2>${headlineNews.title}</h2>
+                    <p>${headlineNews.author} · ${headlineNews.date}</p>
+                </div>
+            </div>`;
+    }
 }
 
-function renderHero() {
-    // 默认取第一条作为头条，或者取有图片的最新一条
-    const heroItem = db[0]; 
-    const container = document.getElementById('hero-container');
-    
-    // 检查是否有图片，如果没有则用渐变
-    const bgStyle = heroItem.image 
-        ? `background-image: url('${heroItem.image}')` 
-        : `background: linear-gradient(135deg, var(--md-sys-color-primary), #001e30)`;
+// 渲染新闻列表 (排除头条)
+function renderNewsList() {
+    const list = document.getElementById('news-list');
+    // 过滤掉第一条（作为头条的）
+    const displayNews = newsData.slice(1, 10); 
 
-    container.innerHTML = `
-        <div class="hero-card" onclick="goToDetail(${heroItem.id})" style="background-size:cover; background-position:center; ${heroItem.image ? '' : bgStyle}">
-            ${heroItem.image ? `<img src="${heroItem.image}" class="hero-bg" alt="">` : ''}
-            <div class="hero-overlay">
-                <span class="hero-tag">头条</span>
-                <div class="hero-title">${heroItem.title}</div>
-                <div style="font-size:13px; opacity:0.9;">${heroItem.author} · ${heroItem.date}</div>
+    list.innerHTML = displayNews.map(item => `
+        <a href="news_detail.html?id=${item.id}" class="news-card ${item.image ? 'has-img' : 'no-img'}">
+            <div class="card-txt">
+                <div style="font-size:0.8rem; color:var(--md-sys-color-outline)">${item.location}</div>
+                <h3 style="margin:8px 0">${item.title}</h3>
+                <div style="font-size:0.8rem">${item.date}</div>
             </div>
-        </div>
-    `;
-}
-
-function renderMenu() {
-    const grid = document.getElementById('menu-grid');
-    grid.innerHTML = menuItems.map(item => `
-        <div class="menu-item">
-            <div class="menu-icon">
-                <span class="material-symbols-outlined">${item.icon}</span>
-            </div>
-            <span class="menu-text">${item.name}</span>
-        </div>
+            ${item.image ? `<img src="${item.image}">` : ''}
+        </a>
     `).join('');
 }
 
-function renderList() {
-    const list = document.getElementById('news-list');
-    // 排除头条（第一条），显示剩下的
-    const listItems = db.slice(1);
-    
-    list.innerHTML = listItems.map(item => {
-        // 判断是否有图
-        const imgHtml = item.image 
-            ? `<img src="${item.image}" class="news-card-img" loading="lazy">` 
-            : `<div class="news-card-img" style="display:flex;align-items:center;justify-content:center;color:#999;"><span class="material-symbols-outlined">article</span></div>`;
-
-        return `
-            <div class="news-card" onclick="goToDetail(${item.id})">
-                <div class="news-card-content">
-                    <div>
-                        <div class="nc-title">${item.title}</div>
-                        <div style="font-size:13px; color:#555; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.content}</div>
-                    </div>
-                    <div class="nc-meta">
-                        <span style="color:var(--md-sys-color-primary)">${item.location}</span>
-                        <span>•</span>
-                        <span>${item.date}</span>
-                    </div>
-                </div>
-                ${imgHtml}
-            </div>
-        `;
-    }).join('');
+// 功能菜单折叠
+function toggleMenu() {
+    const content = document.getElementById('nav-menu');
+    const arrow = document.getElementById('menu-arrow');
+    content.classList.toggle('expanded');
+    arrow.style.transform = content.classList.contains('expanded') ? 'rotate(180deg)' : 'rotate(0)';
 }
 
-function goToDetail(id) {
-    window.location.href = `news_detail.html?id=${id}`;
+// 搜索逻辑
+function toggleSearch() {
+    const modal = document.getElementById('searchModal');
+    modal.style.display = (modal.style.display === 'block') ? 'none' : 'block';
 }
 
-// 初始化
-document.addEventListener('DOMContentLoaded', loadData);
+function handleSearch(query) {
+    if(!query) return;
+    const results = newsData.filter(n => n.title.includes(query) || n.content.includes(query));
+    const resDiv = document.getElementById('search-results');
+    resDiv.innerHTML = results.map(r => `<div onclick="location.href='news_detail.html?id=${r.id}'" style="padding:12px; border-bottom:1px solid #eee; cursor:pointer;">${r.title}</div>`).join('');
+}
+
+// 设置逻辑 (模式切换)
+function toggleSettings() {
+    headlineMode = (headlineMode === 'news') ? 'brand' : 'news';
+    localStorage.setItem('headlineMode', headlineMode);
+    renderHeadline();
+}
+
+window.onload = init;
