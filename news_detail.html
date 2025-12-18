@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Detail</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+    <a href="index.html" class="fab-back">
+        <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+
+    <article class="detail-container" id="article-content">
+        <p>Loading...</p>
+    </article>
+
+    <script>
+        // 内联脚本处理详情页逻辑，也可以放到 assets/detail.js
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const id = parseInt(params.get('id'));
+
+            try {
+                const response = await fetch('data/news_content.json');
+                const rawData = await response.json();
+                // 重新加上 ID (必须与主页生成逻辑一致)
+                const newsData = rawData.map((item, index) => ({...item, id: index}));
+                
+                const article = newsData.find(n => n.id === id);
+
+                if (article) {
+                    renderArticle(article);
+                } else {
+                    document.getElementById('article-content').innerHTML = "<h1>Article not found</h1>";
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+        function renderArticle(news) {
+            const container = document.getElementById('article-content');
+            
+            // 简单处理换行符
+            const formattedContent = news.content.replace(/\n/g, '<br>');
+
+            const imgHtml = news.image ? `<img src="${news.image}" class="detail-img" alt="${news.title}">` : '';
+            
+            // 处理 Link 跳转
+            const linkHtml = news.link ? 
+                `<div style="margin-top:24px"><a href="${news.link}" target="_blank" class="btn btn-filled">Read Original Source</a></div>` 
+                : '';
+
+            container.innerHTML = `
+                <div class="detail-header">
+                    <h1 class="detail-title">${news.title}</h1>
+                    <div class="detail-meta">
+                        <span>${news.author}</span>
+                        <span>${news.date}</span>
+                        <span>${news.location}</span>
+                    </div>
+                </div>
+                ${imgHtml}
+                <div class="detail-body">
+                    ${formattedContent}
+                </div>
+                ${linkHtml}
+            `;
+        }
+    </script>
+</body>
+</html>
