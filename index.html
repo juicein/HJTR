@@ -3,42 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>HAOJIN NEWS</title>
+    <title>浩金资讯</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
     <header class="top-bar">
-        <div class="logo-container">
-            <img src="image/logo_white.png" class="logo-img" alt="Logo">
-        </div>
-        <div id="custom-nav" class="custom-nav-menu"></div>
-        <div class="actions">
-            <span class="material-symbols-outlined" onclick="openSearch()">search</span>
-            <span class="material-symbols-outlined" onclick="openSettings()">settings</span>
+        <div id="top-left-nav" class="top-left-nav"></div>
+        <div class="logo-box"><img src="image/logo_white.png" alt="Logo"></div>
+        <div class="top-right-actions">
+            <span class="material-symbols-outlined" onclick="alert('Search...')">search</span>
+            <span class="material-symbols-outlined" onclick="document.getElementById('settings-dlg').showModal()">settings</span>
         </div>
     </header>
 
-    <main class="main-grid">
-        <div class="left-col">
-            <section class="hero-wrapper">
-                <div class="carousel-track" id="carousel-track"></div>
+    <main class="container">
+        <div class="main-content">
+            <section class="hero-carousel">
+                <div class="carousel-inner" id="carousel-track"></div>
             </section>
 
-            <section class="func-container" id="menu-section">
-                <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-                    <span style="font-weight:bold; font-size:14px;">快捷功能</span>
-                    <span class="material-symbols-outlined" id="expand-btn" onclick="toggleMenu()" style="cursor:pointer">expand_more</span>
+            <section class="menu-card" id="menu-section" style="margin-top:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <b style="font-size:14px; color:var(--md-sys-color-primary)">快捷功能</b>
+                    <span class="material-symbols-outlined" id="menu-toggle-btn" onclick="toggleMenu()" style="cursor:pointer">expand_more</span>
                 </div>
-                <div class="func-grid" id="func-grid"></div>
+                <div class="menu-grid" id="menu-grid"></div>
             </section>
         </div>
 
-        <div class="right-col">
-            <h3 style="margin-left:8px">近期资讯</h3>
-            <div id="news-list"></div>
+        <div class="news-section">
+            <h2 style="font-size: 20px; margin-bottom: 16px; padding-left: 4px;">近期动态</h2>
+            <div id="news-list" class="news-list"></div>
         </div>
     </main>
+
+    <dialog id="settings-dlg" class="settings-dialog">
+        <h3>系统设置</h3>
+        <div class="setting-row">
+            <span>显示功能菜单卡片</span>
+            <input type="checkbox" checked onchange="config.showMenu = this.checked">
+        </div>
+        <div class="setting-row">
+            <span>月份查询 (2025-MM)</span>
+            <input type="month" onchange="config.archiveMonth = this.value">
+        </div>
+        <div style="text-align: right; margin-top: 20px;">
+            <button onclick="saveSettings()" style="padding:10px 24px; border-radius:20px; border:none; background:var(--md-sys-color-primary); color:white;">应用并保存</button>
+        </div>
+    </dialog>
 
     <script src="assets/menu_data.js"></script>
     <script src="assets/script.js"></script>
