@@ -1,107 +1,134 @@
+/* assets/script.js */
 let allNews = [];
-let carouselIndex = 0;
+let currentIndex = 0;
+let config = {
+    showMenu: true,
+    customNavIds: ["aviation", "bus"], // 默认顶栏展示的功能
+    archiveMonth: "",
+    sidebarOnTablet: true
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadSettings();
-    await fetchNews();
-    initCarousel();
+    loadLocalSettings();
+    await initData();
+    renderHeadlines();
     renderMenu(false);
     renderNewsList();
-    renderCustomMenu();
+    renderTopNav();
+    startCarousel();
 });
 
-// 1. 获取新闻并生成 ID
-async function fetchNews() {
-    const res = await fetch('data/news_content.json');
-    const data = await res.json();
-    // 自动按顺序生成 ID
-    allNews = data.map((item, index) => ({ ...item, id: index }));
+// 初始化数据：自动生成ID并排序
+async function initData() {
+    try {
+        const res = await fetch('data/news_content.json');
+        const data = await res.json();
+        // ID 严格映射数组索引
+        allNews = data.map((item, index) => ({ ...item, id: index }));
+        // 按照日期降序（最新在前）
+        allNews.sort((a, b) => new Date(parseDate(b.date)) - new Date(parseDate(a.date)));
+    } catch (e) { console.error("Data error", e); }
 }
 
-// 2. 头条逻辑：最近7天或最新1条
-function getHeadlineNews() {
+function parseDate(dStr) { return `2025-${dStr.replace(' ', 'T')}`; }
+
+// 逻辑：最新4条且不超过1周，若不足显示最后1条
+function getHeadlineData() {
     const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    // 假设日期格式为 12-14 14:21，需补齐年份进行比较
-    const withDate = allNews.map(n => ({
-        ...n,
-        timestamp: new Date(`2025-${n.date.replace(' ', 'T')}`).getTime()
-    })).sort((a, b) => b.timestamp - a.timestamp);
-
-    const recent = withDate.filter(n => n.timestamp >= oneWeekAgo.getTime());
-    return recent.length > 0 ? recent.slice(0, 3) : [withDate[0]];
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const filtered = allNews.filter(n => (now - new Date(parseDate(n.date))) < oneWeek);
+    return filtered.length > 0 ? filtered.slice(0, 4) : [allNews[0]];
 }
 
-// 3. 轮播图渲染与动画
-function initCarousel() {
-    const headlines = getHeadlineNews();
+function renderHeadlines() {
     const track = document.getElementById('carousel-track');
+    const headlines = getHeadlineData();
     track.innerHTML = headlines.map(n => `
-        <div class="hero-slide" onclick="location.href='news_detail.html?id=${n.id}'">
-            <img src="${n.image || 'https://via.placeholder.com/800x400/006495/ffffff?text=No+Image'}" />
-            <div class="hero-info">
+        <div class="slide" onclick="location.href='news_detail.html?id=${n.id}'">
+            ${n.image ? `<img src="${n.image}">` : `<div style="width:100%;height:100%;background:var(--md-sys-color-primary-container)"></div>`}
+            <div class="slide-content">
                 <h2>${n.title}</h2>
-                <div class="hero-desc">${n.content}</div>
+                <div class="slide-excerpt">${n.content}</div>
             </div>
         </div>
     `).join('');
-
-    if (headlines.length > 1) {
-        setInterval(() => {
-            carouselIndex = (carouselIndex + 1) % headlines.length;
-            track.style.transform = `translateX(-${carouselIndex * 100}%)`;
-        }, 5000);
-    }
 }
 
-// 4. 功能菜单渲染 (折叠逻辑)
+function startCarousel() {
+    const track = document.getElementById('carousel-track');
+    const count = getHeadlineData().length;
+    if (count <= 1) return;
+    setInterval(() => {
+        currentIndex = (currentIndex + 1) % count;
+        track.style.transform = `translateX(-${currentIndex * 100}%)`;
+    }, 5000);
+}
+
+// 功能菜单渲染 (非折叠显示4个)
 function renderMenu(expanded) {
-    const container = document.getElementById('func-grid');
-    const list = expanded ? MENU_ITEMS : MENU_ITEMS.slice(0, 3);
-    container.innerHTML = list.map(item => `
-        <div class="func-item" onclick="handleMenuClick('${item.id}')">
-            <div class="func-icon"><span class="material-symbols-outlined">${item.icon}</span></div>
+    const grid = document.getElementById('menu-grid');
+    const btn = document.getElementById('menu-toggle-btn');
+    const list = expanded ? MENU_ITEMS : MENU_ITEMS.slice(0, 4);
+    
+    grid.innerHTML = list.map(item => `
+        <div class="menu-item" onclick="location.href='${item.link}'">
+            <div class="icon-wrap"><span class="material-symbols-outlined">${item.icon}</span></div>
             <span>${item.name}</span>
         </div>
     `).join('');
-    container.style.maxHeight = expanded ? "500px" : "80px";
+    
+    btn.innerText = expanded ? "expand_less" : "expand_more";
+    document.getElementById('menu-section').style.maxHeight = expanded ? "600px" : "160px";
 }
 
 function toggleMenu() {
-    const isExp = document.getElementById('func-grid').style.maxHeight === "500px";
-    renderMenu(!isExp);
-    document.getElementById('expand-btn').textContent = isExp ? "expand_more" : "expand_less";
+    const isExpanded = document.getElementById('menu-section').style.maxHeight === "600px";
+    renderMenu(!isExpanded);
 }
 
-// 5. 设置存储与缓存
-async function loadSettings() {
-    const config = JSON.parse(localStorage.getItem('hj_settings')) || {
-        showMenu: true,
-        sidebarTablet: true,
-        customMenu: ["flight", "bus"]
-    };
-    window.siteConfig = config;
+// 顶栏自定义菜单
+function renderTopNav() {
+    const nav = document.getElementById('top-left-nav');
+    const items = MENU_ITEMS.filter(m => config.customNavIds.includes(m.id));
+    nav.innerHTML = items.map(i => `
+        <div class="nav-chip" onclick="location.href='${i.link}'" 
+             style="background:var(--md-sys-color-primary-container); padding:6px 16px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer;">
+            ${i.name}
+        </div>
+    `).join('');
+}
+
+// 新闻列表渲染 (区分图文)
+function renderNewsList() {
+    const container = document.getElementById('news-list');
+    let data = allNews;
     
-    if (!config.showMenu) document.getElementById('menu-section').style.display = 'none';
-    if (config.sidebarTablet) document.body.classList.add('sidebar-enabled');
+    // 月份过滤逻辑
+    if (config.archiveMonth) {
+        data = allNews.filter(n => parseDate(n.date).includes(config.archiveMonth));
+    }
+
+    container.innerHTML = data.map(n => {
+        const isTextOnly = !n.image || n.image === "";
+        return `
+        <a href="news_detail.html?id=${n.id}" class="card">
+            ${isTextOnly ? '' : `<img src="${n.image}" class="card-img">`}
+            <div class="card-body">
+                <h3>${n.title}</h3>
+                <div class="card-meta">${n.date} · ${n.location} · ${n.author}</div>
+            </div>
+        </a>
+        `;
+    }).join('');
 }
 
-function saveSetting(key, val) {
-    window.siteConfig[key] = val;
-    localStorage.setItem('hj_settings', JSON.stringify(window.siteConfig));
+// 设置持久化
+function loadLocalSettings() {
+    const saved = localStorage.getItem('haojin_cfg');
+    if (saved) config = JSON.parse(saved);
 }
 
-// 6. 月份查询逻辑
-function filterByMonth(monthStr) {
-    // monthStr format: "2025-12"
-    const filtered = allNews.filter(n => `2025-${n.date.split('-')[0]}` === monthStr);
-    renderNewsList(filtered);
-}
-
-// 7. 自定义菜单渲染 (顶栏)
-function renderCustomMenu() {
-    const nav = document.getElementById('custom-nav');
-    const items = MENU_ITEMS.filter(m => window.siteConfig.customMenu.includes(m.id));
-    nav.innerHTML = items.map(i => `<div class="nav-item">${i.name}</div>`).join('');
+function saveSettings() {
+    localStorage.setItem('haojin_cfg', JSON.stringify(config));
+    location.reload(); // 刷新应用设置
 }
