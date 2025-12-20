@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 初始化数据：自动生成ID并排序
 async function initData() {
     try {
-        const res = await fetch('data/news_content.json');
+        const res = await fetch('../news_content.json');
         const data = await res.json();
         // ID 严格映射数组索引
         allNews = data.map((item, index) => ({ ...item, id: index }));
