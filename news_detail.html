@@ -1,76 +1,48 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>News Detail</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    <title>新闻详情</title>
     <link rel="stylesheet" href="assets/style.css">
+    <style>
+        .detail-body { max-width: 800px; margin: 0 auto; padding: 20px; animation: slideUp 0.6s var(--motion-easing); }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .hero-img { width: 100%; height: 300px; object-fit: cover; border-radius: var(--radius-lg); margin-bottom: 24px; }
+        .placeholder-color { width: 100%; height: 200px; border-radius: var(--radius-lg); margin-bottom: 24px; }
+    </style>
 </head>
 <body>
-
-    <a href="index.html" class="fab-back">
-        <span class="material-symbols-outlined">arrow_back</span>
-    </a>
-
-    <article class="detail-container" id="article-content">
-        <p>Loading...</p>
-    </article>
+    <div class="detail-body">
+        <a href="index.html" style="text-decoration:none; color:var(--md-sys-color-primary); display:flex; align-items:center; margin-bottom:20px;">
+            <span class="material-symbols-outlined">arrow_back</span> 返回列表
+        </a>
+        
+        <div id="media-container"></div>
+        <h1 id="title" style="font-size: 32px; margin: 0 0 12px;">加载中...</h1>
+        <div id="meta" style="color:var(--md-sys-color-outline); margin-bottom:24px;"></div>
+        <div id="content" style="white-space: pre-wrap; line-height:1.8; font-size:17px; color:var(--md-sys-color-on-surface-variant)"></div>
+    </div>
 
     <script>
-        // 内联脚本处理详情页逻辑，也可以放到 assets/detail.js
-        document.addEventListener('DOMContentLoaded', async () => {
-            const params = new URLSearchParams(window.location.search);
-            const id = parseInt(params.get('id'));
+        const newsId = new URLSearchParams(window.location.search).get('id');
+        fetch('data/news_content.json')
+            .then(res => res.json())
+            .then(data => {
+                const item = data[newsId]; // 直接通过索引获取
+                if (!item) { document.getElementById('title').innerText = "新闻不存在"; return; }
 
-            try {
-                const response = await fetch('data/news_content.json');
-                const rawData = await response.json();
-                // 重新加上 ID (必须与主页生成逻辑一致)
-                const newsData = rawData.map((item, index) => ({...item, id: index}));
-                
-                const article = newsData.find(n => n.id === id);
+                document.getElementById('title').innerText = item.title;
+                document.getElementById('meta').innerText = `${item.date} · ${item.location} · 作者：${item.author}`;
+                document.getElementById('content').innerText = item.content;
 
-                if (article) {
-                    renderArticle(article);
-                } else {
-                    document.getElementById('article-content').innerHTML = "<h1>Article not found</h1>";
+                const media = document.getElementById('media-container');
+                if (item.image && item.image.startsWith('#')) {
+                    media.innerHTML = `<div class="placeholder-color" style="background:${item.image}"></div>`;
+                } else if (item.image) {
+                    media.innerHTML = `<img src="${item.image}" class="hero-img">`;
                 }
-            } catch (e) {
-                console.error(e);
-            }
-        });
-
-        function renderArticle(news) {
-            const container = document.getElementById('article-content');
-            
-            // 简单处理换行符
-            const formattedContent = news.content.replace(/\n/g, '<br>');
-
-            const imgHtml = news.image ? `<img src="${news.image}" class="detail-img" alt="${news.title}">` : '';
-            
-            // 处理 Link 跳转
-            const linkHtml = news.link ? 
-                `<div style="margin-top:24px"><a href="${news.link}" target="_blank" class="btn btn-filled">Read Original Source</a></div>` 
-                : '';
-
-            container.innerHTML = `
-                <div class="detail-header">
-                    <h1 class="detail-title">${news.title}</h1>
-                    <div class="detail-meta">
-                        <span>${news.author}</span>
-                        <span>${news.date}</span>
-                        <span>${news.location}</span>
-                    </div>
-                </div>
-                ${imgHtml}
-                <div class="detail-body">
-                    ${formattedContent}
-                </div>
-                ${linkHtml}
-            `;
-        }
+            });
     </script>
 </body>
 </html>
