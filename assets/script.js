@@ -9,7 +9,7 @@ const state = {
         locationFilter: 'all'
     },
     shortcutsExpanded: false,
-    jsonUrl: 'data/news_content.json'
+    jsonUrl: '../news_content.json'
 };
 
 // --- Initialization ---
