@@ -1,106 +1,122 @@
 /* assets/style.css */
 :root {
   --md-sys-color-primary: #006495;
+  --md-sys-color-primary-container: #cbe6ff;
   --md-sys-color-surface: #fdfcff;
-  --md-sys-color-surface-container: rgba(240, 244, 248, 0.7);
+  --md-sys-color-surface-container: rgba(240, 244, 248, 0.6);
   --md-sys-color-outline: #72777f;
   
-  /* 高斯模糊变量 */
-  --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.5);
-  --blur-amt: 25px;
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.4);
+  --blur-amt: 30px;
+  --radius-xl: 28px;
   --radius-lg: 24px;
   --radius-md: 16px;
-  --radius-full: 999px;
-  --elevation-3: 0 10px 20px rgba(0,0,0,0.05);
-
-  --motion-main: cubic-bezier(0.2, 0, 0, 1);
+  
+  --motion-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-emphasized: cubic-bezier(0.3, 0, 0.8, 0.15);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --md-sys-color-surface: #1a1c1e;
-    --md-sys-color-surface-container: rgba(32, 36, 41, 0.7);
-    --glass-bg: rgba(30, 30, 30, 0.75);
-    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --md-sys-color-surface: #111318;
+    --md-sys-color-surface-container: rgba(29, 31, 35, 0.6);
+    --glass-bg: rgba(30, 30, 30, 0.6);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.08);
   }
 }
 
-/* --- 1. 流光溢彩背景动画 --- */
-.fluid-bg {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  z-index: -1; filter: blur(80px); opacity: 0.5;
-  background: linear-gradient(45deg, #006495, #cbe6ff, #ff6d00, #93cae4);
-  background-size: 400% 400%;
-  animation: fluidGradient 15s ease infinite;
-  display: none; /* 默认关闭，由JS控制 */
-}
-@keyframes fluidGradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
+body { margin: 0; font-family: "Segoe UI", system-ui; background: var(--md-sys-color-surface); overflow-x: hidden; }
 
-/* --- 2. 响应式顶栏 (Logo 颜色随主题) --- */
-.top-bar {
-  position: fixed; top: 0; width: 100%; height: 64px;
-  display: flex; align-items: center; padding: 0 16px; z-index: 1000;
-  background: var(--glass-bg); backdrop-filter: blur(var(--blur-amt));
-  border-bottom: var(--glass-border);
+/* --- 1. 流光溢彩背景 (Apple Style) --- */
+.bg-canvas {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2;
+  overflow: hidden; background: var(--md-sys-color-surface);
 }
-.logo-img { 
-  height: 28px; 
-  /* 关键：跟随主题变色。Light模式不处理，Dark模式反色或使用mask */
+.blob {
+  position: absolute; width: 50vw; height: 50vw; border-radius: 50%;
+  filter: blur(80px); opacity: 0.4; animation: move 20s infinite alternate var(--motion-standard);
+  will-change: transform;
 }
+/* 白天色块 */
+.blob-1 { background: #006495; top: -10%; left: -10%; }
+.blob-2 { background: #ff6d00; bottom: -10%; right: -10%; animation-delay: -5s; }
+.blob-3 { background: #93cae4; top: 40%; left: 30%; animation-delay: -10s; }
+/* 黑暗模式自动切换颜色 */
 @media (prefers-color-scheme: dark) {
-  .logo-img { filter: brightness(0) invert(1); }
+  .blob-1 { background: #003355; }
+  .blob-2 { background: #662200; }
+  .blob-3 { background: #1a1c1e; }
 }
+@keyframes move { from { transform: translate(0,0) scale(1); } to { transform: translate(20%, 20%) scale(1.2); } }
 
+/* --- 2. 响应式顶栏 --- */
+.top-bar {
+  position: fixed; top: 0; width: 100%; height: 64px; display: flex; align-items: center;
+  padding: 0 16px; z-index: 1000; background: var(--glass-bg); backdrop-filter: blur(var(--blur-amt));
+  border-bottom: var(--glass-border); justify-content: space-between;
+}
+.logo-img { height: 28px; transition: 0.3s; }
+@media (prefers-color-scheme: dark) { .logo-img { filter: brightness(0) invert(1); } }
+
+/* 平板居中逻辑 */
 @media (min-width: 768px) {
   .logo-box { position: absolute; left: 50%; transform: translateX(-50%); }
 }
 
-/* --- 3. MD3 侧边栏 --- */
-.sidebar {
-  position: fixed; left: -300px; top: 0; width: 280px; height: 100%;
-  background: var(--md-sys-color-surface);
-  box-shadow: var(--elevation-3); z-index: 1100;
-  transition: transform 0.4s var(--motion-main);
-  padding: 20px 12px; border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+/* --- 3. MD3 标准侧边栏 --- */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1100; display: none; opacity: 0; transition: 0.3s; }
+.navigation-drawer {
+  position: fixed; left: -360px; top: 0; width: 320px; height: 100%;
+  background: var(--md-sys-color-surface); z-index: 1200;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  transition: transform 0.4s var(--motion-standard); padding: 12px;
 }
-.sidebar.active { transform: translateX(300px); }
-.sidebar-item {
-  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-  border-radius: var(--radius-full); cursor: pointer; color: var(--md-sys-color-outline);
+.navigation-drawer.active { transform: translateX(360px); }
+.drawer-item {
+  display: flex; align-items: center; gap: 12px; padding: 16px;
+  border-radius: var(--radius-full); cursor: pointer; transition: 0.2s;
 }
-.sidebar-item:hover { background: var(--md-sys-color-primary-container); }
+.drawer-item:hover { background: var(--md-sys-color-primary-container); }
 
-/* --- 4. 头条轮播 & 进度条 --- */
-.hero-container { position: relative; overflow: hidden; border-radius: var(--radius-lg); height: 350px; }
-.carousel-track { display: flex; transition: transform 0.6s var(--motion-main); height: 100%; }
-.progress-container {
+/* --- 4. 头条轮播与进度条 --- */
+.hero-card { position: relative; border-radius: var(--radius-xl); overflow: hidden; height: 380px; }
+.carousel-track { display: flex; transition: transform 0.6s var(--motion-standard); height: 100%; }
+.hero-slide { min-width: 100%; position: relative; cursor: pointer; }
+.hero-slide img { width: 100%; height: 100%; object-fit: cover; }
+.hero-overlay {
+  position: absolute; inset: 0; background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 24px; color: white;
+}
+.hero-progress-group {
   position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
-  width: 100px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px;
+  display: flex; gap: 4px; width: 60%;
 }
-.progress-bar { height: 100%; background: #fff; border-radius: 2px; transition: width 0.3s; }
+.progress-dot { height: 4px; flex: 1; background: rgba(255,255,255,0.3); border-radius: 2px; position: relative; overflow: hidden; }
+.progress-dot-inner { position: absolute; left: 0; top: 0; height: 100%; background: #fff; width: 0; }
 
-/* --- 5. 新闻卡片 (Location Badge) --- */
-.card {
-  background: var(--glass-bg); backdrop-filter: blur(var(--blur-amt));
-  border: var(--glass-border); border-radius: var(--radius-md);
-  padding: 16px; margin-bottom: 12px; display: flex; gap: 16px; text-decoration: none; color: inherit;
-}
-.loc-badge {
-  display: inline-block; padding: 2px 8px; font-size: 11px; font-weight: bold;
-  background: var(--md-sys-color-primary); color: white; border-radius: 4px; margin-bottom: 6px;
-}
-.icon-wrap { width: 56px; height: 56px; } /* 增大图标 */
+/* --- 5. 功能卡片与新闻 --- */
+.func-container { background: var(--md-sys-color-surface-container); border-radius: var(--radius-lg); padding: 16px; margin-top: 24px; transition: max-height 0.4s var(--motion-standard); overflow: hidden; }
+.func-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+.func-item { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; }
+.func-icon { width: 56px; height: 56px; border-radius: 16px; background: var(--md-sys-color-primary-container); display: flex; align-items: center; justify-content: center; }
 
-/* --- 6. 搜索下拉弹窗 --- */
-.search-dropdown {
-  position: fixed; top: 70px; left: 50%; transform: translateX(-50%) translateY(-20px);
+.news-card {
+  display: flex; background: var(--glass-bg); border-radius: var(--radius-md); 
+  padding: 12px; margin-bottom: 12px; text-decoration: none; color: inherit; border: var(--glass-border);
+}
+.loc-tag { background: var(--md-sys-color-primary); color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; width: fit-content; margin-bottom: 4px; }
+
+/* --- 6. MD3 Switch 设计 --- */
+.md-switch { position: relative; width: 52px; height: 32px; appearance: none; background: var(--md-sys-color-outline); border-radius: 16px; outline: none; transition: 0.3s; cursor: pointer; }
+.md-switch:checked { background: var(--md-sys-color-primary); }
+.md-switch::before { content: ""; position: absolute; width: 24px; height: 24px; background: white; border-radius: 50%; top: 4px; left: 4px; transition: 0.3s; }
+.md-switch:checked::before { transform: translateX(20px); }
+
+/* --- 7. 搜索下拉框 --- */
+#search-overlay {
+  position: fixed; top: 72px; left: 50%; transform: translateX(-50%) scale(0.9);
   width: 90%; max-width: 600px; background: var(--glass-bg); backdrop-filter: blur(var(--blur-amt));
-  border-radius: var(--radius-lg); box-shadow: var(--elevation-3);
-  display: none; opacity: 0; transition: all 0.3s; z-index: 2000; padding: 16px;
+  border-radius: var(--radius-lg); z-index: 2000; display: none; border: var(--glass-border); padding: 16px; transition: 0.3s;
 }
-.search-dropdown.active { display: block; opacity: 1; transform: translateX(-50%) translateY(0); }
+#search-overlay.active { display: block; transform: translateX(-50%) scale(1); opacity: 1; }
