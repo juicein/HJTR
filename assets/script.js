@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- 1. 数据获取与处理 ---
 async function fetchNews() {
     try {
-        const response = await fetch('data/news_content.json');
+        const response = await fetch('../news_content.json');
         const data = await response.json();
         
         // 自动添加 ID (基于索引)
