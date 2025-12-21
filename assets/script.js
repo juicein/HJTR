@@ -1,104 +1,94 @@
 /* assets/script.js */
-let allNews = [];
-let carouselIndex = 0;
-let config = JSON.parse(localStorage.getItem('hj_settings')) || {
+let newsData = [];
+let config = JSON.parse(localStorage.getItem('hj_v3_cfg')) || {
     bgAnim: true,
-    locationFilter: "全部",
-    notifications: true
+    notif: true,
+    location: "全部"
 };
 
-document.addEventListener('DOMContentLoaded', async () => {
-    applySettings();
-    await fetchNews();
-    renderSidebar();
-    renderMenu(false);
-    renderHero();
-    renderRecentNews();
-    initSearch();
-});
+const SIDEBAR_MENU = [
+    { name: "主页概览", icon: "dashboard", link: "index.html" },
+    { name: "官方下载", icon: "download", link: "#" },
+    { name: "地区资讯", icon: "map", link: "#" }
+];
 
-// 1. 获取并处理数据
-async function fetchNews() {
-    const res = await fetch('../news_content.json');
-    const data = await res.json();
-    allNews = data.map((n, i) => ({ ...n, id: i })); // 自动ID
-}
-
-// 2. 渲染近期动态 (限7条)
-function renderRecentNews() {
-    const container = document.getElementById('recent-list');
-    let filtered = allNews;
-    if (config.locationFilter !== "全部") {
-        filtered = allNews.filter(n => n.location === config.locationFilter);
+async function init() {
+    try {
+        const res = await fetch('data/news_content.json');
+        const raw = await res.json();
+        // 关键：自动分配原始索引作为 ID
+        newsData = raw.map((item, index) => ({ ...item, id: index }));
+        
+        applyConfig();
+        renderSidebar();
+        renderHeadlines();
+        renderFunctions(false);
+        renderRecentNews();
+        populateLocationSelector();
+    } catch (e) {
+        console.error("加载失败:", e);
     }
-    const displayList = filtered.slice(0, 7);
-    container.innerHTML = displayList.map(n => createNewsCard(n)).join('');
 }
 
-function createNewsCard(n) {
-    return `
-    <a href="news_detail.html?id=${n.id}" class="card">
-        ${n.image ? `<img src="${n.image}" style="width:100px; height:80px; border-radius:12px; object-fit:cover;">` : ''}
-        <div style="flex:1">
-            <span class="loc-badge">${n.location}</span>
-            <h3 style="margin:4px 0; font-size:16px;">${n.title}</h3>
-            <p style="font-size:12px; opacity:0.7;">${n.date} · ${n.author}</p>
-        </div>
-    </a>`;
-}
-
-// 3. 搜索功能 (全能搜索)
-function initSearch() {
-    const input = document.getElementById('search-input');
-    input.addEventListener('input', (e) => {
-        const key = e.target.value.toLowerCase();
-        const results = allNews.filter(n => n.title.toLowerCase().includes(key) || n.content.toLowerCase().includes(key));
-        const resDiv = document.getElementById('search-results');
-        resDiv.innerHTML = results.map(n => `<div onclick="location.href='news_detail.html?id=${n.id}'" style="padding:10px; cursor:pointer; border-bottom:1px solid rgba(0,0,0,0.1)">${n.title}</div>`).join('');
-    });
-}
-
-// 4. 头条滑动 (带进度栏)
-let startX = 0;
-function renderHero() {
+// --- 1. 头条逻辑：最近7天或最新1条 ---
+function renderHeadlines() {
     const track = document.getElementById('hero-track');
-    const headlines = allNews.slice(0, 4); // 默认前4
+    const now = new Date();
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    
+    let headlines = newsData.filter(n => (now - new Date("2025-" + n.date.split(' ')[0])) < oneWeek);
+    if (headlines.length === 0) headlines = [newsData[0]];
+    headlines = headlines.slice(0, 4);
+
     track.innerHTML = headlines.map(n => `
-        <div class="slide" style="min-width:100%; position:relative;">
-            <img src="${n.image || 'https://via.placeholder.com/800x400'}" style="width:100%; height:350px; object-fit:cover;">
-            <div style="position:absolute; bottom:0; padding:20px; background:linear-gradient(transparent, rgba(0,0,0,0.8)); color:white; width:100%">
-                <h2>${n.title}</h2>
-                <p style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${n.content}</p>
+        <div class="hero-slide" onclick="location.href='news_detail.html?id=${n.id}'">
+            <img src="${n.image || 'https://via.placeholder.com/800x400'}">
+            <div class="hero-overlay">
+                <div class="loc-tag">${n.location}</div>
+                <h2 style="margin:8px 0">${n.title}</h2>
+                <p style="opacity:0.8; display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden">${n.content}</p>
             </div>
         </div>
     `).join('');
-    
-    // 进度条逻辑
-    const bar = document.getElementById('hero-progress');
-    if (headlines.length <= 1) {
-        document.querySelector('.progress-container').style.display = 'none';
-    } else {
-        bar.style.width = `${(1 / headlines.length) * 100}%`;
-    }
+
+    renderProgressDots(headlines.length);
 }
 
-// 5. 设置逻辑
-function applySettings() {
-    document.getElementById('fluid-bg').style.display = config.bgAnim ? 'block' : 'none';
-    localStorage.setItem('hj_settings', JSON.stringify(config));
-    
-    // 通知检查 (比对最后一条ID)
-    if (config.notifications) {
-        const lastId = localStorage.getItem('last_news_id');
-        if (allNews.length > 0 && lastId != allNews[0].id) {
-            showNotification(allNews[0].title);
-            localStorage.setItem('last_news_id', allNews[0].id);
-        }
-    }
+// 滑动切换
+let currentHero = 0;
+function moveHero(dir) {
+    const slides = document.querySelectorAll('.hero-slide');
+    currentHero = (currentHero + dir + slides.length) % slides.length;
+    document.getElementById('hero-track').style.transform = `translateX(-${currentHero * 100}%)`;
+    updateDots();
 }
 
-function showNotification(title) {
-    if ("Notification" in window && Notification.permission === "granted") {
-        new Notification("浩金新资讯", { body: title });
-    }
+// --- 2. 搜索逻辑 ---
+function handleSearch(val) {
+    const results = newsData.filter(n => n.title.includes(val) || n.content.includes(val));
+    const container = document.getElementById('search-results');
+    container.innerHTML = results.map(n => `
+        <div class="news-card" onclick="location.href='news_detail.html?id=${n.id}'">
+            <div style="flex:1">
+                <b>${n.title}</b>
+                <p style="font-size:12px; margin-top:4px">${n.date}</p>
+            </div>
+        </div>
+    `).join('');
 }
+
+// --- 3. 设置与持久化 ---
+function updateSetting(key, val) {
+    config[key] = val;
+    localStorage.setItem('hj_v3_cfg', JSON.stringify(config));
+    applyConfig();
+}
+
+function applyConfig() {
+    document.getElementById('bg-anim-wrap').style.display = config.bgAnim ? 'block' : 'none';
+    if(config.notif) console.log("通知系统已就绪");
+    renderRecentNews(); 
+}
+
+// 初始化
+window.onload = init;
