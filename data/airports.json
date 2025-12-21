@@ -289,6 +289,15 @@
     "runways": 2
   },
   {
+   "name": "仙海海源",
+   "code": "XHY",
+   "lat": 28.19672,
+   "lng": 113.22081,
+   "aliases": ["仙海"],
+   "level": "4C",
+   "runways": 1
+ },
+  {
     "name": "茶花泯山",
     "code": "CHX",
     "lat": 60.19786,
