@@ -14,7 +14,7 @@ const SIDEBAR_MENU = [
 
 async function init() {
     try {
-        const res = await fetch('data/news_content.json');
+        const res = await fetch('../news_content.json');
         const raw = await res.json();
         // 关键：自动分配原始索引作为 ID
         newsData = raw.map((item, index) => ({ ...item, id: index }));
