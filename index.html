@@ -4,129 +4,131 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>万方出行通</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,1,-50..200" />
     <link rel="stylesheet" href="assets/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-    <div class="aurora-bg" id="auroraBg">
-        <div class="blob"></div>
-        <div class="blob"></div>
-        <div class="blob"></div>
+    <div class="aurora-bg">
+        <div class="aurora-blob blob-1"></div>
+        <div class="aurora-blob blob-2"></div>
+        <div class="aurora-blob blob-3"></div>
     </div>
 
-    <div class="sidebar-overlay"></div>
-    <aside class="sidebar glass-card" id="sidebar">
-        <div style="padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="font-size: 20px;">导航</h2>
-            <button class="btn-icon" onclick="toggleSidebar()"><span class="material-symbols-rounded">close</span></button>
-        </div>
-        <div id="sidebarList" style="flex:1; overflow-y:auto; padding: 0 12px;"></div>
-    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <nav class="sidebar" id="sidebar">
+        <h2 style="padding: 0 16px; margin-bottom: 20px;">菜单</h2>
+        </nav>
 
-    <header class="top-bar">
+    <header class="glass-panel top-bar">
         <div class="top-left">
-            <button class="btn-icon" onclick="toggleSidebar()"><span class="material-symbols-rounded">menu</span></button>
-            <div class="app-logo mobile-only"></div>
-        </div>
-        <div class="top-center">
-            <div class="app-logo"></div>
+            <button class="icon-btn" id="btn-menu"><span class="material-icons">menu</span></button>
+            <div class="logo-container"></div>
         </div>
         <div class="top-right">
-            <button class="btn-icon" onclick="openModal('searchModal')"><span class="material-symbols-rounded">search</span></button>
-            <button class="btn-icon" onclick="openModal('settingsModal')"><span class="material-symbols-rounded">settings</span></button>
+            <button class="icon-btn" id="btn-search"><span class="material-icons">search</span></button>
+            <button class="icon-btn" id="btn-settings"><span class="material-icons">settings</span></button>
         </div>
     </header>
 
     <div class="main-container">
         
-        <div class="left-column">
-            <section class="glass-card hero-section">
-                <div class="hero-slider" id="heroSlider"></div>
-                <div style="position:absolute; bottom:0; left:0; width:100%; height:4px; background:rgba(255,255,255,0.3);" id="heroProgressContainer">
-                    <div class="progress-bar" id="heroProgressBar" style="width:0%"></div>
+        <section class="hero-section">
+            <div class="carousel-track" id="hero-track">
                 </div>
-            </section>
-
-            <section class="glass-card quick-actions">
-                <div class="actions-grid" id="actionsGrid"></div>
-                <button class="expand-btn" id="expandActionBtn" onclick="toggleActions()">
-                    <span class="material-symbols-rounded">keyboard_arrow_down</span>
-                    <span>展开全部</span>
-                </button>
-            </section>
-
-            <div class="footer-spacer"></div>
-
-            <div class="footer-box app-dl-wrapper desktop-only" id="footerDesktop">
-                <a href="#" class="app-dl-btn">
-                    <span class="material-symbols-rounded">android</span> 下载客户端
-                </a>
-                <div class="copyright">© 2025 万方出行通 (Desktop)</div>
+            <div class="progress-bar" id="hero-progress">
+                <div class="progress-fill"></div>
             </div>
-        </div>
+        </section>
 
-        <div class="right-column">
-            <div class="section-header">
-                <span class="section-title">近期动态</span>
-                <span class="btn-text" onclick="openHistory()">历史新闻</span>
+        <section class="quick-actions-section">
+            <div class="quick-header">
+                <span>快捷服务</span>
+                <button class="icon-btn" id="btn-expand-quick"><span class="material-icons">expand_more</span></button>
             </div>
-            
-            <div id="newsList">
+            <div class="action-grid" id="quick-grid">
                 </div>
+        </section>
 
-            <div class="footer-box app-dl-wrapper mobile-only" id="footerMobile">
-                <a href="#" class="app-dl-btn">
-                    <span class="material-symbols-rounded">android</span> 下载客户端
-                </a>
-                <div class="copyright">© 2025 万方出行通 (Mobile)</div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal" id="settingsModal">
-        <div class="modal-content">
+        <section class="news-list-section">
             <div class="section-header">
-                <span class="section-title">设置</span>
-                <button class="btn-icon" onclick="closeModal('settingsModal')"><span class="material-symbols-rounded">close</span></button>
+                <h3>近期动态</h3>
+                <div class="history-btn" id="btn-history">
+                    历史新闻 <span class="material-icons" style="font-size:16px">history</span>
+                </div>
             </div>
+            <div id="news-list">
+                </div>
             
-            <div class="setting-row">
-                <span>流光背景动画</span>
-                <label class="switch"><input type="checkbox" id="settingBgAnim" onchange="toggleBgAnim()"><span class="slider"></span></label>
+            <div class="footer-section">
+                <div class="app-card" id="app-download-card">
+                    <h3>下载官方 App</h3>
+                    <p>获取实时车辆位置与到站提醒</p>
+                    <a href="#" class="app-btn">立即下载 Android版</a>
+                </div>
+                <div class="copyright">
+                    © 2025 万方出行通 版权所有
+                </div>
             </div>
-            <div class="setting-row">
-                <span>显示下载卡片</span>
-                <label class="switch"><input type="checkbox" id="settingAppDl" onchange="toggleAppDl()"><span class="slider"></span></label>
-            </div>
-            <div class="setting-row" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-                <span>只看地区</span>
-                <select id="locationSelect" onchange="filterLocation()" style="width:100%; padding:8px; border-radius:8px;"></select>
-            </div>
-        </div>
+        </section>
+
     </div>
 
-    <div class="modal" id="searchModal">
-        <div class="modal-content">
-            <div style="background:var(--md-sys-color-surface-container); border-radius:99px; padding:8px 16px; display:flex; align-items:center;">
-                <span class="material-symbols-rounded">search</span>
-                <input type="text" placeholder="搜索..." oninput="handleSearch(this.value)" 
-                       style="border:none; background:transparent; margin-left:8px; flex:1; outline:none; font-size:16px;">
-                <button class="btn-icon" onclick="closeModal('searchModal')"><span class="material-symbols-rounded">close</span></button>
-            </div>
-            <div id="searchResults" style="margin-top:16px;"></div>
+    <dialog id="dialog-search">
+        <div class="dialog-header">
+            搜索
+            <button class="icon-btn" onclick="document.getElementById('dialog-search').close()"><span class="material-icons">close</span></button>
         </div>
-    </div>
+        <input type="text" class="search-input" id="search-input" placeholder="输入关键词...">
+        <div class="search-results" id="search-results"></div>
+    </dialog>
 
-    <div class="modal" id="historyModal">
-        <div class="modal-content" style="max-height:85vh; width: 600px;">
-            <div class="section-header">
-                <span class="section-title">历史新闻</span>
-                <button class="btn-icon" onclick="closeModal('historyModal')"><span class="material-symbols-rounded">close</span></button>
-            </div>
-            <div id="historyList"></div>
+    <dialog id="dialog-settings">
+        <div class="dialog-header">
+            设置
+            <button class="icon-btn" onclick="document.getElementById('dialog-settings').close()"><span class="material-icons">close</span></button>
         </div>
-    </div>
+        
+        <div class="setting-item">
+            <span>流光溢彩背景</span>
+            <label class="switch">
+                <input type="checkbox" id="switch-bg">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item">
+            <span>新闻推送通知</span>
+            <label class="switch">
+                <input type="checkbox" id="switch-notify">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item">
+            <span>显示App下载卡片</span>
+            <label class="switch">
+                <input type="checkbox" id="switch-app">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item">
+            <span>地区筛选</span>
+            <select id="setting-location">
+                <option value="all">所有地区</option>
+                </select>
+        </div>
+    </dialog>
+
+    <dialog id="dialog-history" style="width: 600px;">
+        <div class="dialog-header">
+            历史新闻
+            <button class="icon-btn" onclick="document.getElementById('dialog-history').close()"><span class="material-icons">close</span></button>
+        </div>
+        <div id="history-list"></div>
+    </dialog>
 
     <script src="assets/menu_data.js"></script>
     <script src="assets/script.js"></script>
