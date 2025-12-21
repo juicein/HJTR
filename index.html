@@ -2,56 +2,66 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>浩金资讯</title>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+    <div id="fluid-bg" class="fluid-bg"></div>
+
+    <aside id="sidebar" class="sidebar">
+        <h2 style="padding: 0 16px;">菜单</h2>
+        <div id="sidebar-list"></div>
+    </aside>
+
     <header class="top-bar">
-        <div id="top-left-nav" class="top-left-nav"></div>
-        <div class="logo-box"><img src="image/logo_white.png" alt="Logo"></div>
-        <div class="top-right-actions">
-            <span class="material-symbols-outlined" onclick="alert('Search...')">search</span>
-            <span class="material-symbols-outlined" onclick="document.getElementById('settings-dlg').showModal()">settings</span>
+        <span class="material-symbols-outlined" onclick="document.getElementById('sidebar').classList.toggle('active')" style="cursor:pointer">menu</span>
+        <div class="logo-box">
+            <img src="image/logo_white.png" class="logo-img" alt="Logo">
+        </div>
+        <div style="margin-left:auto; display:flex; gap:16px;">
+            <span class="material-symbols-outlined" onclick="toggleSearch()" style="cursor:pointer">search</span>
+            <span class="material-symbols-outlined" onclick="openSettings()" style="cursor:pointer">settings</span>
         </div>
     </header>
 
-    <main class="container">
-        <div class="main-content">
-            <section class="hero-carousel">
-                <div class="carousel-inner" id="carousel-track"></div>
-            </section>
+    <div id="search-box" class="search-dropdown">
+        <input type="text" id="search-input" placeholder="搜索新闻、功能、菜单..." style="width:100%; padding:12px; border-radius:var(--radius-full); border:1px solid var(--md-sys-color-outline); background:transparent;">
+        <div id="search-results" style="margin-top:12px; max-height:300px; overflow-y:auto;"></div>
+    </div>
 
-            <section class="menu-card" id="menu-section" style="margin-top:24px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <b style="font-size:14px; color:var(--md-sys-color-primary)">快捷功能</b>
-                    <span class="material-symbols-outlined" id="menu-toggle-btn" onclick="toggleMenu()" style="cursor:pointer">expand_more</span>
+    <main class="container" style="padding-top:80px; max-width:1200px; margin:0 auto;">
+        <div class="responsive-grid" style="display:flex; flex-wrap:wrap; gap:24px; padding:0 16px;">
+            <div style="flex:1; min-width:320px;">
+                <section class="hero-container" id="hero-hero">
+                    <div class="carousel-track" id="hero-track"></div>
+                    <div class="progress-container"><div id="hero-progress" class="progress-bar"></div></div>
+                </section>
+
+                <section class="menu-card" id="menu-section" style="margin-top:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <b>快捷入口</b>
+                        <span class="material-symbols-outlined" onclick="toggleMenu()" style="cursor:pointer">expand_more</span>
+                    </div>
+                    <div id="menu-grid" class="menu-grid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px;"></div>
+                </section>
+                
+                <div class="tablet-footer" style="margin-top:40px; opacity:0.6; font-size:13px;">
+                    <p>© 2025 浩金资讯管理系统</p>
+                    <button style="background:var(--md-sys-color-primary); color:white; border:none; padding:8px 16px; border-radius:var(--radius-full);">下载 Android App</button>
                 </div>
-                <div class="menu-grid" id="menu-grid"></div>
-            </section>
-        </div>
+            </div>
 
-        <div class="news-section">
-            <h2 style="font-size: 20px; margin-bottom: 16px; padding-left: 4px;">近期动态</h2>
-            <div id="news-list" class="news-list"></div>
+            <div style="flex:1; min-width:320px;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                    <h2>近期动态</h2>
+                    <span style="color:var(--md-sys-color-primary); cursor:pointer; font-weight:bold;" onclick="openHistory()">历史新闻</span>
+                </div>
+                <div id="recent-list"></div>
+            </div>
         </div>
     </main>
-
-    <dialog id="settings-dlg" class="settings-dialog">
-        <h3>系统设置</h3>
-        <div class="setting-row">
-            <span>显示功能菜单卡片</span>
-            <input type="checkbox" checked onchange="config.showMenu = this.checked">
-        </div>
-        <div class="setting-row">
-            <span>月份查询 (2025-MM)</span>
-            <input type="month" onchange="config.archiveMonth = this.value">
-        </div>
-        <div style="text-align: right; margin-top: 20px;">
-            <button onclick="saveSettings()" style="padding:10px 24px; border-radius:20px; border:none; background:var(--md-sys-color-primary); color:white;">应用并保存</button>
-        </div>
-    </dialog>
 
     <script src="assets/menu_data.js"></script>
     <script src="assets/script.js"></script>
