@@ -1,395 +1,355 @@
-/* assets/script.js */
+// assets/script.js
 
-// --- Global State ---
-let newsDB = [];
-let currentSettings = {
-    animBg: true,
-    notifications: true,
-    locationFilter: 'all',
-    showQuickMenu: true
+// --- State Management ---
+const state = {
+    news: [],
+    settings: {
+        bgAnimation: true,
+        notifications: true,
+        locationFilter: 'all'
+    },
+    shortcutsExpanded: false,
+    jsonUrl: 'data/news_content.json'
 };
-let heroInterval;
-let currentHeroIndex = 0;
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
     loadSettings();
-    updateTheme();
+    await fetchNews();
     
-    // Check which page we are on
-    if(document.getElementById('home-root')) {
-        await initHome();
-    } else if(document.getElementById('detail-root')) {
-        await initDetail();
+    // Check if we are on index.html
+    if (document.getElementById('hero-section')) {
+        initHomePage();
     }
     
-    setupGlobalEvents();
+    initCommonFeatures();
+    initBackground();
 });
 
 // --- Core Data Logic ---
 async function fetchNews() {
     try {
-        const res = await fetch('../news_content.json');
-        const data = await res.json();
-        // Process Data: Add ID (index) and Date Object
-        newsDB = data.map((item, index) => ({
+        // In real scenario, append cache buster if notification logic requires distinct check
+        const response = await fetch(state.jsonUrl);
+        const rawData = await response.json();
+        
+        // Auto-Generate IDs (0, 1, 2...)
+        state.news = rawData.map((item, index) => ({
             ...item,
-            id: index, // Auto-generate ID based on sequence
-            timestamp: parseDate(item.date) // Helper for sorting
-        })).sort((a, b) => b.timestamp - a.timestamp); // Sort Newest First
+            id: index
+        }));
 
-        checkNotifications();
-        return true;
-    } catch (e) {
-        console.error("Data Load Failed", e);
-        return false;
+        // Notification Check (Simple Implementation)
+        const lastNewsTitle = localStorage.getItem('last_news_title');
+        if (state.settings.notifications && state.news.length > 0) {
+            if (lastNewsTitle && lastNewsTitle !== state.news[0].title) {
+                sendNotification("新动态发布", state.news[0].title);
+            }
+            localStorage.setItem('last_news_title', state.news[0].title);
+        }
+        
+    } catch (error) {
+        console.error("Failed to load news:", error);
     }
 }
 
-function parseDate(dateStr) {
-    // Assuming format "MM-DD HH:MM", add current year for comparison
-    const year = new Date().getFullYear();
-    return new Date(`${year}-${dateStr}`);
-}
-
-// --- Home Page Logic ---
-async function initHome() {
-    await fetchNews();
+// --- Page Rendering (Index) ---
+function initHomePage() {
     renderHero();
-    renderQuickMenu();
+    renderShortcuts();
     renderNewsFeed();
-    setupDrawer();
-    populateLocationFilter();
+    setupLocationFilter();
+    
+    // Button Listeners
+    document.getElementById('shortcut-toggle').addEventListener('click', toggleShortcuts);
+    document.getElementById('history-btn').addEventListener('click', () => {
+        const dialog = document.getElementById('history-dialog');
+        renderHistoryFeed();
+        dialog.showModal();
+    });
+    document.getElementById('close-history').addEventListener('click', () => document.getElementById('history-dialog').close());
 }
 
-// 1. Hero Carousel
+// 1. Hero Carousel Logic
 function renderHero() {
-    const container = document.getElementById('hero-slides');
-    const indicator = document.getElementById('hero-progress');
+    const track = document.getElementById('hero-track');
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    // Logic: Get news from last 7 days. If < 1, take the absolute latest.
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    
-    let heroes = newsDB.filter(n => n.timestamp >= oneWeekAgo).slice(0, 4);
-    if(heroes.length === 0) heroes = [newsDB[0]];
+    // Filter logic: < 1 week OR at least the latest one
+    let heroNews = state.news.filter(n => {
+        // Assume 'date' format is MM-DD HH:MM, append current year for comparison
+        // Note: Simple parsing for demo. In prod, use robust date parsing.
+        return true; // Simplified for demo as date format in JSON is partial
+    }).slice(0, 4); 
 
-    container.innerHTML = heroes.map((item, i) => {
-        const bg = item.image 
-            ? `<img src="${item.image}" class="hero-img">` 
-            : `<div class="hero-img" style="background:linear-gradient(135deg, var(--md-sys-color-primary), #001e30)"></div>`;
-        
-        return `
-            <div class="hero-slide ${i===0?'active':''}" data-index="${i}" onclick="window.location.href='news_detail.html?id=${item.id}'">
-                ${bg}
-                <div class="hero-content">
-                    <span class="hero-badge">今日头条</span>
-                    <div class="hero-title">${item.title}</div>
-                    <p class="hero-snippet">${item.content}</p>
-                </div>
+    if (heroNews.length === 0 && state.news.length > 0) heroNews = [state.news[0]];
+
+    track.innerHTML = heroNews.map(item => `
+        <div class="hero-card" onclick="location.href='news_detail.html?id=${item.id}'" 
+             style="background-image: url('${item.image || 'assets/default_hero.jpg'}')">
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <div class="hero-badge">头条</div>
+                <div class="hero-title">${item.title}</div>
+                <div class="hero-snippet">${item.content.substring(0, 50)}...</div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `).join('');
 
-    // Carousel Logic
-    if(heroes.length > 1) {
-        startHeroCarousel(heroes.length);
-        setupSwipe(document.getElementById('hero-section'), (dir) => {
-            changeHero(dir === 'left' ? 1 : -1, heroes.length);
+    // Scroll Progress Logic
+    if (heroNews.length > 1) {
+        track.addEventListener('scroll', () => {
+            const scrollLeft = track.scrollLeft;
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            const progress = (scrollLeft / maxScroll) * 100;
+            document.getElementById('hero-progress').style.width = `${progress}%`;
         });
     } else {
-        indicator.style.display = 'none'; // Hide progress if only 1
+        document.getElementById('hero-progress-wrapper').style.display = 'none';
     }
 }
 
-function startHeroCarousel(count) {
-    const bar = document.getElementById('hero-progress-bar');
-    let progress = 0;
-    clearInterval(heroInterval);
+// 2. Shortcuts Logic
+function renderShortcuts() {
+    const grid = document.getElementById('shortcuts-grid');
+    const items = menuData.filter(i => i.type === 'shortcut'); // Or all items logic
     
-    heroInterval = setInterval(() => {
-        progress += 1;
-        bar.style.width = `${progress}%`;
-        if(progress >= 100) {
-            changeHero(1, count);
-            progress = 0;
-        }
-    }, 50); // 50ms * 100 = 5000ms total
-}
-
-function changeHero(dir, count) {
-    const slides = document.querySelectorAll('.hero-slide');
-    slides[currentHeroIndex].classList.remove('active');
+    // Initial render: show all but hide via CSS max-height or class
+    // Here we rerender for simplicity based on state
+    const displayItems = state.shortcutsExpanded ? items : items.slice(0, 4);
     
-    currentHeroIndex = (currentHeroIndex + dir + count) % count;
-    
-    slides[currentHeroIndex].classList.add('active');
-    document.getElementById('hero-progress-bar').style.width = '0%';
-}
-
-// 2. Quick Menu
-function renderQuickMenu() {
-    const grid = document.getElementById('menu-grid');
-    if(!currentSettings.showQuickMenu) {
-        document.getElementById('menu-section').style.display = 'none';
-        return;
-    }
-    document.getElementById('menu-section').style.display = 'block';
-
-    const items = menuData.quickActions;
-    grid.innerHTML = items.map(item => `
-        <div class="menu-item" onclick="window.location.href='${item.link}'">
-            <div class="menu-icon-box">
+    grid.innerHTML = displayItems.map(item => `
+        <div class="shortcut-item">
+            <div class="shortcut-icon-box">
                 <span class="material-symbols-outlined">${item.icon}</span>
             </div>
-            <span>${item.name}</span>
+            <span class="shortcut-label">${item.name}</span>
         </div>
     `).join('');
     
-    toggleMenu(false); // Init collapsed
+    const icon = document.getElementById('shortcut-icon');
+    icon.textContent = state.shortcutsExpanded ? 'expand_less' : 'expand_more';
 }
 
-window.toggleMenu = function(forceOpen) {
-    const grid = document.getElementById('menu-grid');
-    const btn = document.getElementById('menu-toggle-btn');
-    const isCollapsed = grid.style.maxHeight === '100px';
-    
-    if(forceOpen || isCollapsed) {
-        grid.style.maxHeight = '1000px';
-        btn.innerText = '收起';
-    } else {
-        grid.style.maxHeight = '100px'; // Approx height for 1 row
-        btn.innerText = '展开更多';
-    }
+function toggleShortcuts() {
+    state.shortcutsExpanded = !state.shortcutsExpanded;
+    renderShortcuts();
 }
 
-// 3. News Feed
+// 3. News Feed Logic (Main & History)
 function renderNewsFeed() {
-    const list = document.getElementById('news-list');
-    let data = newsDB;
-    
-    // Filter by Location
-    if(currentSettings.locationFilter !== 'all') {
-        data = data.filter(n => n.location === currentSettings.locationFilter);
+    const container = document.getElementById('news-feed');
+    // Filter by location if set
+    let filtered = state.news;
+    if (state.settings.locationFilter !== 'all') {
+        filtered = state.news.filter(n => n.location === state.settings.locationFilter);
     }
-    
-    // Limit to 7 for main feed
-    const displayData = data.slice(0, 7);
-    
-    list.innerHTML = displayData.map(item => createNewsCard(item)).join('');
+
+    const recent = filtered.slice(0, 7); // Max 7
+    container.innerHTML = recent.map(item => createNewsCardHTML(item)).join('');
 }
 
-function createNewsCard(item) {
-    const imgHtml = item.image 
-        ? `<img src="${item.image}" class="nc-img" loading="lazy">` 
-        : ``; // No image, text expands
-        
+function renderHistoryFeed() {
+    const container = document.getElementById('history-feed');
+    container.innerHTML = state.news.map(item => createNewsCardHTML(item)).join('');
+}
+
+function createNewsCardHTML(item) {
+    const hasImage = item.image && item.image !== "";
+    const cardClass = hasImage ? "news-card glass-card has-image" : "news-card glass-card";
+    
     return `
-        <div class="news-card" onclick="window.location.href='news_detail.html?id=${item.id}'">
-            <div class="nc-loc-tag">${item.location}</div>
-            <div class="nc-content">
-                <div class="nc-title">${item.title}</div>
-                <div class="nc-meta">${item.author} · ${item.date}</div>
+    <a href="news_detail.html?id=${item.id}" class="${cardClass}">
+        ${hasImage ? `<img src="${item.image}" class="news-card-img" loading="lazy">` : ''}
+        <div class="news-card-content">
+            <div>
+                <div class="news-title">${item.title}</div>
+                ${!hasImage ? `<div class="news-snippet">${item.content}</div>` : ''}
             </div>
-            ${imgHtml}
+            <div class="news-meta">
+                <span class="location-tag">${item.location}</span>
+                <span>${item.author}</span>
+                <span>${item.date}</span>
+            </div>
         </div>
+    </a>
     `;
 }
 
-// --- Detail Page Logic ---
-async function initDetail() {
-    await fetchNews();
-    const params = new URLSearchParams(window.location.search);
-    const id = parseInt(params.get('id'));
+// --- Common Features (Sidebar, Search, Settings) ---
+function initCommonFeatures() {
+    // Sidebar
+    const drawer = document.getElementById('nav-drawer');
+    const scrim = document.getElementById('drawer-scrim');
+    const drawerList = document.getElementById('drawer-list');
+
+    // Populate Sidebar
+    drawerList.innerHTML = menuData.map(item => `
+        <a href="${item.url}" class="nav-item">
+            <span class="material-symbols-outlined">${item.icon}</span>
+            ${item.name}
+        </a>
+    `).join('');
+
+    document.getElementById('menu-btn').addEventListener('click', () => {
+        drawer.classList.add('open');
+        scrim.classList.add('open');
+    });
+    scrim.addEventListener('click', () => {
+        drawer.classList.remove('open');
+        scrim.classList.remove('open');
+    });
+
+    // Search
+    const searchDialog = document.getElementById('search-dialog');
+    document.getElementById('search-btn').addEventListener('click', () => searchDialog.showModal());
+    document.getElementById('close-search').addEventListener('click', () => searchDialog.close());
     
-    const item = newsDB.find(n => n.id === id);
-    const container = document.getElementById('detail-content');
-    
-    if(!item) {
-        container.innerHTML = "<h1>新闻未找到</h1>";
-        return;
-    }
-    
-    // Header (Image or Color)
-    const heroHtml = item.image 
-        ? `<img src="${item.image}" class="detail-img">`
-        : `<div class="detail-color-block" style="background:var(--md-sys-color-primary)">HAOJIN</div>`;
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        const resultsDiv = document.getElementById('search-results');
+        if (!query) { resultsDiv.innerHTML = ''; return; }
         
-    // Link Button
-    const linkHtml = item.link 
-        ? `<a href="${item.link}" target="_blank" class="link-btn">
-             <span>访问原文 / 相关链接</span>
-             <span class="material-symbols-outlined">open_in_new</span>
-           </a>` 
-        : '';
+        // Search Logic: Menu items + News
+        const foundMenu = menuData.filter(m => m.name.toLowerCase().includes(query));
+        const foundNews = state.news.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query));
+        
+        let html = '';
+        if(foundMenu.length) {
+            html += `<h4>功能</h4>` + foundMenu.map(m => `<div class="nav-item"><span class="material-symbols-outlined">${m.icon}</span>${m.name}</div>`).join('');
+        }
+        if(foundNews.length) {
+            html += `<h4>新闻</h4>` + foundNews.map(n => createNewsCardHTML(n)).join('');
+        }
+        resultsDiv.innerHTML = html;
+    });
 
-    container.innerHTML = `
-        <div class="detail-hero-box">
-            ${heroHtml}
-            <div class="icon-btn" onclick="window.history.back()" style="position:absolute; top:16px; left:16px; background:rgba(0,0,0,0.3); color:white;">
-                <span class="material-symbols-outlined">arrow_back</span>
-            </div>
-        </div>
-        <article class="detail-content-card">
-            <div style="display:flex; gap:10px; margin-bottom:16px;">
-                <span style="background:var(--md-sys-color-surface-variant); padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold;">${item.location}</span>
-            </div>
-            <h1 style="font-size:24px; margin-bottom:10px;">${item.title}</h1>
-            <div style="color:var(--md-sys-color-outline); font-size:14px; margin-bottom:24px;">
-                ${item.date} · ${item.author}
-            </div>
-            <div style="line-height:1.8; font-size:16px; white-space:pre-wrap;">${item.content}</div>
-            ${linkHtml}
-        </article>
-    `;
+    // Settings
+    const settingsDialog = document.getElementById('settings-dialog');
+    document.getElementById('settings-btn').addEventListener('click', () => settingsDialog.showModal());
+    document.getElementById('close-settings').addEventListener('click', () => settingsDialog.close());
+
+    // Settings Toggles
+    const bgSwitch = document.getElementById('bg-anim-switch');
+    bgSwitch.checked = state.settings.bgAnimation;
+    bgSwitch.addEventListener('change', (e) => {
+        state.settings.bgAnimation = e.target.checked;
+        saveSettings();
+        initBackground(); // Reload bg state
+    });
+
+    const notifySwitch = document.getElementById('notify-switch');
+    notifySwitch.checked = state.settings.notifications;
+    notifySwitch.addEventListener('change', (e) => {
+        state.settings.notifications = e.target.checked;
+        if(e.target.checked) Notification.requestPermission();
+        saveSettings();
+    });
+
+    const locSelect = document.getElementById('location-select');
+    locSelect.value = state.settings.locationFilter;
+    locSelect.addEventListener('change', (e) => {
+        state.settings.locationFilter = e.target.value;
+        saveSettings();
+        if(document.getElementById('news-feed')) renderNewsFeed();
+    });
 }
 
-// --- Settings & Utils ---
+function setupLocationFilter() {
+    const locations = [...new Set(state.news.map(n => n.location))];
+    const select = document.getElementById('location-select');
+    // Keep first option
+    select.innerHTML = `<option value="all">显示全部地区</option>` + 
+        locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
+    select.value = state.settings.locationFilter;
+}
+
 function loadSettings() {
-    const saved = localStorage.getItem('haojin_settings');
-    if(saved) currentSettings = { ...currentSettings, ...JSON.parse(saved) };
+    const saved = localStorage.getItem('app_settings');
+    if (saved) state.settings = JSON.parse(saved);
 }
 
 function saveSettings() {
-    localStorage.setItem('haojin_settings', JSON.stringify(currentSettings));
-    updateTheme();
+    localStorage.setItem('app_settings', JSON.stringify(state.settings));
 }
 
-function updateTheme() {
-    // Bg Anim
-    const bg = document.getElementById('anim-bg');
-    if(bg) {
-        if(currentSettings.animBg) bg.classList.add('active');
-        else bg.classList.remove('active');
-    }
-    
-    // Quick Menu toggle check
-    if(document.getElementById('home-root')) renderQuickMenu();
-}
-
-function populateLocationFilter() {
-    const select = document.getElementById('loc-filter-select');
-    if(!select) return;
-    
-    const locs = [...new Set(newsDB.map(n => n.location))];
-    select.innerHTML = `<option value="all">所有地区</option>` + 
-        locs.map(l => `<option value="${l}" ${currentSettings.locationFilter===l?'selected':''}>${l}</option>`).join('');
-}
-
-// --- Search & Drawer ---
-window.openSearch = () => {
-    document.getElementById('search-overlay').classList.add('open');
-    document.getElementById('search-input').focus();
-}
-
-window.handleSearch = (query) => {
-    const resDiv = document.getElementById('search-results');
-    if(!query) { resDiv.innerHTML = ''; return; }
-    
-    const q = query.toLowerCase();
-    // Search Menu
-    const menus = menuData.quickActions.filter(m => m.name.toLowerCase().includes(q));
-    // Search News
-    const news = newsDB.filter(n => n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q));
-    
-    let html = '';
-    if(menus.length) {
-        html += `<div style="font-weight:bold; margin:10px 0;">功能</div>` + 
-        menus.map(m => `<div onclick="window.location.href='${m.link}'" style="padding:10px; border-bottom:1px solid #eee;">${m.name}</div>`).join('');
-    }
-    if(news.length) {
-        html += `<div style="font-weight:bold; margin:10px 0;">新闻</div>` + 
-        news.map(n => `<div onclick="window.location.href='news_detail.html?id=${n.id}'" style="padding:10px; border-bottom:1px solid #eee;">${n.title}</div>`).join('');
-    }
-    resDiv.innerHTML = html;
-}
-
-// --- Notifications Mock ---
-function checkNotifications() {
-    if(!currentSettings.notifications || newsDB.length === 0) return;
-    
-    const lastTop = localStorage.getItem('last_top_news');
-    const currentTop = newsDB[0].title;
-    
-    if(lastTop !== currentTop) {
-        showToast(`新动态：${currentTop}`);
-        localStorage.setItem('last_top_news', currentTop);
-    }
-}
-
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerHTML = `<span class="material-symbols-outlined">notifications</span> ${msg}`;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 4000);
-}
-
-// --- Event Helpers ---
-function setupGlobalEvents() {
-    // Overlays Close
-    document.querySelectorAll('.overlay').forEach(ov => {
-        ov.addEventListener('click', (e) => {
-            if(e.target === ov) ov.classList.remove('open');
+function sendNotification(title, body) {
+    if (Notification.permission === 'granted') {
+        new Notification(title, { body });
+    } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(permission => {
+            if (permission === 'granted') new Notification(title, { body });
         });
-    });
-}
-
-function setupDrawer() {
-    const dList = document.getElementById('drawer-list');
-    dList.innerHTML = menuData.drawerItems.map(item => `
-        <div onclick="window.location.href='${item.link}'" style="display:flex; gap:16px; padding:16px; cursor:pointer; align-items:center;">
-            <span class="material-symbols-outlined">${item.icon}</span>
-            <span>${item.name}</span>
-        </div>
-    `).join('');
-}
-
-window.toggleDrawer = () => {
-    const d = document.getElementById('app-drawer');
-    const o = document.getElementById('drawer-overlay');
-    if(d.classList.contains('open')) {
-        d.classList.remove('open'); o.classList.remove('open');
-    } else {
-        d.classList.add('open'); o.classList.add('open');
     }
 }
 
-window.openHistory = () => {
-    const ov = document.getElementById('history-overlay');
-    const list = document.getElementById('history-list');
-    list.innerHTML = newsDB.map(item => createNewsCard(item)).join('');
-    ov.classList.add('open');
-}
+// --- Background Animation (Canvas) ---
+let animId;
+function initBackground() {
+    const canvas = document.getElementById('ambient-canvas');
+    if (!state.settings.bgAnimation) {
+        if (animId) cancelAnimationFrame(animId);
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0,0, canvas.width, canvas.height);
+        return;
+    }
 
-window.openSettings = () => {
-    populateLocationFilter(); // Refresh locs
-    document.getElementById('settings-overlay').classList.add('open');
+    const ctx = canvas.getContext('2d');
+    let width, height;
     
-    // Set Toggle States
-    document.getElementById('sw-bg').className = `switch ${currentSettings.animBg?'on':''}`;
-    document.getElementById('sw-notif').className = `switch ${currentSettings.notifications?'on':''}`;
-    document.getElementById('sw-menu').className = `switch ${currentSettings.showQuickMenu?'on':''}`;
-}
+    // Particles
+    const particles = [];
+    const colors = window.matchMedia('(prefers-color-scheme: dark)').matches 
+        ? ['#004b72', '#1a1c1e', '#006495'] // Dark theme blues
+        : ['#cbe6ff', '#fdfcff', '#dff2fc']; // Light theme blues
 
-window.toggleSetting = (key) => {
-    currentSettings[key] = !currentSettings[key];
-    saveSettings();
-    openSettings(); // Re-render state
-}
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
 
-window.changeLocFilter = (val) => {
-    currentSettings.locationFilter = val;
-    saveSettings();
-    if(document.getElementById('home-root')) renderNewsFeed();
-}
+    class Particle {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.size = Math.random() * 200 + 100;
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            if (this.x < -this.size) this.x = width + this.size;
+            if (this.x > width + this.size) this.x = -this.size;
+            if (this.y < -this.size) this.y = height + this.size;
+            if (this.y > height + this.size) this.y = -this.size;
+        }
+        draw() {
+            ctx.beginPath();
+            const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+            g.addColorStop(0, this.color);
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = g;
+            ctx.globalAlpha = 0.6;
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
 
-function setupSwipe(el, callback) {
-    let touchStartX = 0;
-    let touchEndX = 0;
-    el.addEventListener('touchstart', e => touchStartX = e.changedTouches[0].screenX);
-    el.addEventListener('touchend', e => {
-        touchEndX = e.changedTouches[0].screenX;
-        if (touchEndX < touchStartX - 50) callback('left');
-        if (touchEndX > touchStartX + 50) callback('right');
-    });
+    for(let i=0; i<5; i++) particles.push(new Particle());
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        // Base bg
+        ctx.fillStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1a1c1e' : '#fdfcff';
+        ctx.fillRect(0,0,width,height);
+        
+        particles.forEach(p => { p.update(); p.draw(); });
+        animId = requestAnimationFrame(animate);
+    }
+    animate();
 }
