@@ -1,16 +1,17 @@
-/* assets/menu_data.js */
-const MENU_ITEMS = [
-    { id: "aviation", name: "航空功能", icon: "flight", link: "aviation.html" },
-    { id: "map", name: "航空地图", icon: "map", link: "map.html" },
-    { id: "bus", name: "巴士线路", icon: "directions_bus", link: "bus.html" },
-    { id: "metro", name: "轨道交通", icon: "subway", link: "metro.html" },
-    { id: "weather", name: "气象信息", icon: "cloud", link: "weather.html" }
+const menuData = [
+    { name: "地铁线网", icon: "train", link: "#" },
+    { name: "公交线路", icon: "directions_bus", link: "#" },
+    { name: "临途出行", icon: "departure_board", link: "#" },
+    { name: "航空地图", icon: "flight", link: "#" },
+    { name: "失物招领", icon: "manage_search", link: "#" },
+    { name: "客服中心", icon: "support_agent", link: "#" },
+    { name: "票务政策", icon: "confirmation_number", link: "#" },
+    { name: "时刻表", icon: "schedule", link: "#" }
 ];
 
-const SIDEBAR_ITEMS = [
-    { name: "主页", icon: "home", link: "index.html" },
-    { name: "官方网站", icon: "language", link: "https://example.com" },
-    { name: "关于我们", icon: "info", link: "about.html" },
-    { name: "联系支持", icon: "contact_support", link: "contact.html" }
+const sidebarData = [
+    { name: "首页", icon: "home", link: "index.html" },
+    { name: "新闻动态", icon: "newspaper", link: "#" },
+    { name: "运营公告", icon: "campaign", link: "#" },
+    { name: "关于我们", icon: "info", link: "#" }
 ];
-
