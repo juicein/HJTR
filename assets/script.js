@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // === 1. 数据处理 ===
     async function loadData() {
         try {
-            const response = await fetch('data/news_content.json');
+            const response = await fetch('../news_content.json');
             const rawData = await response.json();
             
             // 自动生成ID：使用索引 (生产环境建议用hash)
