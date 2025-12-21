@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // 1. 获取并处理数据
 async function fetchNews() {
-    const res = await fetch('data/news_content.json');
+    const res = await fetch('../news_content.json');
     const data = await res.json();
     allNews = data.map((n, i) => ({ ...n, id: i })); // 自动ID
 }
