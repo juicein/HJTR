@@ -1,355 +1,307 @@
-// assets/script.js
+let allNews = [];
+let filteredNews = [];
 
-// --- State Management ---
-const state = {
-    news: [],
-    settings: {
-        bgAnimation: true,
-        notifications: true,
-        locationFilter: 'all'
-    },
-    shortcutsExpanded: false,
-    jsonUrl: '../news_content.json'
-};
-
-// --- Initialization ---
-document.addEventListener('DOMContentLoaded', async () => {
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
     loadSettings();
-    await fetchNews();
-    
-    // Check if we are on index.html
-    if (document.getElementById('hero-section')) {
-        initHomePage();
-    }
-    
-    initCommonFeatures();
-    initBackground();
+    initMenu();
+    fetchNews();
+    setupEventListeners();
 });
 
-// --- Core Data Logic ---
+// --- 1. 数据获取与处理 ---
 async function fetchNews() {
     try {
-        // In real scenario, append cache buster if notification logic requires distinct check
-        const response = await fetch(state.jsonUrl);
-        const rawData = await response.json();
+        const response = await fetch('data/news_content.json');
+        const data = await response.json();
         
-        // Auto-Generate IDs (0, 1, 2...)
-        state.news = rawData.map((item, index) => ({
+        // 自动添加 ID (基于索引)
+        allNews = data.map((item, index) => ({
             ...item,
-            id: index
+            id: index, // 自动生成ID
+            timestamp: parseDate(item.date) // 用于排序
         }));
 
-        // Notification Check (Simple Implementation)
-        const lastNewsTitle = localStorage.getItem('last_news_title');
-        if (state.settings.notifications && state.news.length > 0) {
-            if (lastNewsTitle && lastNewsTitle !== state.news[0].title) {
-                sendNotification("新动态发布", state.news[0].title);
-            }
-            localStorage.setItem('last_news_title', state.news[0].title);
-        }
+        // 默认按时间倒序
+        allNews.sort((a, b) => b.timestamp - a.timestamp);
         
+        filteredNews = [...allNews]; // 初始显示所有
+
+        renderHero(allNews); // 渲染头条
+        populateLocationFilter(allNews); // 填充地区筛选
+        renderNewsList(filteredNews); // 渲染列表
+        
+        checkNotifications(allNews[0]); // 检查是否需要推送通知
+
     } catch (error) {
-        console.error("Failed to load news:", error);
+        console.error('Error loading news:', error);
     }
 }
 
-// --- Page Rendering (Index) ---
-function initHomePage() {
-    renderHero();
-    renderShortcuts();
-    renderNewsFeed();
-    setupLocationFilter();
-    
-    // Button Listeners
-    document.getElementById('shortcut-toggle').addEventListener('click', toggleShortcuts);
-    document.getElementById('history-btn').addEventListener('click', () => {
-        const dialog = document.getElementById('history-dialog');
-        renderHistoryFeed();
-        dialog.showModal();
+// 简单的日期解析 (假设格式 MM-DD HH:MM，需补充年份)
+function parseDate(dateStr) {
+    const currentYear = new Date().getFullYear();
+    return new Date(`${currentYear}-${dateStr}`).getTime();
+}
+
+// --- 2. 渲染逻辑 ---
+
+// 渲染侧边栏和快捷功能
+function initMenu() {
+    // 侧边栏
+    const sidebarList = document.getElementById('sidebarList');
+    sidebarData.forEach(item => {
+        sidebarList.innerHTML += `
+            <li class="sidebar-item" onclick="window.location.href='${item.link}'">
+                <span class="material-symbols-rounded">${item.icon}</span> ${item.name}
+            </li>`;
     });
-    document.getElementById('close-history').addEventListener('click', () => document.getElementById('history-dialog').close());
+
+    // 快捷功能
+    const actionsGrid = document.getElementById('actionsGrid');
+    menuData.forEach(item => {
+        actionsGrid.innerHTML += `
+            <div class="action-item">
+                <div class="action-icon-box"><span class="material-symbols-rounded">${item.icon}</span></div>
+                <span>${item.name}</span>
+            </div>`;
+    });
 }
 
-// 1. Hero Carousel Logic
-function renderHero() {
-    const track = document.getElementById('hero-track');
-    const now = new Date();
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+// 渲染头条 (一周内最新的4条，或最新1条)
+function renderHero(news) {
+    const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    let recentNews = news.filter(n => n.timestamp > oneWeekAgo).slice(0, 4);
     
-    // Filter logic: < 1 week OR at least the latest one
-    let heroNews = state.news.filter(n => {
-        // Assume 'date' format is MM-DD HH:MM, append current year for comparison
-        // Note: Simple parsing for demo. In prod, use robust date parsing.
-        return true; // Simplified for demo as date format in JSON is partial
-    }).slice(0, 4); 
+    // 如果最近一周没有新闻，取最新的一条
+    if (recentNews.length === 0 && news.length > 0) {
+        recentNews = [news[0]];
+    }
 
-    if (heroNews.length === 0 && state.news.length > 0) heroNews = [state.news[0]];
+    const slider = document.getElementById('heroSlider');
+    const progressContainer = document.getElementById('heroProgressContainer');
 
-    track.innerHTML = heroNews.map(item => `
-        <div class="hero-card" onclick="location.href='news_detail.html?id=${item.id}'" 
-             style="background-image: url('${item.image || 'assets/default_hero.jpg'}')">
-            <div class="hero-overlay"></div>
+    if (recentNews.length <= 1) progressContainer.style.display = 'none';
+
+    slider.innerHTML = recentNews.map(item => `
+        <a href="news_detail.html?id=${item.id}" class="hero-card ${!item.image ? 'no-img' : ''}" style="background-image: url('${item.image || ''}')">
             <div class="hero-content">
-                <div class="hero-badge">头条</div>
+                <div class="hero-tag">头条 · ${item.location}</div>
                 <div class="hero-title">${item.title}</div>
-                <div class="hero-snippet">${item.content.substring(0, 50)}...</div>
             </div>
-        </div>
-    `).join('');
-
-    // Scroll Progress Logic
-    if (heroNews.length > 1) {
-        track.addEventListener('scroll', () => {
-            const scrollLeft = track.scrollLeft;
-            const maxScroll = track.scrollWidth - track.clientWidth;
-            const progress = (scrollLeft / maxScroll) * 100;
-            document.getElementById('hero-progress').style.width = `${progress}%`;
-        });
-    } else {
-        document.getElementById('hero-progress-wrapper').style.display = 'none';
-    }
-}
-
-// 2. Shortcuts Logic
-function renderShortcuts() {
-    const grid = document.getElementById('shortcuts-grid');
-    const items = menuData.filter(i => i.type === 'shortcut'); // Or all items logic
-    
-    // Initial render: show all but hide via CSS max-height or class
-    // Here we rerender for simplicity based on state
-    const displayItems = state.shortcutsExpanded ? items : items.slice(0, 4);
-    
-    grid.innerHTML = displayItems.map(item => `
-        <div class="shortcut-item">
-            <div class="shortcut-icon-box">
-                <span class="material-symbols-outlined">${item.icon}</span>
-            </div>
-            <span class="shortcut-label">${item.name}</span>
-        </div>
-    `).join('');
-    
-    const icon = document.getElementById('shortcut-icon');
-    icon.textContent = state.shortcutsExpanded ? 'expand_less' : 'expand_more';
-}
-
-function toggleShortcuts() {
-    state.shortcutsExpanded = !state.shortcutsExpanded;
-    renderShortcuts();
-}
-
-// 3. News Feed Logic (Main & History)
-function renderNewsFeed() {
-    const container = document.getElementById('news-feed');
-    // Filter by location if set
-    let filtered = state.news;
-    if (state.settings.locationFilter !== 'all') {
-        filtered = state.news.filter(n => n.location === state.settings.locationFilter);
-    }
-
-    const recent = filtered.slice(0, 7); // Max 7
-    container.innerHTML = recent.map(item => createNewsCardHTML(item)).join('');
-}
-
-function renderHistoryFeed() {
-    const container = document.getElementById('history-feed');
-    container.innerHTML = state.news.map(item => createNewsCardHTML(item)).join('');
-}
-
-function createNewsCardHTML(item) {
-    const hasImage = item.image && item.image !== "";
-    const cardClass = hasImage ? "news-card glass-card has-image" : "news-card glass-card";
-    
-    return `
-    <a href="news_detail.html?id=${item.id}" class="${cardClass}">
-        ${hasImage ? `<img src="${item.image}" class="news-card-img" loading="lazy">` : ''}
-        <div class="news-card-content">
-            <div>
-                <div class="news-title">${item.title}</div>
-                ${!hasImage ? `<div class="news-snippet">${item.content}</div>` : ''}
-            </div>
-            <div class="news-meta">
-                <span class="location-tag">${item.location}</span>
-                <span>${item.author}</span>
-                <span>${item.date}</span>
-            </div>
-        </div>
-    </a>
-    `;
-}
-
-// --- Common Features (Sidebar, Search, Settings) ---
-function initCommonFeatures() {
-    // Sidebar
-    const drawer = document.getElementById('nav-drawer');
-    const scrim = document.getElementById('drawer-scrim');
-    const drawerList = document.getElementById('drawer-list');
-
-    // Populate Sidebar
-    drawerList.innerHTML = menuData.map(item => `
-        <a href="${item.url}" class="nav-item">
-            <span class="material-symbols-outlined">${item.icon}</span>
-            ${item.name}
         </a>
     `).join('');
 
-    document.getElementById('menu-btn').addEventListener('click', () => {
-        drawer.classList.add('open');
-        scrim.classList.add('open');
+    // 监听滚动更新进度条
+    slider.addEventListener('scroll', () => {
+        const scrollLeft = slider.scrollLeft;
+        const scrollWidth = slider.scrollWidth - slider.clientWidth;
+        const progress = (scrollLeft / scrollWidth) * 100;
+        document.getElementById('heroProgressBar').style.width = `${progress}%`;
     });
-    scrim.addEventListener('click', () => {
-        drawer.classList.remove('open');
-        scrim.classList.remove('open');
-    });
+}
 
-    // Search
-    const searchDialog = document.getElementById('search-dialog');
-    document.getElementById('search-btn').addEventListener('click', () => searchDialog.showModal());
-    document.getElementById('close-search').addEventListener('click', () => searchDialog.close());
+// 渲染新闻列表
+function renderNewsList(newsSource, isHistory = false) {
+    const listId = isHistory ? 'historyList' : 'newsList';
+    const container = document.getElementById(listId);
     
-    document.getElementById('search-input').addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        const resultsDiv = document.getElementById('search-results');
-        if (!query) { resultsDiv.innerHTML = ''; return; }
-        
-        // Search Logic: Menu items + News
-        const foundMenu = menuData.filter(m => m.name.toLowerCase().includes(query));
-        const foundNews = state.news.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query));
-        
-        let html = '';
-        if(foundMenu.length) {
-            html += `<h4>功能</h4>` + foundMenu.map(m => `<div class="nav-item"><span class="material-symbols-outlined">${m.icon}</span>${m.name}</div>`).join('');
-        }
-        if(foundNews.length) {
-            html += `<h4>新闻</h4>` + foundNews.map(n => createNewsCardHTML(n)).join('');
-        }
-        resultsDiv.innerHTML = html;
-    });
+    // 首页只显示前7条，历史显示所有
+    const displayData = isHistory ? newsSource : newsSource.slice(0, 7);
 
-    // Settings
-    const settingsDialog = document.getElementById('settings-dialog');
-    document.getElementById('settings-btn').addEventListener('click', () => settingsDialog.showModal());
-    document.getElementById('close-settings').addEventListener('click', () => settingsDialog.close());
-
-    // Settings Toggles
-    const bgSwitch = document.getElementById('bg-anim-switch');
-    bgSwitch.checked = state.settings.bgAnimation;
-    bgSwitch.addEventListener('change', (e) => {
-        state.settings.bgAnimation = e.target.checked;
-        saveSettings();
-        initBackground(); // Reload bg state
-    });
-
-    const notifySwitch = document.getElementById('notify-switch');
-    notifySwitch.checked = state.settings.notifications;
-    notifySwitch.addEventListener('change', (e) => {
-        state.settings.notifications = e.target.checked;
-        if(e.target.checked) Notification.requestPermission();
-        saveSettings();
-    });
-
-    const locSelect = document.getElementById('location-select');
-    locSelect.value = state.settings.locationFilter;
-    locSelect.addEventListener('change', (e) => {
-        state.settings.locationFilter = e.target.value;
-        saveSettings();
-        if(document.getElementById('news-feed')) renderNewsFeed();
-    });
+    container.innerHTML = displayData.map(item => `
+        <a href="news_detail.html?id=${item.id}" class="news-card">
+            ${item.image ? `<img src="${item.image}" class="news-thumb" alt="news">` : ''}
+            <div class="news-info">
+                <div>
+                    <div class="news-card-title">${item.title}</div>
+                    <div class="news-card-desc">${item.content}</div>
+                </div>
+                <div class="news-meta">
+                    <span class="location-tag">${item.location}</span>
+                    <span>${item.author}</span>
+                    <span>${item.date}</span>
+                </div>
+            </div>
+        </a>
+    `).join('');
 }
 
-function setupLocationFilter() {
-    const locations = [...new Set(state.news.map(n => n.location))];
-    const select = document.getElementById('location-select');
-    // Keep first option
-    select.innerHTML = `<option value="all">显示全部地区</option>` + 
-        locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
-    select.value = state.settings.locationFilter;
-}
+// --- 3. 交互逻辑 ---
 
-function loadSettings() {
-    const saved = localStorage.getItem('app_settings');
-    if (saved) state.settings = JSON.parse(saved);
-}
-
-function saveSettings() {
-    localStorage.setItem('app_settings', JSON.stringify(state.settings));
-}
-
-function sendNotification(title, body) {
-    if (Notification.permission === 'granted') {
-        new Notification(title, { body });
-    } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') new Notification(title, { body });
-        });
+// 快捷功能展开/收起
+let actionsExpanded = false;
+function toggleActions() {
+    actionsExpanded = !actionsExpanded;
+    const grid = document.getElementById('actionsGrid');
+    const icon = document.getElementById('expandIcon');
+    const text = document.getElementById('expandText');
+    
+    if (actionsExpanded) {
+        grid.classList.add('expanded');
+        icon.innerText = 'keyboard_arrow_up';
+        text.innerText = '收起';
+    } else {
+        grid.classList.remove('expanded');
+        icon.innerText = 'keyboard_arrow_down';
+        text.innerText = '显示全部';
     }
 }
 
-// --- Background Animation (Canvas) ---
-let animId;
-function initBackground() {
-    const canvas = document.getElementById('ambient-canvas');
-    if (!state.settings.bgAnimation) {
-        if (animId) cancelAnimationFrame(animId);
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0,0, canvas.width, canvas.height);
+// 侧边栏
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('active');
+    const overlay = document.querySelector('.sidebar-overlay');
+    overlay.classList.toggle('active');
+}
+
+// 模态框控制
+function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
+function openHistory() { 
+    document.getElementById('historyModal').classList.add('active'); 
+    renderNewsList(filteredNews, true); // 渲染全部到历史
+}
+function openSearch() { document.getElementById('searchModal').classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+// --- 4. 搜索与筛选 ---
+
+// 自动填充地区筛选
+function populateLocationFilter(news) {
+    const locations = [...new Set(news.map(n => n.location))];
+    const select = document.getElementById('locationSelect');
+    locations.forEach(loc => {
+        const option = document.createElement('option');
+        option.value = loc;
+        option.innerText = loc;
+        select.appendChild(option);
+    });
+}
+
+// 地区筛选逻辑
+function filterLocation() {
+    const loc = document.getElementById('locationSelect').value;
+    localStorage.setItem('pref_location', loc);
+    
+    if (loc === 'all') {
+        filteredNews = [...allNews];
+    } else {
+        filteredNews = allNews.filter(n => n.location === loc);
+    }
+    renderNewsList(filteredNews);
+}
+
+// 搜索逻辑
+function handleSearch(query) {
+    if (!query) {
+        document.getElementById('searchResults').innerHTML = '';
         return;
     }
-
-    const ctx = canvas.getContext('2d');
-    let width, height;
+    query = query.toLowerCase();
     
-    // Particles
-    const particles = [];
-    const colors = window.matchMedia('(prefers-color-scheme: dark)').matches 
-        ? ['#004b72', '#1a1c1e', '#006495'] // Dark theme blues
-        : ['#cbe6ff', '#fdfcff', '#dff2fc']; // Light theme blues
+    // 搜新闻
+    const matchedNews = allNews.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query));
+    // 搜菜单
+    const matchedMenu = menuData.filter(m => m.name.toLowerCase().includes(query));
 
-    function resize() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    class Particle {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.5;
-            this.vy = (Math.random() - 0.5) * 0.5;
-            this.size = Math.random() * 200 + 100;
-            this.color = colors[Math.floor(Math.random() * colors.length)];
-        }
-        update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            if (this.x < -this.size) this.x = width + this.size;
-            if (this.x > width + this.size) this.x = -this.size;
-            if (this.y < -this.size) this.y = height + this.size;
-            if (this.y > height + this.size) this.y = -this.size;
-        }
-        draw() {
-            ctx.beginPath();
-            const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
-            g.addColorStop(0, this.color);
-            g.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = g;
-            ctx.globalAlpha = 0.6;
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fill();
-        }
+    let html = '';
+    
+    if (matchedMenu.length > 0) {
+        html += `<div style="padding:8px; font-weight:bold; color:var(--md-sys-color-primary);">功能</div>`;
+        html += matchedMenu.map(m => `<div class="sidebar-item"><span class="material-symbols-rounded">${m.icon}</span> ${m.name}</div>`).join('');
     }
 
-    for(let i=0; i<5; i++) particles.push(new Particle());
-
-    function animate() {
-        ctx.clearRect(0, 0, width, height);
-        // Base bg
-        ctx.fillStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#1a1c1e' : '#fdfcff';
-        ctx.fillRect(0,0,width,height);
-        
-        particles.forEach(p => { p.update(); p.draw(); });
-        animId = requestAnimationFrame(animate);
+    if (matchedNews.length > 0) {
+        html += `<div style="padding:8px; font-weight:bold; color:var(--md-sys-color-primary); margin-top:8px;">新闻</div>`;
+        html += matchedNews.map(n => `
+            <a href="news_detail.html?id=${n.id}" class="news-card" style="padding: 12px;">
+                <div class="news-info">
+                    <div class="news-card-title" style="font-size:16px;">${n.title}</div>
+                </div>
+            </a>
+        `).join('');
     }
-    animate();
+
+    document.getElementById('searchResults').innerHTML = html || '<div style="padding:16px; text-align:center; color:gray;">无结果</div>';
+}
+
+// --- 5. 设置与持久化 ---
+
+function loadSettings() {
+    // 背景动画
+    const bgAnim = localStorage.getItem('pref_bg_anim') !== 'false'; // 默认开
+    document.getElementById('settingBgAnim').checked = bgAnim;
+    toggleBgAnim();
+
+    // 通知
+    const notify = localStorage.getItem('pref_notify') !== 'false';
+    document.getElementById('settingNotify').checked = notify;
+
+    // App下载
+    const appDl = localStorage.getItem('pref_app_dl') !== 'false';
+    document.getElementById('settingAppDl').checked = appDl;
+    toggleAppDl();
+
+    // 地区记忆
+    const savedLoc = localStorage.getItem('pref_location');
+    if (savedLoc) {
+        // 这里的赋值需要等 filter 填充完，稍后在 fetchNews 之后如果 value 存在会自动匹配
+        setTimeout(() => {
+            const select = document.getElementById('locationSelect');
+            if(select) select.value = savedLoc;
+            filterLocation(); // 应用筛选
+        }, 500);
+    }
+}
+
+function toggleBgAnim() {
+    const isOn = document.getElementById('settingBgAnim').checked;
+    localStorage.setItem('pref_bg_anim', isOn);
+    const bg = document.getElementById('auroraBg');
+    if (isOn) bg.classList.remove('hidden');
+    else bg.classList.add('hidden');
+}
+
+function toggleNotify() {
+    const isOn = document.getElementById('settingNotify').checked;
+    localStorage.setItem('pref_notify', isOn);
+    if (isOn) Notification.requestPermission();
+}
+
+function toggleAppDl() {
+    const isOn = document.getElementById('settingAppDl').checked;
+    localStorage.setItem('pref_app_dl', isOn);
+    const btns = document.querySelectorAll('.app-dl-btn');
+    btns.forEach(btn => btn.style.display = isOn ? 'inline-flex' : 'none');
+}
+
+// --- 6. 通知系统 ---
+function checkNotifications(latestNews) {
+    if (!latestNews) return;
+    const isNotifyOn = localStorage.getItem('pref_notify') !== 'false';
+    if (!isNotifyOn) return;
+
+    const lastSeenTitle = localStorage.getItem('last_seen_news_title');
+    
+    // 如果最新新闻标题与上次不同，则推送
+    if (lastSeenTitle !== latestNews.title) {
+        if (Notification.permission === "granted") {
+            new Notification("万方出行通新动态", {
+                body: latestNews.title,
+                icon: "image.png" // 你的logo
+            });
+            localStorage.setItem('last_seen_news_title', latestNews.title);
+        } else if (Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+    }
+}
+
+function setupEventListeners() {
+    // 点击外部关闭 Sidebar
+    document.addEventListener('click', (e) => {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.querySelector('.sidebar-overlay');
+        // 这里的逻辑已在 toggleSidebar 中通过 overlay click 覆盖，此处作为备用
+    });
 }
