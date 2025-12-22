@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>城市滚动展示</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url("微信图片_20250929155241.jpg") no-repeat center center/cover;
+    font-family: "Microsoft YaHei", sans-serif;
+    overflow: hidden;
+  }
+  .wrapper {
+    text-align: center;
+    color: #fff;
+  }
+  .subtitle {
+    font-size: 20px;
+    margin-bottom: 10px;
+  }
+  .scroll-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 64px;
+    font-weight: bold;
+    height: 80px;
+    overflow: hidden;
+    line-height: 80px;
+  }
+  .column {
+    overflow: hidden;
+    height: 80px;
+    width: 1.2em;
+    position: relative;
+  }
+  .list {
+    position: absolute;
+    top: 0;
+  }
+  .char {
+    height: 80px;
+  }
+</style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="subtitle">祝您旅途愉快！欢迎来到</div>
+    <div class="scroll-area">
+      <div class="column"><div class="list" id="leftList"></div></div>
+      <div class="column"><div class="list" id="rightList"></div></div>
+    </div>
+  </div>
+<script>
+  const cities = [
+    "拜科努尔", "千里马", "新裕古湖", "新裕艮山", "临东金桦", "临东北关岭",
+    "新清云索恩", "平城汉光", "金钟淮海", "新洲双家", "西苑江秋", "北江凌海",
+    "闸南香兰", "峡东海东", "万方沂川", "都城", "星羽天琴", "嘎联龙昌湾",
+    "梦海梦天", "南海水平", "帆叶蓝里", "绚火海之韵", "糖果斯威特", "南谷",
+    "北联里海", "清云", "梅林流亭", "谷风新涵", "青岚新城", "韶城启明",
+    "祁云兴泽", "新港未央", "茶花泯山", "仙海海源"
+  ];
+  const leftList = document.getElementById("leftList");
+  const rightList = document.getElementById("rightList");
+  const ITEM_HEIGHT = 80;
+  function fillList(list, chars) {
+    list.innerHTML = "";
+    chars.forEach((c) => {
+      const div = document.createElement("div");
+      div.className = "char"; 
+      div.textContent = c;
+      list.appendChild(div);
+    });
+  }
+  function start() {
+    const target = cities[Math.floor(Math.random() * cities.length)];
+    const leftChar = target[0];
+    const rightChar = target[1] || target[0]; // 适配单字名称
+    const randomLeft = [leftChar]; 
+    const randomRight = [rightChar];
+    
+    for (let i = 0; i < 15; i++) {
+      const c = cities[Math.floor(Math.random() * cities.length)];
+      randomLeft.push(c[0]); 
+      randomRight.unshift(c[1] || c[0]); // 适配单字名称
+    }
+    fillList(leftList, randomLeft);
+    fillList(rightList, randomRight);
+    leftList.style.transition = "none";
+    rightList.style.transition = "none";
+    leftList.style.transform = "translateY(0)";
+    rightList.style.transform = "translateY(-" + (randomRight.length - 1) * ITEM_HEIGHT + "px)";
+    setTimeout(() => {
+      leftList.style.transition = "transform 3500ms cubic-bezier(.18,.9,.22,1) 0ms";
+      leftList.style.transform = "translateY(-" + (randomLeft.length - 1) * ITEM_HEIGHT + "px)";
+      rightList.style.transition = "transform 3500ms cubic-bezier(.18,.9,.22,1) 100ms";
+      rightList.style.transform = "translateY(0)";
+    }, 200);
+  }
+  start();
+</script>
+</body>
+</html>
