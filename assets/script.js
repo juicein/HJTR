@@ -43,7 +43,7 @@ function initMenu() {
 /* --- 新闻数据获取 --- */
 async function fetchNews() {
     try {
-        const response = await fetch('data/news_content.json');
+        const response = await fetch('../news_content.json');
         if (!response.ok) throw new Error('Network response was not ok');
         
         const data = await response.json();
