@@ -1,136 +1,124 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>万方出行通</title>
-    <link rel="stylesheet" href="assets/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>万方出行通</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-    <div class="aurora-bg">
-        <div class="aurora-blob blob-1"></div>
-        <div class="aurora-blob blob-2"></div>
-        <div class="aurora-blob blob-3"></div>
-    </div>
+  <div id="fluid-bg">
+    <div class="blob"></div><div class="blob"></div><div class="blob"></div>
+  </div>
 
-    <div class="sidebar-overlay" id="sidebar-overlay"></div>
-    <nav class="sidebar" id="sidebar">
-        <h2 style="padding: 0 16px; margin-bottom: 20px;">菜单</h2>
-        </nav>
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div style="padding: 16px 12px; font-size: 20px; font-weight: bold; color: var(--md-sys-color-primary);">万方出行</div>
+    <div id="sidebar-content"></div>
+  </aside>
 
-    <header class="glass-panel top-bar">
-        <div class="top-left">
-            <button class="icon-btn" id="btn-menu"><span class="material-icons">menu</span></button>
-            <div class="logo-container"></div>
-        </div>
-        <div class="top-right">
-            <button class="icon-btn" id="btn-search"><span class="material-icons">search</span></button>
-            <button class="icon-btn" id="btn-settings"><span class="material-icons">settings</span></button>
-        </div>
+  <div class="app-container">
+    <header class="top-bar">
+      <div class="top-left">
+        <button class="icon-btn" id="menu-btn"><span class="material-symbols-outlined">menu</span></button>
+        <a href="index.html" class="logo-container" style="-webkit-mask-image: url('assets/logo.png'); mask-image: url('assets/logo.png');"></a>
+      </div>
+      <div class="top-right">
+        <button class="icon-btn" id="search-btn"><span class="material-symbols-outlined">search</span></button>
+        <button class="icon-btn" id="settings-btn"><span class="material-symbols-outlined">settings</span></button>
+      </div>
     </header>
 
-    <div class="main-container">
-        
-        <section class="hero-section">
-            <div class="carousel-track" id="hero-track">
-                </div>
-            <div class="progress-bar" id="hero-progress">
-                <div class="progress-fill"></div>
-            </div>
-        </section>
+    <div class="left-column">
+      <section class="headline-section">
+        <div class="headline-track" id="headline-track">
+          </div>
+        <div class="carousel-progress" id="carousel-dots"></div>
+      </section>
 
-        <section class="quick-actions-section">
-            <div class="quick-header">
-                <span>快捷服务</span>
-                <button class="icon-btn" id="btn-expand-quick"><span class="material-icons">expand_more</span></button>
-            </div>
-            <div class="action-grid" id="quick-grid">
-                </div>
-        </section>
+      <section class="quick-actions" id="quick-actions-card">
+        <div class="qa-header">
+          <span>快捷服务</span>
+          <button class="icon-btn" id="qa-toggle" style="width: 24px; height: 24px; padding: 0;">
+            <span class="material-symbols-outlined" style="font-size: 18px">expand_more</span>
+          </button>
+        </div>
+        <div class="qa-grid" id="qa-container">
+          </div>
+      </section>
 
-        <section class="news-list-section">
-            <div class="section-header">
-                <h3>近期动态</h3>
-                <div class="history-btn" id="btn-history">
-                    历史新闻 <span class="material-icons" style="font-size:16px">history</span>
-                </div>
-            </div>
-            <div id="news-list">
-                </div>
-            
-            <div class="footer-section">
-                <div class="app-card" id="app-download-card">
-                    <h3>下载官方 App</h3>
-                    <p>获取实时车辆位置与到站提醒</p>
-                    <a href="#" class="app-btn">立即下载 Android版</a>
-                </div>
-                <div class="copyright">
-                    © 2025 万方出行通 版权所有
-                </div>
-            </div>
-        </section>
-
+      <div class="footer-area" id="footer-area">
+        <div class="app-dl-card" id="app-dl-card">
+          <span class="material-symbols-outlined">android</span>
+          <div>
+            <div style="font-weight: bold; font-size: 14px;">下载万方出行 App</div>
+            <div style="font-size: 11px; opacity: 0.8;">更便捷的出行体验</div>
+          </div>
+        </div>
+        <div class="copyright">
+          © 2025 万方出行通. All rights reserved.<br>Version 3.0.0 (Expressive)
+        </div>
+      </div>
     </div>
 
-    <dialog id="dialog-search">
-        <div class="dialog-header">
-            搜索
-            <button class="icon-btn" onclick="document.getElementById('dialog-search').close()"><span class="material-icons">close</span></button>
+    <div class="right-column">
+      <div class="section-header">
+        <span class="section-title">近期动态</span>
+        <div class="history-btn" id="history-btn">
+          历史新闻 <span class="material-symbols-outlined" style="font-size: 18px;">history</span>
         </div>
-        <input type="text" class="search-input" id="search-input" placeholder="输入关键词...">
-        <div class="search-results" id="search-results"></div>
-    </dialog>
+      </div>
+      <div id="news-list">
+        </div>
+    </div>
+  </div>
 
-    <dialog id="dialog-settings">
-        <div class="dialog-header">
-            设置
-            <button class="icon-btn" onclick="document.getElementById('dialog-settings').close()"><span class="material-icons">close</span></button>
-        </div>
-        
-        <div class="setting-item">
-            <span>流光溢彩背景</span>
-            <label class="switch">
-                <input type="checkbox" id="switch-bg">
-                <span class="slider"></span>
-            </label>
-        </div>
+  <div class="modal-overlay" id="search-modal">
+    <div class="modal-content">
+      <input type="text" class="search-bar" id="global-search" placeholder="搜索新闻、功能、线路...">
+      <div id="search-results" style="display: flex; flex-direction: column; gap: 12px;"></div>
+    </div>
+  </div>
 
-        <div class="setting-item">
-            <span>新闻推送通知</span>
-            <label class="switch">
-                <input type="checkbox" id="switch-notify">
-                <span class="slider"></span>
-            </label>
-        </div>
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-content">
+      <h3 style="margin-top:0">系统设置</h3>
+      
+      <div class="setting-row">
+        <span>流光溢彩背景</span>
+        <div class="md3-switch active" id="sw-bg"></div>
+      </div>
 
-        <div class="setting-item">
-            <span>显示App下载卡片</span>
-            <label class="switch">
-                <input type="checkbox" id="switch-app">
-                <span class="slider"></span>
-            </label>
-        </div>
+      <div class="setting-row">
+        <span>新闻通知推送</span>
+        <div class="md3-switch active" id="sw-notif"></div>
+      </div>
 
-        <div class="setting-item">
-            <span>地区筛选</span>
-            <select id="setting-location">
-                <option value="all">所有地区</option>
-                </select>
-        </div>
-    </dialog>
+      <div class="setting-row">
+        <span>App 下载卡片</span>
+        <div class="md3-switch active" id="sw-app"></div>
+      </div>
 
-    <dialog id="dialog-history" style="width: 600px;">
-        <div class="dialog-header">
-            历史新闻
-            <button class="icon-btn" onclick="document.getElementById('dialog-history').close()"><span class="material-icons">close</span></button>
-        </div>
-        <div id="history-list"></div>
-    </dialog>
+      <div class="setting-row" style="flex-direction: column; align-items: start; gap: 8px;">
+        <span>地区筛选 (Location)</span>
+        <select id="loc-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #777; background: transparent; color: inherit;">
+          <option value="all">全部地区</option>
+        </select>
+      </div>
 
-    <script src="assets/menu_data.js"></script>
-    <script src="assets/script.js"></script>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="history-modal">
+    <div class="modal-content" style="max-width: 600px;">
+      <h3 style="margin-top:0">历史新闻归档</h3>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+  <script src="assets/menu_data.js"></script>
+  <script src="assets/script.js"></script>
 </body>
 </html>
