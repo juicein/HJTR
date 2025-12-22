@@ -1,339 +1,328 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // === 状态与DOM元素 ===
-    let newsData = [];
-    let settings = JSON.parse(localStorage.getItem('user_settings')) || {
-        enableAurora: false,
-        locationFilter: 'all',
-        enableNotifications: true,
-        showAppDownload: true
-    };
+document.addEventListener('DOMContentLoaded', init);
 
-    const els = {
-        aurora: document.querySelector('.aurora-bg'),
-        newsList: document.getElementById('news-list'),
-        heroTrack: document.getElementById('hero-track'),
-        heroProgress: document.getElementById('hero-progress'),
-        quickGrid: document.getElementById('quick-grid'),
-        sidebar: document.getElementById('sidebar'),
-        sidebarOverlay: document.getElementById('sidebar-overlay'),
-        dialogSearch: document.getElementById('dialog-search'),
-        dialogSettings: document.getElementById('dialog-settings'),
-        dialogHistory: document.getElementById('dialog-history'),
-        appCard: document.getElementById('app-download-card'),
-        locationSelect: document.getElementById('setting-location')
-    };
+let globalData = [];
+let userSettings = {
+  bgAnim: true,
+  notifications: true,
+  appCard: true,
+  locationFilter: 'all'
+};
 
-    // === 初始化 ===
-    init();
+async function init() {
+  loadSettings();
+  await fetchData();
+  
+  // Render Static/Menu items
+  renderSidebar();
+  renderQuickActions(false); // Default collapsed
+  
+  // Event Listeners
+  setupInteractions();
+  setupBackground();
+  
+  // Responsive Check
+  handleResize();
+  window.addEventListener('resize', handleResize);
+}
 
-    async function init() {
-        await loadData();
-        applySettings();
-        renderSidebar();
-        renderQuickActions();
-        processAndRenderNews();
-        setupEventListeners();
-        checkNotifications();
-    }
+/* --- Data Handling --- */
+async function fetchData() {
+  try {
+    const response = await fetch('data/news_content.json');
+    const rawData = await response.json();
+    
+    // Add IDs and Process Data
+    globalData = rawData.map((item, index) => ({
+      ...item,
+      id: index, // Simple index-based ID as requested (Auto generated)
+      timestamp: parseDate(item.date)
+    }));
 
-    // === 1. 数据处理 ===
-    async function loadData() {
-        try {
-            const response = await fetch('../news_content.json');
-            const rawData = await response.json();
-            
-            // 自动生成ID：使用索引 (生产环境建议用hash)
-            newsData = rawData.map((item, index) => ({
-                ...item,
-                id: index, // 自动生成ID
-                timestamp: parseDate(item.date) // 解析时间方便排序
-            }));
+    // Check for Notifications (Simulated)
+    checkNotifications(globalData);
 
-            // 填充 Location 选项
-            const locations = [...new Set(newsData.map(item => item.location))];
-            locations.forEach(loc => {
-                const opt = document.createElement('option');
-                opt.value = loc;
-                opt.innerText = loc;
-                els.locationSelect.appendChild(opt);
-            });
-            els.locationSelect.value = settings.locationFilter;
+    // Initial Render
+    filterAndRender();
+    populateLocationSelect();
 
-        } catch (e) {
-            console.error("Data load failed", e);
-            els.newsList.innerHTML = `<div style="padding:20px; text-align:center">数据加载失败</div>`;
+  } catch (e) {
+    console.error("Data load failed", e);
+    document.getElementById('news-list').innerHTML = '<div style="padding:20px; text-align:center">加载失败</div>';
+  }
+}
+
+function parseDate(dateStr) {
+  // Assuming format "MM-DD HH:mm", adding current year for sorting
+  const year = new Date().getFullYear();
+  return new Date(`${year}-${dateStr.replace(' ', 'T')}`).getTime();
+}
+
+function filterAndRender() {
+  let filtered = globalData;
+  
+  // Location Filter
+  if (userSettings.locationFilter !== 'all') {
+    filtered = filtered.filter(item => item.location === userSettings.locationFilter);
+  }
+
+  // Headlines Logic: Newest 4 within 7 days, OR just the latest 1
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  let headlines = filtered.filter(item => item.timestamp > sevenDaysAgo);
+  
+  // Sort by date desc
+  headlines.sort((a, b) => b.timestamp - a.timestamp);
+  
+  if (headlines.length === 0 && filtered.length > 0) {
+    headlines = [filtered[0]]; // Fallback to latest
+  }
+  headlines = headlines.slice(0, 4); // Max 4
+
+  renderHeadlines(headlines);
+  renderNewsList(filtered.slice(0, 7), 'news-list'); // Main list max 7
+  renderNewsList(filtered, 'history-list'); // History list all
+}
+
+/* --- Rendering Functions --- */
+function renderHeadlines(items) {
+  const track = document.getElementById('headline-track');
+  const dots = document.getElementById('carousel-dots');
+  
+  if(!items.length) {
+    track.parentElement.style.display = 'none';
+    return;
+  }
+  track.parentElement.style.display = 'block';
+
+  track.innerHTML = items.map(item => `
+    <div class="headline-card" onclick="location.href='news_detail.html?id=${item.id}'" 
+         style="background-image: url('${item.image || 'assets/default_bg.jpg'}')">
+      <div class="headline-content">
+        <div class="headline-tag">${item.location}</div>
+        <div class="headline-title">${item.title}</div>
+        <div class="headline-desc" style="color:rgba(255,255,255,0.9);">${item.content}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // Dots logic
+  if(items.length > 1) {
+    dots.innerHTML = items.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
+    // Simple Scroll spy
+    track.addEventListener('scroll', () => {
+      const index = Math.round(track.scrollLeft / track.clientWidth);
+      Array.from(dots.children).forEach((d, i) => d.classList.toggle('active', i === index));
+    });
+  } else {
+    dots.innerHTML = '';
+  }
+}
+
+function renderQuickActions(expanded) {
+  const container = document.getElementById('qa-container');
+  const items = expanded ? menuData.quickActions : menuData.quickActions.slice(0, 4);
+  
+  container.innerHTML = items.map(item => `
+    <div class="qa-item" onclick="${item.action ? item.action + '()' : `location.href='${item.link}'`}">
+      <div class="qa-icon-box">
+        <span class="material-symbols-outlined">${item.icon}</span>
+      </div>
+      <div class="qa-text">${item.text}</div>
+    </div>
+  `).join('');
+  
+  // Set height animation
+  const card = document.getElementById('quick-actions-card');
+  // Auto height trick: quick calculation approx
+  card.style.height = expanded ? 'auto' : ''; // CSS handles transition? Better to use fixed heights for smooth anim, but auto works for simple
+}
+
+function renderNewsList(items, elementId) {
+  const container = document.getElementById(elementId);
+  container.innerHTML = items.map(item => {
+    const hasImg = item.image && item.image.length > 0;
+    return `
+    <div class="news-card" onclick="location.href='news_detail.html?id=${item.id}'">
+      ${hasImg ? `<img src="${item.image}" class="news-img" loading="lazy">` : ''}
+      <div class="news-body">
+        <div>
+          <div class="news-title">${item.title}</div>
+          <div style="font-size:13px; opacity:0.8; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
+            ${item.content}
+          </div>
+        </div>
+        <div class="news-meta">
+          <span class="location-tag">${item.location}</span>
+          <span>${item.date}</span>
+          <span style="margin-left:auto">${item.author}</span>
+        </div>
+      </div>
+    </div>
+  `}).join('');
+}
+
+function renderSidebar() {
+  const sidebar = document.getElementById('sidebar-content');
+  sidebar.innerHTML = menuData.sidebar.map(item => `
+    <a href="${item.link || 'javascript:void(0)'}" class="nav-item" 
+       onclick="${item.action ? item.action + '()' : ''}">
+      <span class="material-symbols-outlined">${item.icon}</span>
+      ${item.text}
+    </a>
+  `).join('');
+}
+
+/* --- Search Logic --- */
+function handleSearch(query) {
+  const resContainer = document.getElementById('search-results');
+  if(!query) { resContainer.innerHTML = ''; return; }
+  
+  query = query.toLowerCase();
+  
+  // Search News
+  const newsMatches = globalData.filter(i => i.title.includes(query) || i.content.includes(query));
+  // Search Menu
+  const menuMatches = [...menuData.sidebar, ...menuData.quickActions].filter(i => i.text.toLowerCase().includes(query));
+  
+  let html = '';
+  
+  if(menuMatches.length) {
+    html += `<div style="font-size:12px; opacity:0.6; margin:8px 0;">功能</div>`;
+    html += menuMatches.map(i => `
+      <div class="nav-item" onclick="${i.action ? i.action + '()' : `location.href='${i.link}'`}">
+        <span class="material-symbols-outlined">${i.icon}</span>${i.text}
+      </div>`).join('');
+  }
+  
+  if(newsMatches.length) {
+    html += `<div style="font-size:12px; opacity:0.6; margin:16px 0 8px 0;">新闻</div>`;
+    html += newsMatches.map(i => `
+      <div class="news-card" style="margin-bottom:8px" onclick="location.href='news_detail.html?id=${i.id}'">
+        <div class="news-body"><div class="news-title">${i.title}</div></div>
+      </div>`).join('');
+  }
+  
+  if(!html) html = '<div style="text-align:center; padding:20px; opacity:0.5">未找到结果</div>';
+  resContainer.innerHTML = html;
+}
+
+/* --- Interaction & Settings --- */
+function setupInteractions() {
+  // Sidebar
+  document.getElementById('menu-btn').onclick = () => {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebar-overlay').classList.add('open');
+  };
+  document.getElementById('sidebar-overlay').onclick = () => {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  };
+
+  // Quick Actions Toggle
+  const qaToggle = document.getElementById('qa-toggle');
+  let qaExpanded = false;
+  qaToggle.onclick = () => {
+    qaExpanded = !qaExpanded;
+    renderQuickActions(qaExpanded);
+    qaToggle.style.transform = qaExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
+  };
+
+  // Search
+  const sModal = document.getElementById('search-modal');
+  document.getElementById('search-btn').onclick = () => sModal.classList.add('open');
+  sModal.onclick = (e) => { if(e.target === sModal) sModal.classList.remove('open'); };
+  document.getElementById('global-search').addEventListener('input', (e) => handleSearch(e.target.value));
+
+  // Settings
+  const setModal = document.getElementById('settings-modal');
+  document.getElementById('settings-btn').onclick = () => setModal.classList.add('open');
+  setModal.onclick = (e) => { if(e.target === setModal) setModal.classList.remove('open'); };
+
+  // History
+  const hModal = document.getElementById('history-modal');
+  document.getElementById('history-btn').onclick = () => hModal.classList.add('open');
+  hModal.onclick = (e) => { if(e.target === hModal) hModal.classList.remove('open'); };
+
+  // Switches
+  setupSwitch('sw-bg', 'bgAnim', setupBackground);
+  setupSwitch('sw-notif', 'notifications');
+  setupSwitch('sw-app', 'appCard', () => {
+    document.getElementById('app-dl-card').style.display = userSettings.appCard ? 'flex' : 'none';
+  });
+  
+  // Location Select
+  const locSel = document.getElementById('loc-select');
+  locSel.onchange = (e) => {
+    userSettings.locationFilter = e.target.value;
+    saveSettings();
+    filterAndRender();
+  };
+}
+
+function setupSwitch(id, key, callback) {
+  const el = document.getElementById(id);
+  // Set initial state
+  if(userSettings[key]) el.classList.add('active'); else el.classList.remove('active');
+  
+  el.onclick = () => {
+    userSettings[key] = !userSettings[key];
+    el.classList.toggle('active', userSettings[key]);
+    saveSettings();
+    if(callback) callback();
+  };
+}
+
+function loadSettings() {
+  const saved = localStorage.getItem('wf_settings');
+  if(saved) userSettings = { ...userSettings, ...JSON.parse(saved) };
+  
+  // Apply immediate effects
+  if(!userSettings.appCard) document.getElementById('app-dl-card').style.display = 'none';
+}
+
+function saveSettings() {
+  localStorage.setItem('wf_settings', JSON.stringify(userSettings));
+}
+
+function setupBackground() {
+  const bg = document.getElementById('fluid-bg');
+  if(userSettings.bgAnim) bg.classList.remove('hidden');
+  else bg.classList.add('hidden');
+}
+
+function populateLocationSelect() {
+  const locs = [...new Set(globalData.map(i => i.location))];
+  const sel = document.getElementById('loc-select');
+  locs.forEach(l => {
+    const opt = document.createElement('option');
+    opt.value = l;
+    opt.innerText = l;
+    if(userSettings.locationFilter === l) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+/* --- Notifications (Simulated) --- */
+function checkNotifications(newData) {
+  if(!userSettings.notifications) return;
+  
+  const lastId = localStorage.getItem('wf_last_notify_id');
+  // If we have data and the first item is different from last time
+  if(newData.length > 0 && String(newData[0].id) !== lastId) {
+    // Trigger notification
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("万方出行通", { body: newData[0].title });
+    } else if ("Notification" in window && Notification.permission !== "denied") {
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          new Notification("万方出行通", { body: newData[0].title });
         }
+      });
     }
+    localStorage.setItem('wf_last_notify_id', String(newData[0].id));
+  }
+}
 
-    function parseDate(dateStr) {
-        // 假设格式为 "MM-DD HH:mm", 补全年份为当前年份或根据逻辑推断
-        const now = new Date();
-        const [datePart, timePart] = dateStr.split(' ');
-        const [month, day] = datePart.split('-');
-        return new Date(now.getFullYear(), month - 1, day, ...timePart.split(':'));
-    }
-
-    // === 2. 核心渲染逻辑 ===
-    function processAndRenderNews() {
-        // 1. 过滤地区
-        let filtered = settings.locationFilter === 'all' 
-            ? newsData 
-            : newsData.filter(n => n.location === settings.locationFilter);
-
-        // 2. 区分头条与列表
-        const oneWeekAgo = new Date();
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-        // 头条逻辑：最近一周的前4条。如果不足1条，则强制取最新1条。
-        let heroItems = filtered.filter(n => n.timestamp > oneWeekAgo);
-        heroItems.sort((a, b) => b.timestamp - a.timestamp);
-        
-        if (heroItems.length === 0 && filtered.length > 0) {
-            heroItems = [filtered[0]]; // 强制一条
-        } else {
-            heroItems = heroItems.slice(0, 4);
-        }
-
-        // 渲染头条
-        renderHero(heroItems);
-
-        // 列表逻辑：排除头条后的数据，取前7条显示在主页
-        const heroIds = new Set(heroItems.map(h => h.id));
-        const listItems = filtered.filter(n => !heroIds.has(n.id));
-        
-        // 主页显示前 7 条
-        const homeList = listItems.slice(0, 7);
-        renderNewsList(homeList, els.newsList);
-
-        // 历史记录逻辑：所有数据（或者剩余数据）
-        renderNewsList(listItems, document.getElementById('history-list'));
-    }
-
-    function renderHero(items) {
-        els.heroTrack.innerHTML = '';
-        if (items.length === 0) {
-            els.heroTrack.innerHTML = '<div class="hero-card" style="background:#ddd; color:#333; justify-content:center; align-items:center">暂无头条</div>';
-            return;
-        }
-
-        items.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'hero-card';
-            // 使用图片或默认渐变
-            card.style.backgroundImage = item.image ? `url(${item.image})` : `linear-gradient(45deg, var(--md-sys-color-primary), #000)`;
-            
-            // 截取3行内容在CSS中完成 (-webkit-line-clamp)
-            card.innerHTML = `
-                <div class="hero-content">
-                    <span class="hero-tag">头条</span>
-                    <div class="hero-title">${item.title}</div>
-                    <div class="hero-desc">${item.content}</div>
-                </div>
-            `;
-            // 点击跳转
-            card.onclick = () => window.location.href = `news_detail.html?id=${item.id}`;
-            els.heroTrack.appendChild(card);
-        });
-
-        // 进度条逻辑
-        if (items.length > 1) {
-            els.heroProgress.style.display = 'block';
-            els.heroTrack.onscroll = () => {
-                const scrollLeft = els.heroTrack.scrollLeft;
-                const maxScroll = els.heroTrack.scrollWidth - els.heroTrack.clientWidth;
-                const percent = (scrollLeft / maxScroll) * 100;
-                document.querySelector('.progress-fill').style.width = `${percent}%`;
-            };
-        } else {
-            els.heroProgress.style.display = 'none';
-        }
-    }
-
-    function renderNewsList(items, container) {
-        container.innerHTML = '';
-        items.forEach(item => {
-            const card = document.createElement('div');
-            card.className = 'news-card';
-            
-            const hasImg = item.image && item.image !== "";
-            
-            card.innerHTML = `
-                ${hasImg ? `<img src="${item.image}" class="news-thumb" alt="news">` : ''}
-                <div class="news-info">
-                    <div>
-                        <div class="news-title">${item.title}</div>
-                        <div style="font-size:14px; color:var(--md-sys-color-outline); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${item.content}</div>
-                    </div>
-                    <div class="news-meta">
-                        <span class="location-tag">${item.location}</span>
-                        <span>${item.author}</span>
-                        <span>${item.date}</span>
-                    </div>
-                </div>
-            `;
-            card.onclick = () => window.location.href = `news_detail.html?id=${item.id}`;
-            container.appendChild(card);
-        });
-    }
-
-    // === 3. 菜单与侧边栏 ===
-    function renderQuickActions() {
-        if (typeof menuData === 'undefined') return;
-        els.quickGrid.innerHTML = '';
-        menuData.quickActions.forEach(action => {
-            const item = document.createElement('a');
-            item.className = 'action-item';
-            item.href = action.link;
-            item.innerHTML = `
-                <div class="action-icon"><span class="material-icons">${action.icon}</span></div>
-                <span>${action.title}</span>
-            `;
-            els.quickGrid.appendChild(item);
-        });
-    }
-
-    function renderSidebar() {
-        if (typeof menuData === 'undefined') return;
-        const container = els.sidebar;
-        // 清空旧的 nav-items 但保留 Logo位置（如果有）
-        // 这里简单直接追加
-        menuData.sidebar.forEach(item => {
-            const el = document.createElement('a');
-            el.className = 'nav-item';
-            el.href = item.link;
-            el.innerHTML = `<span class="material-icons">${item.icon}</span>${item.title}`;
-            container.appendChild(el);
-        });
-    }
-
-    // === 4. 设置与交互 ===
-    function applySettings() {
-        // 背景动画
-        if (settings.enableAurora) els.aurora.classList.add('active');
-        else els.aurora.classList.remove('active');
-        document.getElementById('switch-bg').checked = settings.enableAurora;
-
-        // App下载卡片
-        els.appCard.classList.toggle('show', settings.showAppDownload);
-        document.getElementById('switch-app').checked = settings.showAppDownload;
-
-        // 通知开关UI
-        document.getElementById('switch-notify').checked = settings.enableNotifications;
-    }
-
-    function saveSettings() {
-        localStorage.setItem('user_settings', JSON.stringify(settings));
-        applySettings();
-        processAndRenderNews(); // 重新渲染以应用地区过滤
-    }
-
-    // 事件监听
-    function setupEventListeners() {
-        // 侧边栏
-        document.getElementById('btn-menu').onclick = () => {
-            els.sidebar.classList.add('open');
-            els.sidebarOverlay.classList.add('open');
-        };
-        els.sidebarOverlay.onclick = () => {
-            els.sidebar.classList.remove('open');
-            els.sidebarOverlay.classList.remove('open');
-        };
-
-        // 快捷功能展开/收起
-        document.getElementById('btn-expand-quick').onclick = (e) => {
-            els.quickGrid.classList.toggle('expanded');
-            const icon = e.currentTarget.querySelector('.material-icons');
-            icon.innerText = els.quickGrid.classList.contains('expanded') ? 'expand_less' : 'expand_more';
-        };
-
-        // 搜索
-        document.getElementById('btn-search').onclick = () => els.dialogSearch.showModal();
-        document.getElementById('search-input').oninput = handleSearch;
-
-        // 设置
-        document.getElementById('btn-settings').onclick = () => els.dialogSettings.showModal();
-        
-        document.getElementById('switch-bg').onchange = (e) => {
-            settings.enableAurora = e.target.checked;
-            saveSettings();
-        };
-        document.getElementById('switch-app').onchange = (e) => {
-            settings.showAppDownload = e.target.checked;
-            saveSettings();
-        };
-        document.getElementById('switch-notify').onchange = (e) => {
-            settings.enableNotifications = e.target.checked;
-            saveSettings();
-            if(settings.enableNotifications) Notification.requestPermission();
-        };
-        els.locationSelect.onchange = (e) => {
-            settings.locationFilter = e.target.value;
-            saveSettings();
-        };
-
-        // 历史记录
-        document.getElementById('btn-history').onclick = () => els.dialogHistory.showModal();
-
-        // 关闭 Dialog (点击backdrop)
-        document.querySelectorAll('dialog').forEach(d => {
-            d.onclick = (e) => { if (e.target === d) d.close(); };
-        });
-    }
-
-    function handleSearch(e) {
-        const val = e.target.value.toLowerCase();
-        const resContainer = document.getElementById('search-results');
-        resContainer.innerHTML = '';
-        
-        if (!val) return;
-
-        // 搜新闻
-        const matchedNews = newsData.filter(n => n.title.toLowerCase().includes(val) || n.content.toLowerCase().includes(val));
-        // 搜菜单
-        const matchedMenu = menuData.quickActions.filter(m => m.title.toLowerCase().includes(val));
-
-        matchedMenu.forEach(m => {
-            const div = document.createElement('div');
-            div.className = 'search-item';
-            div.innerHTML = `<span class="material-icons">star</span> ${m.title}`;
-            div.onclick = () => window.location.href = m.link;
-            resContainer.appendChild(div);
-        });
-
-        matchedNews.forEach(n => {
-            const div = document.createElement('div');
-            div.className = 'search-item';
-            div.innerHTML = `<span class="material-icons">article</span> ${n.title}`;
-            div.onclick = () => window.location.href = `news_detail.html?id=${n.id}`;
-            resContainer.appendChild(div);
-        });
-    }
-
-    // === 5. 通知系统 (静态模拟) ===
-    function checkNotifications() {
-        if (!settings.enableNotifications || !("Notification" in window)) return;
-        
-        // 获取最新的新闻
-        const latestNews = newsData[0]; // 假设json已按时间排序或第一个是最新的
-        const lastNotifiedId = localStorage.getItem('last_notified_id');
-
-        // 如果 ID 不同，说明有更新
-        if (latestNews && String(latestNews.id) !== lastNotifiedId) {
-            // 请求权限并发送
-            if (Notification.permission === "granted") {
-                new Notification(latestNews.title, {
-                    body: latestNews.content,
-                    icon: "assets/logo.png"
-                });
-                localStorage.setItem('last_notified_id', latestNews.id);
-            } else if (Notification.permission !== "denied") {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        // 递归调用一次
-                        checkNotifications(); 
-                    }
-                });
-            }
-        }
-    }
-});
+// Global exposure for menu actions
+window.openHistory = () => document.getElementById('history-modal').classList.add('open');
+window.openSettings = () => document.getElementById('settings-modal').classList.add('open');
+function handleResize() { /* Optional JS layout adjustments if needed */ }
