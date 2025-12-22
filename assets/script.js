@@ -1,328 +1,270 @@
-document.addEventListener('DOMContentLoaded', init);
+let allNews = [];
+let filteredNews = [];
 
-let globalData = [];
-let userSettings = {
-  bgAnim: true,
-  notifications: true,
-  appCard: true,
-  locationFilter: 'all'
-};
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. 先加载本地静态内容，不依赖 Fetch
+    initMenu(); 
+    loadSettings();
+    
+    // 2. 尝试获取新闻
+    fetchNews();
+    
+    // 3. 事件监听
+    setupEventListeners();
+});
 
-async function init() {
-  loadSettings();
-  await fetchData();
-  
-  // Render Static/Menu items
-  renderSidebar();
-  renderQuickActions(false); // Default collapsed
-  
-  // Event Listeners
-  setupInteractions();
-  setupBackground();
-  
-  // Responsive Check
-  handleResize();
-  window.addEventListener('resize', handleResize);
+/* --- 菜单与侧边栏 --- */
+function initMenu() {
+    // 侧边栏 (assets/menu_data.js 中的 sidebarData)
+    const sidebarList = document.getElementById('sidebarList');
+    if(typeof sidebarData !== 'undefined' && sidebarList) {
+        sidebarList.innerHTML = sidebarData.map(item => `
+            <a href="${item.link}" class="nav-item">
+                <span class="material-symbols-rounded">${item.icon}</span>
+                <span>${item.name}</span>
+            </a>
+        `).join('');
+    }
+
+    // 快捷功能 (assets/menu_data.js 中的 menuData)
+    const actionsGrid = document.getElementById('actionsGrid');
+    if(typeof menuData !== 'undefined' && actionsGrid) {
+        actionsGrid.innerHTML = menuData.map(item => `
+            <div class="action-item">
+                <div class="action-icon">
+                    <span class="material-symbols-rounded">${item.icon}</span>
+                </div>
+                <span>${item.name}</span>
+            </div>
+        `).join('');
+    }
 }
 
-/* --- Data Handling --- */
-async function fetchData() {
-  try {
-    const response = await fetch('data/news_content.json');
-    const rawData = await response.json();
-    
-    // Add IDs and Process Data
-    globalData = rawData.map((item, index) => ({
-      ...item,
-      id: index, // Simple index-based ID as requested (Auto generated)
-      timestamp: parseDate(item.date)
-    }));
+/* --- 新闻数据获取 --- */
+async function fetchNews() {
+    try {
+        const response = await fetch('data/news_content.json');
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        const data = await response.json();
+        
+        // 自动添加 ID 和 排序
+        allNews = data.map((item, index) => ({
+            ...item,
+            id: index, 
+            timestamp: parseDate(item.date)
+        })).sort((a, b) => b.timestamp - a.timestamp);
+        
+        filteredNews = [...allNews];
 
-    // Check for Notifications (Simulated)
-    checkNotifications(globalData);
+        // 渲染页面组件
+        renderHero(allNews);
+        renderNewsList(filteredNews);
+        populateLocationFilter(allNews);
+        
+        // 检查通知
+        checkNotifications(allNews[0]);
 
-    // Initial Render
-    filterAndRender();
-    populateLocationSelect();
-
-  } catch (e) {
-    console.error("Data load failed", e);
-    document.getElementById('news-list').innerHTML = '<div style="padding:20px; text-align:center">加载失败</div>';
-  }
+    } catch (error) {
+        console.error('加载新闻失败:', error);
+        document.getElementById('newsList').innerHTML = 
+            `<div style="padding:20px; text-align:center; color:red;">
+                无法加载新闻数据。<br>请确保您是通过本地服务器(Live Server)运行的。
+            </div>`;
+    }
 }
 
 function parseDate(dateStr) {
-  // Assuming format "MM-DD HH:mm", adding current year for sorting
-  const year = new Date().getFullYear();
-  return new Date(`${year}-${dateStr.replace(' ', 'T')}`).getTime();
+    // 假定格式 MM-DD HH:MM
+    const currentYear = new Date().getFullYear();
+    return new Date(`${currentYear}-${dateStr}`).getTime();
 }
 
-function filterAndRender() {
-  let filtered = globalData;
-  
-  // Location Filter
-  if (userSettings.locationFilter !== 'all') {
-    filtered = filtered.filter(item => item.location === userSettings.locationFilter);
-  }
+/* --- 渲染逻辑 --- */
+function renderHero(news) {
+    // 过去7天
+    const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    let recent = news.filter(n => n.timestamp > oneWeekAgo).slice(0, 4);
+    
+    // 如果没有近期新闻，强制显示最新的一条
+    if (recent.length === 0 && news.length > 0) recent = [news[0]];
 
-  // Headlines Logic: Newest 4 within 7 days, OR just the latest 1
-  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  let headlines = filtered.filter(item => item.timestamp > sevenDaysAgo);
-  
-  // Sort by date desc
-  headlines.sort((a, b) => b.timestamp - a.timestamp);
-  
-  if (headlines.length === 0 && filtered.length > 0) {
-    headlines = [filtered[0]]; // Fallback to latest
-  }
-  headlines = headlines.slice(0, 4); // Max 4
+    const slider = document.getElementById('heroSlider');
+    const progressContainer = document.getElementById('heroProgressContainer');
 
-  renderHeadlines(headlines);
-  renderNewsList(filtered.slice(0, 7), 'news-list'); // Main list max 7
-  renderNewsList(filtered, 'history-list'); // History list all
+    if(!slider) return;
+
+    if (recent.length <= 1 && progressContainer) progressContainer.style.display = 'none';
+
+    slider.innerHTML = recent.map(item => `
+        <a href="news_detail.html?id=${item.id}" class="hero-card ${!item.image ? 'no-img' : ''}" 
+           style="background-image: url('${item.image || ''}')">
+            <div class="hero-overlay">
+                <span class="hero-tag">${item.location}</span>
+                <div class="hero-title">${item.title}</div>
+            </div>
+        </a>
+    `).join('');
+
+    // 滚动监听
+    if(progressContainer) {
+        slider.addEventListener('scroll', () => {
+            const maxScroll = slider.scrollWidth - slider.clientWidth;
+            const percentage = (slider.scrollLeft / maxScroll) * 100;
+            document.getElementById('heroProgressBar').style.width = `${Math.min(100, Math.max(0, percentage))}%`;
+        });
+    }
 }
 
-/* --- Rendering Functions --- */
-function renderHeadlines(items) {
-  const track = document.getElementById('headline-track');
-  const dots = document.getElementById('carousel-dots');
-  
-  if(!items.length) {
-    track.parentElement.style.display = 'none';
-    return;
-  }
-  track.parentElement.style.display = 'block';
+function renderNewsList(newsSource, isHistory = false) {
+    const targetId = isHistory ? 'historyList' : 'newsList';
+    const container = document.getElementById(targetId);
+    if(!container) return;
 
-  track.innerHTML = items.map(item => `
-    <div class="headline-card" onclick="location.href='news_detail.html?id=${item.id}'" 
-         style="background-image: url('${item.image || 'assets/default_bg.jpg'}')">
-      <div class="headline-content">
-        <div class="headline-tag">${item.location}</div>
-        <div class="headline-title">${item.title}</div>
-        <div class="headline-desc" style="color:rgba(255,255,255,0.9);">${item.content}</div>
-      </div>
-    </div>
-  `).join('');
+    const list = isHistory ? newsSource : newsSource.slice(0, 7);
 
-  // Dots logic
-  if(items.length > 1) {
-    dots.innerHTML = items.map((_, i) => `<div class="dot ${i===0?'active':''}"></div>`).join('');
-    // Simple Scroll spy
-    track.addEventListener('scroll', () => {
-      const index = Math.round(track.scrollLeft / track.clientWidth);
-      Array.from(dots.children).forEach((d, i) => d.classList.toggle('active', i === index));
+    container.innerHTML = list.map(item => `
+        <a href="news_detail.html?id=${item.id}" class="glass-card news-card">
+            ${item.image ? `<img src="${item.image}" class="news-thumb">` : ''}
+            <div class="news-content">
+                <div>
+                    <div class="news-h-title">${item.title}</div>
+                    <div class="news-h-desc">${item.content}</div>
+                </div>
+                <div class="news-meta">
+                    <span class="loc-badge">${item.location}</span>
+                    <span>${item.date}</span>
+                </div>
+            </div>
+        </a>
+    `).join('');
+}
+
+/* --- 交互逻辑 --- */
+function toggleActions() {
+    document.getElementById('actionsGrid').classList.toggle('expanded');
+    const btnText = document.querySelector('#expandActionBtn span:last-child');
+    const icon = document.querySelector('#expandActionBtn span:first-child');
+    if(document.getElementById('actionsGrid').classList.contains('expanded')){
+        btnText.innerText = '收起功能';
+        icon.innerText = 'keyboard_arrow_up';
+    } else {
+        btnText.innerText = '展开全部';
+        icon.innerText = 'keyboard_arrow_down';
+    }
+}
+
+function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ol = document.querySelector('.sidebar-overlay');
+    sb.classList.toggle('active');
+    ol.classList.toggle('active');
+}
+
+/* --- 设置与筛选 --- */
+function populateLocationFilter(news) {
+    const locs = [...new Set(news.map(n => n.location))];
+    const sel = document.getElementById('locationSelect');
+    if(!sel) return;
+    
+    // 保留第一个 "全部" 选项
+    sel.innerHTML = '<option value="all">全部地区</option>';
+    locs.forEach(l => {
+        sel.innerHTML += `<option value="${l}">${l}</option>`;
     });
-  } else {
-    dots.innerHTML = '';
-  }
+
+    // 恢复记忆
+    const saved = localStorage.getItem('pref_location');
+    if(saved) {
+        sel.value = saved;
+        filterLocation();
+    }
 }
 
-function renderQuickActions(expanded) {
-  const container = document.getElementById('qa-container');
-  const items = expanded ? menuData.quickActions : menuData.quickActions.slice(0, 4);
-  
-  container.innerHTML = items.map(item => `
-    <div class="qa-item" onclick="${item.action ? item.action + '()' : `location.href='${item.link}'`}">
-      <div class="qa-icon-box">
-        <span class="material-symbols-outlined">${item.icon}</span>
-      </div>
-      <div class="qa-text">${item.text}</div>
-    </div>
-  `).join('');
-  
-  // Set height animation
-  const card = document.getElementById('quick-actions-card');
-  // Auto height trick: quick calculation approx
-  card.style.height = expanded ? 'auto' : ''; // CSS handles transition? Better to use fixed heights for smooth anim, but auto works for simple
-}
-
-function renderNewsList(items, elementId) {
-  const container = document.getElementById(elementId);
-  container.innerHTML = items.map(item => {
-    const hasImg = item.image && item.image.length > 0;
-    return `
-    <div class="news-card" onclick="location.href='news_detail.html?id=${item.id}'">
-      ${hasImg ? `<img src="${item.image}" class="news-img" loading="lazy">` : ''}
-      <div class="news-body">
-        <div>
-          <div class="news-title">${item.title}</div>
-          <div style="font-size:13px; opacity:0.8; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-            ${item.content}
-          </div>
-        </div>
-        <div class="news-meta">
-          <span class="location-tag">${item.location}</span>
-          <span>${item.date}</span>
-          <span style="margin-left:auto">${item.author}</span>
-        </div>
-      </div>
-    </div>
-  `}).join('');
-}
-
-function renderSidebar() {
-  const sidebar = document.getElementById('sidebar-content');
-  sidebar.innerHTML = menuData.sidebar.map(item => `
-    <a href="${item.link || 'javascript:void(0)'}" class="nav-item" 
-       onclick="${item.action ? item.action + '()' : ''}">
-      <span class="material-symbols-outlined">${item.icon}</span>
-      ${item.text}
-    </a>
-  `).join('');
-}
-
-/* --- Search Logic --- */
-function handleSearch(query) {
-  const resContainer = document.getElementById('search-results');
-  if(!query) { resContainer.innerHTML = ''; return; }
-  
-  query = query.toLowerCase();
-  
-  // Search News
-  const newsMatches = globalData.filter(i => i.title.includes(query) || i.content.includes(query));
-  // Search Menu
-  const menuMatches = [...menuData.sidebar, ...menuData.quickActions].filter(i => i.text.toLowerCase().includes(query));
-  
-  let html = '';
-  
-  if(menuMatches.length) {
-    html += `<div style="font-size:12px; opacity:0.6; margin:8px 0;">功能</div>`;
-    html += menuMatches.map(i => `
-      <div class="nav-item" onclick="${i.action ? i.action + '()' : `location.href='${i.link}'`}">
-        <span class="material-symbols-outlined">${i.icon}</span>${i.text}
-      </div>`).join('');
-  }
-  
-  if(newsMatches.length) {
-    html += `<div style="font-size:12px; opacity:0.6; margin:16px 0 8px 0;">新闻</div>`;
-    html += newsMatches.map(i => `
-      <div class="news-card" style="margin-bottom:8px" onclick="location.href='news_detail.html?id=${i.id}'">
-        <div class="news-body"><div class="news-title">${i.title}</div></div>
-      </div>`).join('');
-  }
-  
-  if(!html) html = '<div style="text-align:center; padding:20px; opacity:0.5">未找到结果</div>';
-  resContainer.innerHTML = html;
-}
-
-/* --- Interaction & Settings --- */
-function setupInteractions() {
-  // Sidebar
-  document.getElementById('menu-btn').onclick = () => {
-    document.getElementById('sidebar').classList.add('open');
-    document.getElementById('sidebar-overlay').classList.add('open');
-  };
-  document.getElementById('sidebar-overlay').onclick = () => {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('sidebar-overlay').classList.remove('open');
-  };
-
-  // Quick Actions Toggle
-  const qaToggle = document.getElementById('qa-toggle');
-  let qaExpanded = false;
-  qaToggle.onclick = () => {
-    qaExpanded = !qaExpanded;
-    renderQuickActions(qaExpanded);
-    qaToggle.style.transform = qaExpanded ? 'rotate(180deg)' : 'rotate(0deg)';
-  };
-
-  // Search
-  const sModal = document.getElementById('search-modal');
-  document.getElementById('search-btn').onclick = () => sModal.classList.add('open');
-  sModal.onclick = (e) => { if(e.target === sModal) sModal.classList.remove('open'); };
-  document.getElementById('global-search').addEventListener('input', (e) => handleSearch(e.target.value));
-
-  // Settings
-  const setModal = document.getElementById('settings-modal');
-  document.getElementById('settings-btn').onclick = () => setModal.classList.add('open');
-  setModal.onclick = (e) => { if(e.target === setModal) setModal.classList.remove('open'); };
-
-  // History
-  const hModal = document.getElementById('history-modal');
-  document.getElementById('history-btn').onclick = () => hModal.classList.add('open');
-  hModal.onclick = (e) => { if(e.target === hModal) hModal.classList.remove('open'); };
-
-  // Switches
-  setupSwitch('sw-bg', 'bgAnim', setupBackground);
-  setupSwitch('sw-notif', 'notifications');
-  setupSwitch('sw-app', 'appCard', () => {
-    document.getElementById('app-dl-card').style.display = userSettings.appCard ? 'flex' : 'none';
-  });
-  
-  // Location Select
-  const locSel = document.getElementById('loc-select');
-  locSel.onchange = (e) => {
-    userSettings.locationFilter = e.target.value;
-    saveSettings();
-    filterAndRender();
-  };
-}
-
-function setupSwitch(id, key, callback) {
-  const el = document.getElementById(id);
-  // Set initial state
-  if(userSettings[key]) el.classList.add('active'); else el.classList.remove('active');
-  
-  el.onclick = () => {
-    userSettings[key] = !userSettings[key];
-    el.classList.toggle('active', userSettings[key]);
-    saveSettings();
-    if(callback) callback();
-  };
+function filterLocation() {
+    const val = document.getElementById('locationSelect').value;
+    localStorage.setItem('pref_location', val);
+    
+    if(val === 'all') filteredNews = [...allNews];
+    else filteredNews = allNews.filter(n => n.location === val);
+    
+    renderNewsList(filteredNews);
 }
 
 function loadSettings() {
-  const saved = localStorage.getItem('wf_settings');
-  if(saved) userSettings = { ...userSettings, ...JSON.parse(saved) };
-  
-  // Apply immediate effects
-  if(!userSettings.appCard) document.getElementById('app-dl-card').style.display = 'none';
+    // 1. 动画
+    const bgAnim = localStorage.getItem('pref_bg_anim') !== 'false';
+    const bgSwitch = document.getElementById('settingBgAnim');
+    if(bgSwitch) bgSwitch.checked = bgAnim;
+    toggleBgAnim();
+
+    // 2. APP下载
+    const appDl = localStorage.getItem('pref_app_dl') !== 'false';
+    const appSwitch = document.getElementById('settingAppDl');
+    if(appSwitch) appSwitch.checked = appDl;
+    toggleAppDl();
 }
 
-function saveSettings() {
-  localStorage.setItem('wf_settings', JSON.stringify(userSettings));
+function toggleBgAnim() {
+    const on = document.getElementById('settingBgAnim').checked;
+    localStorage.setItem('pref_bg_anim', on);
+    const bg = document.getElementById('auroraBg');
+    if(bg) on ? bg.classList.remove('hidden') : bg.classList.add('hidden');
 }
 
-function setupBackground() {
-  const bg = document.getElementById('fluid-bg');
-  if(userSettings.bgAnim) bg.classList.remove('hidden');
-  else bg.classList.add('hidden');
+function toggleAppDl() {
+    const on = document.getElementById('settingAppDl').checked;
+    localStorage.setItem('pref_app_dl', on);
+    // 同时控制两个按钮 (Mobile & Desktop)
+    const btns = document.querySelectorAll('.app-dl-wrapper'); 
+    btns.forEach(b => b.style.display = on ? 'block' : 'none');
 }
 
-function populateLocationSelect() {
-  const locs = [...new Set(globalData.map(i => i.location))];
-  const sel = document.getElementById('loc-select');
-  locs.forEach(l => {
-    const opt = document.createElement('option');
-    opt.value = l;
-    opt.innerText = l;
-    if(userSettings.locationFilter === l) opt.selected = true;
-    sel.appendChild(opt);
-  });
-}
+/* --- 搜索逻辑 --- */
+function handleSearch(val) {
+    const res = document.getElementById('searchResults');
+    if(!val) { res.innerHTML = ''; return; }
+    val = val.toLowerCase();
+    
+    const matchedNews = allNews.filter(n => n.title.toLowerCase().includes(val));
+    const matchedMenu = typeof menuData !== 'undefined' ? menuData.filter(m => m.name.toLowerCase().includes(val)) : [];
 
-/* --- Notifications (Simulated) --- */
-function checkNotifications(newData) {
-  if(!userSettings.notifications) return;
-  
-  const lastId = localStorage.getItem('wf_last_notify_id');
-  // If we have data and the first item is different from last time
-  if(newData.length > 0 && String(newData[0].id) !== lastId) {
-    // Trigger notification
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification("万方出行通", { body: newData[0].title });
-    } else if ("Notification" in window && Notification.permission !== "denied") {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") {
-          new Notification("万方出行通", { body: newData[0].title });
-        }
-      });
+    let html = '';
+    if(matchedMenu.length) {
+        html += `<div style="font-weight:bold;margin:10px 0;">功能</div>`;
+        html += matchedMenu.map(m => `<div class="action-item" style="flex-direction:row;gap:10px;"><span class="material-symbols-rounded">${m.icon}</span>${m.name}</div>`).join('');
     }
-    localStorage.setItem('wf_last_notify_id', String(newData[0].id));
-  }
+    if(matchedNews.length) {
+        html += `<div style="font-weight:bold;margin:10px 0;">新闻</div>`;
+        html += matchedNews.map(n => `<a href="news_detail.html?id=${n.id}" style="display:block;padding:8px;border-bottom:1px solid #eee;color:inherit;text-decoration:none;">${n.title}</a>`).join('');
+    }
+    res.innerHTML = html || '无结果';
 }
 
-// Global exposure for menu actions
-window.openHistory = () => document.getElementById('history-modal').classList.add('open');
-window.openSettings = () => document.getElementById('settings-modal').classList.add('open');
-function handleResize() { /* Optional JS layout adjustments if needed */ }
+/* --- 模态框通用 --- */
+function openModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function openHistory() {
+    openModal('historyModal');
+    renderNewsList(allNews, true); // 渲染所有历史
+}
+
+function checkNotifications(latest) {
+    if(!latest) return;
+    if(localStorage.getItem('pref_notify') === 'false') return;
+    
+    const lastTitle = localStorage.getItem('last_notify_title');
+    if(lastTitle !== latest.title) {
+        if(Notification.permission === 'granted') {
+            new Notification('新动态', { body: latest.title });
+            localStorage.setItem('last_notify_title', latest.title);
+        } else {
+            Notification.requestPermission();
+        }
+    }
+}
+
+function setupEventListeners() {
+    // 确保关闭侧边栏
+    document.querySelector('.sidebar-overlay').addEventListener('click', toggleSidebar);
+}
