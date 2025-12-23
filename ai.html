@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 文章检测器</title>
+
+<style>
+:root {
+  --primary: #0a84ff;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #1c1c1e;
+  --subtext: #6e6e73;
+  --radius: 16px;
+  --shadow: 0 20px 40px rgba(0,0,0,.08);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.container {
+  max-width: 900px;
+  margin: 60px auto;
+  padding: 0 20px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.header h1 {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.header p {
+  color: var(--subtext);
+  font-size: 16px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+textarea {
+  width: 100%;
+  height: 220px;
+  resize: none;
+  border-radius: 12px;
+  border: 1px solid #e5e5ea;
+  padding: 16px;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+button {
+  margin-top: 20px;
+  background: linear-gradient(135deg, #0a84ff, #5ac8fa);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 22px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: .9;
+}
+
+.result {
+  margin-top: 30px;
+  display: none;
+}
+
+.ai-rate {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.label {
+  color: var(--subtext);
+  margin-top: 6px;
+}
+
+.keywords {
+  margin-top: 20px;
+}
+
+.keyword {
+  display: inline-block;
+  background: #eef4ff;
+  color: #0a84ff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  margin: 6px 6px 0 0;
+  font-size: 13px;
+}
+.footer {
+  text-align: center;
+  margin-top: 40px;
+  color: var(--subtext);
+  font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>AI 文章检测器</h1>
+    <p>检测文本中 AI 生成内容的可能性，并提取关键词</p>
+  </div>
+
+  <div class="card">
+    <textarea id="textInput" placeholder="请粘贴需要检测的文章内容..."></textarea>
+    <button onclick="analyze()">开始检测</button>
+
+    <div class="result" id="result">
+      <div class="ai-rate" id="rate">--%</div>
+      <div class="label">AI 生成概率</div>
+
+      <div class="keywords" id="keywords"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    © AI Content Analyzer · Demo Version
+  </div>
+</div>
+
+<script>
+function analyze() {
+  const text = document.getElementById("textInput").value.trim();
+  if (!text) return;
+
+  // ===== AI 率计算（模拟）=====
+  const lengthScore = Math.min(text.length / 500, 1);
+  const sentenceCount = text.split(/[。！？.!?]/).length;
+  const repetition = (text.match(/的|了|是|在/g) || []).length / text.length;
+
+  let rawScore = (lengthScore * 0.4 + sentenceCount * 0.01 + repetition * 5);
+
+  // 强制限定在 80–95%
+  let aiRate = Math.floor(80 + (rawScore % 1) * 15);
+  if (aiRate > 95) aiRate = 95;
+
+  document.getElementById("rate").innerText = aiRate + "%";
+  document.getElementById("result").style.display = "block";
+
+  // ===== 关键词检测 =====
+  const words = text
+    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, " ")
+    .split(/\s+/)
+    .filter(w => w.length > 1);
+
+  const freq = {};
+  words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+
+  const topWords = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(w => w[0]);
+
+  const kwBox = document.getElementById("keywords");
+  kwBox.innerHTML = "<div class='label'>检测关键词</div>";
+  topWords.forEach(w => {
+    const span = document.createElement("span");
+    span.className = "keyword";
+    span.innerText = w;
+    kwBox.appendChild(span);
+  });
+}
+</script>
+
+</body>
+</html>
