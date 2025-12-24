@@ -1,7 +1,7 @@
 // ================== 配置 ==================
 const AIRPORTS_PATH = "../data/airports.json";
 const FLIGHT_DATA_PATH = "../data/flight_data.txt";
-const PLANE_IMG = "IMG_4109.png";
+const PLANE_IMG = "../image/IMG_4109.png";
 
 // 配置：进入专注模式时是否自动播放音乐 (true/false)
 const AUTO_PLAY_MUSIC_ON_FOCUS = true; 
