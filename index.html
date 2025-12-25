@@ -8,53 +8,53 @@
     <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
+    <div id="system-banner" class="system-banner">
+        <span class="material-symbols-outlined">campaign</span>
+        <span id="system-msg" style="flex:1;">系统通知内容...</span>
+        <button class="icon-btn" id="close-banner" style="padding:4px;"><span class="material-symbols-outlined" style="font-size:20px;">close</span></button>
+    </div>
 
-    <nav id="nav-drawer" class="drawer">
-        <div class="drawer-header">
+    <nav id="nav-drawer" class="drawer" style="position:fixed; top:0; left:-360px; width:300px; height:100%; background:var(--md-sys-color-surface-container); z-index:200; transition:left 0.4s cubic-bezier(0.2,0,0,1); padding:16px;">
+        <div class="drawer-header" style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
             <button class="icon-btn" id="close-drawer"><span class="material-symbols-outlined">menu_open</span></button>
-            <h2 style="font-size:1.5rem;">导航</h2>
+            <h2>导航</h2>
         </div>
-        <div class="drawer-content" id="drawer-menu-list">
-            </div>
+        <div id="drawer-menu-list" style="display:flex; flex-direction:column; gap:8px;"></div>
     </nav>
-    <div class="drawer-scrim" id="drawer-scrim"></div>
+    <div id="drawer-scrim" style="position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:150; display:none;"></div>
 
     <header class="top-app-bar">
-        <div class="leading-icon">
-            <button class="icon-btn" id="menu-btn"><span class="material-symbols-outlined">menu</span></button>
+        <button class="icon-btn" id="menu-btn"><span class="material-symbols-outlined">menu</span></button>
+        <div class="logo-container" style="flex:1; display:flex; justify-content:center;">
+            <img src="assets/logo.png" alt="Logo" class="app-logo">
         </div>
-        <div class="logo-container">
-            <img src="assets/logo.png" alt="Logo" class="app-logo"> 
-        </div>
-        <div class="trailing-icons">
+        <div>
             <button class="icon-btn" id="search-trigger"><span class="material-symbols-outlined">search</span></button>
             <button class="icon-btn" id="settings-trigger"><span class="material-symbols-outlined">settings</span></button>
         </div>
     </header>
 
     <main class="main-layout">
-        
         <aside class="sidebar-area">
             <section class="headlines-section" id="headlines-container">
                 </section>
 
-            <section class="menu-section card">
+            <section class="card">
                 <div class="section-header">
                     <h3>快捷服务</h3>
-                    <button class="text-btn" id="toggle-menu">展开全部</button>
                 </div>
                 <div class="menu-grid" id="menu-grid"></div>
             </section>
 
             <div class="desktop-footer-area">
                 <div class="app-download-card card">
-                    <div class="app-info">
-                        <span class="material-symbols-outlined app-icon">android</span>
-                        <div><h4>下载客户端</h4><p>更流畅的体验</p></div>
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <span class="material-symbols-outlined" style="font-size:32px;">android</span>
+                        <div><h4>下载客户端</h4><p style="font-size:0.8rem; opacity:0.8;">体验升级</p></div>
                     </div>
-                    <button class="app-download-btn">下载</button>
+                    <button class="icon-btn" style="color:white;"><span class="material-symbols-outlined">download</span></button>
                 </div>
-                <p style="text-align:center; color:var(--md-sys-color-outline); margin-top:16px; font-size:0.8rem;">© 2025 All rights reserved.</p>
+                <p style="text-align:center; margin-top:16px; font-size:0.8rem; color:var(--md-sys-color-outline);">© 2025 All rights reserved.</p>
             </div>
         </aside>
 
@@ -68,44 +68,59 @@
                 <div style="padding:20px; text-align:center;">加载中...</div>
             </div>
             
-            <button class="outlined-btn" id="load-more-news" style="display:none;">展开更多</button>
+            <button class="tonal-btn" id="load-more-news" style="width:100%; margin-top:16px; display:none;">展开更多</button>
         </section>
 
         <footer class="mobile-footer-area">
             <div class="app-download-card card">
-                <div class="app-info">
-                    <span class="material-symbols-outlined app-icon">android</span>
-                    <div><h4>下载客户端</h4><p>更流畅的体验</p></div>
+                <div style="display:flex; align-items:center; gap:16px;">
+                    <span class="material-symbols-outlined" style="font-size:32px;">android</span>
+                    <div><h4>下载客户端</h4><p style="font-size:0.8rem; opacity:0.8;">体验升级</p></div>
                 </div>
-                <button class="app-download-btn">下载</button>
+                <button class="icon-btn" style="color:white;"><span class="material-symbols-outlined">download</span></button>
             </div>
-            <p style="text-align:center; color:var(--md-sys-color-outline); margin-top:20px; font-size:0.8rem;">© 2025 All rights reserved.</p>
+            <p style="text-align:center; margin-top:20px; font-size:0.8rem; color:var(--md-sys-color-outline);">© 2025 All rights reserved.</p>
         </footer>
-
     </main>
 
-    <dialog id="search-dialog" class="md-dialog fullscreen-dialog">
+    <dialog id="search-dialog" class="fullscreen-dialog">
         <div class="dialog-header">
-            <button class="icon-btn" id="close-search"><span class="material-symbols-outlined">arrow_back</span></button>
-            <div class="search-bar-container">
-                <input type="text" id="search-input" placeholder="搜索新闻、作者...">
-            </div>
+            <button class="icon-btn"><span class="material-symbols-outlined">arrow_back</span></button>
+            <input type="text" id="search-input" placeholder="搜索新闻、服务..." style="flex:1; border:none; background:transparent; font-size:1.1rem; outline:none;">
         </div>
-        <div class="dialog-content" id="search-results" style="padding-top:16px;">
-            </div>
+        <div class="dialog-content" id="search-results"></div>
     </dialog>
 
-    <dialog id="settings-dialog" class="md-dialog">
+    <dialog id="history-dialog" class="fullscreen-dialog">
         <div class="dialog-header">
-            <h2 style="flex:1; margin-left:8px;">设置</h2>
-            <button class="icon-btn" id="close-settings"><span class="material-symbols-outlined">close</span></button>
+            <button class="icon-btn"><span class="material-symbols-outlined">close</span></button>
+            <h2>历史归档</h2>
+        </div>
+        <div id="archive-toolbar" class="archive-toolbar">
+            </div>
+        <div class="dialog-content" id="archive-results" style="padding-top:8px;"></div>
+    </dialog>
+
+    <dialog id="settings-dialog" class="center-dialog">
+        <div class="dialog-header">
+            <h2 style="flex:1;">设置</h2>
+            <button class="icon-btn"><span class="material-symbols-outlined">close</span></button>
         </div>
         <div class="dialog-content">
-            <div class="setting-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
-                <span>地区筛选</span>
-                <select id="location-select" class="styled-input" style="width:auto; padding:8px 16px;"><option value="all">全部</option></select>
+            <div class="setting-row">
+                <span class="setting-label">地区筛选</span>
+                <select id="location-select" style="padding:8px; border-radius:8px; border:1px solid #ccc;"><option value="all">全部</option></select>
             </div>
-            <p style="color:var(--md-sys-color-outline); font-size:0.9rem;">更多设置项开发中...</p>
+            
+            <div class="setting-row">
+                <span class="setting-label">开启系统通知</span>
+                <label class="switch"><input type="checkbox" id="notification-switch"><span class="slider"></span></label>
+            </div>
+
+            <div class="setting-row">
+                <span class="setting-label">显示下载入口</span>
+                <label class="switch"><input type="checkbox" id="dl-card-switch"><span class="slider"></span></label>
+            </div>
         </div>
     </dialog>
 
