@@ -4,150 +4,138 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>万方出行通</title>
-    <link rel="stylesheet" href="assets/style.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
-    <nav id="nav-drawer" class="navigation-drawer">
+    <nav id="nav-drawer" class="drawer">
         <div class="drawer-header">
-            <span class="drawer-title">导航</span>
-            <button class="icon-btn" id="close-drawer-btn">
-                <span class="material-symbols-outlined">menu_open</span>
-            </button>
+            <span class="material-symbols-outlined close-drawer-btn" id="close-drawer">close</span>
+            <h2>导航</h2>
         </div>
-        <div class="drawer-content" id="drawer-list">
+        <div class="drawer-content">
             </div>
     </nav>
-    <div id="drawer-scrim" class="scrim"></div>
+    <div class="drawer-scrim" id="drawer-scrim"></div>
 
-    <header class="top-app-bar glass-effect">
-        <div class="top-bar-left">
-            <button class="icon-btn" id="menu-btn">
-                <span class="material-symbols-outlined">menu</span>
-            </button>
-            <div class="logo-container">
-                <div class="logo-mask" style="--logo-url: url('logo.png');"></div>
-            </div>
+    <header class="top-app-bar">
+        <div class="leading-icon">
+            <button class="icon-btn" id="menu-btn"><span class="material-symbols-outlined">menu</span></button>
         </div>
-        <div class="top-bar-right">
-            <button class="icon-btn" id="search-btn">
-                <span class="material-symbols-outlined">search</span>
-            </button>
-            <button class="icon-btn" id="settings-btn">
-                <span class="material-symbols-outlined">settings</span>
-            </button>
+        <div class="headline">
+            <span class="logo-text">万方出行通</span>
+        </div>
+        <div class="trailing-icons">
+            <button class="icon-btn" id="search-trigger"><span class="material-symbols-outlined">search</span></button>
+            <button class="icon-btn" id="settings-trigger"><span class="material-symbols-outlined">settings</span></button>
         </div>
     </header>
 
     <main class="main-container">
         
-        <section class="left-panel">
-            <div class="headlines-section">
-                <h2 class="section-title">头条要闻</h2>
-                <div class="carousel-container" id="headlines-container">
-                    </div>
-                <div class="carousel-progress-wrapper" id="progress-wrapper">
-                    <div class="carousel-progress-bar" id="progress-bar"></div>
-                </div>
-            </div>
+        <div class="primary-column">
+            <section class="headlines-section" id="headlines-container">
+                </section>
 
-            <div class="menu-section">
+            <section class="menu-section card">
                 <div class="section-header">
-                    <h2 class="section-title">快捷服务</h2>
-                    <button class="text-btn" id="menu-toggle-btn">展开</button>
+                    <h3>快捷服务</h3>
+                    <button class="text-btn" id="toggle-menu">展开全部</button>
                 </div>
                 <div class="menu-grid" id="menu-grid">
                     </div>
-            </div>
+            </section>
 
-            <div class="desktop-footer" id="desktop-footer-area">
+            <footer class="footer-section">
+                <div id="app-download-container" class="app-download-card card">
+                    <div class="app-info">
+                        <span class="material-symbols-outlined app-icon">android</span>
+                        <div>
+                            <h4>下载安卓客户端</h4>
+                            <p>获取更流畅的出行体验</p>
+                        </div>
+                    </div>
+                    <button class="filled-btn">下载</button>
                 </div>
-        </section>
+                <p class="copyright">© 2025 万方出行通. All rights reserved.</p>
+            </footer>
+        </div>
 
-        <section class="right-panel">
+        <div class="secondary-column">
             <div class="section-header">
-                <h2 class="section-title">近期动态</h2>
-                <button class="tonal-btn" id="history-btn">
-                    <span class="material-symbols-outlined">history</span>
-                    历史新闻
-                </button>
+                <h3>近期新闻</h3>
+                <button class="tonal-btn small-btn" id="history-news-btn">历史新闻</button>
             </div>
             
             <div class="news-list" id="news-list">
                 </div>
             
-            <div class="load-more-container">
-                <button class="filled-tonal-btn" id="load-more-btn">查看更多</button>
-            </div>
+            <button class="outlined-btn full-width-btn" id="load-more-news" style="display:none;">
+                展开更多
+            </button>
+        </div>
 
-            <div class="mobile-footer" id="mobile-footer-area">
-                <div class="app-promo-card" id="app-download-card">
-                    <span class="material-symbols-outlined icon">android</span>
-                    <div class="text">
-                        <h3>下载客户端</h3>
-                        <p>获取更流畅的体验</p>
-                    </div>
-                    <button class="filled-btn">下载</button>
-                </div>
-                <div class="copyright">
-                    <p>© 2025 万方出行通 版权所有</p>
-                </div>
-            </div>
-        </section>
     </main>
 
-    <dialog id="search-dialog" class="fullscreen-dialog glass-effect">
+    <dialog id="search-dialog" class="md-dialog fullscreen-dialog">
         <div class="dialog-header">
-            <div class="search-input-box">
-                <span class="material-symbols-outlined">search</span>
-                <input type="text" id="search-input" placeholder="搜索新闻、功能、历史...">
-                <button class="icon-btn" id="close-search-btn">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
+            <button class="icon-btn" id="close-search"><span class="material-symbols-outlined">arrow_back</span></button>
+            <div class="search-bar-container">
+                <input type="text" id="search-input" placeholder="搜索新闻、服务...">
             </div>
         </div>
         <div class="dialog-content" id="search-results">
             </div>
     </dialog>
 
-    <dialog id="settings-dialog" class="standard-dialog glass-effect">
+    <dialog id="history-dialog" class="md-dialog fullscreen-dialog">
         <div class="dialog-header">
-            <h3>设置</h3>
-            <button class="icon-btn" onclick="document.getElementById('settings-dialog').close()">
-                <span class="material-symbols-outlined">close</span>
-            </button>
+            <button class="icon-btn" id="close-history"><span class="material-symbols-outlined">arrow_back</span></button>
+            <h2>历史新闻归档</h2>
         </div>
-        <div class="dialog-content settings-list">
+        <div class="dialog-content">
+            <div class="search-bar-wrapper">
+                 <input type="text" id="history-search-input" class="styled-input" placeholder="搜索归档...">
+            </div>
+            <div id="history-list" class="news-list"></div>
+        </div>
+    </dialog>
+
+    <dialog id="settings-dialog" class="md-dialog">
+        <div class="dialog-header">
+            <h2>设置</h2>
+            <button class="icon-btn" id="close-settings"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="dialog-content">
             
             <div class="setting-item">
-                <div class="label">
+                <div class="setting-label">
                     <span>地区筛选</span>
-                    <small>仅显示特定地区新闻</small>
+                    <small>仅显示特定地区的新闻</small>
                 </div>
                 <select id="location-select" class="md-select">
-                    <option value="all">所有地区</option>
-                    </select>
+                    <option value="all">全部地区</option>
+                </select>
             </div>
 
             <div class="setting-item">
-                <div class="label">
+                <div class="setting-label">
                     <span>新闻通知</span>
-                    <small>有更新时推送到系统通知栏</small>
+                    <small>有新消息时通知我</small>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" id="notify-switch" checked>
+                    <input type="checkbox" id="notification-switch" checked>
                     <span class="slider round"></span>
                 </label>
             </div>
 
             <div class="setting-item">
-                <div class="label">
-                    <span>显示App下载</span>
-                    <small>在底部显示下载入口</small>
+                <div class="setting-label">
+                    <span>显示 App 下载</span>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" id="app-download-switch" checked>
+                    <input type="checkbox" id="app-dl-switch" checked>
                     <span class="slider round"></span>
                 </label>
             </div>
@@ -155,24 +143,6 @@
         </div>
     </dialog>
 
-    <dialog id="history-dialog" class="fullscreen-dialog glass-effect">
-        <div class="dialog-header">
-            <h3>历史新闻档案</h3>
-            <button class="icon-btn" onclick="document.getElementById('history-dialog').close()">
-                <span class="material-symbols-outlined">close</span>
-            </button>
-        </div>
-        <div class="dialog-subheader">
-            <div class="search-input-box small">
-                <span class="material-symbols-outlined">search</span>
-                <input type="text" id="history-search-input" placeholder="在历史中搜索...">
-            </div>
-        </div>
-        <div class="dialog-content news-list" id="history-list">
-            </div>
-    </dialog>
-
-    <script src="assets/menu_data.js"></script>
-    <script src="assets/script.js"></script>
+    <script type="module" src="assets/script.js"></script>
 </body>
 </html>
