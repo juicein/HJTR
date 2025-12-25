@@ -11,8 +11,8 @@
 
     <nav id="nav-drawer" class="drawer">
         <div class="drawer-header">
-            <span class="material-symbols-outlined icon-btn" id="close-drawer">menu_open</span>
-            <h2>导航</h2>
+            <button class="icon-btn" id="close-drawer"><span class="material-symbols-outlined">menu_open</span></button>
+            <h2 style="font-size:1.5rem;">导航</h2>
         </div>
         <div class="drawer-content" id="drawer-menu-list">
             </div>
@@ -36,8 +36,7 @@
         
         <aside class="sidebar-area">
             <section class="headlines-section" id="headlines-container">
-                <div class="loading-placeholder">正在加载头条... (如无反应请检查是否开启了Server)</div>
-            </section>
+                </section>
 
             <section class="menu-section card">
                 <div class="section-header">
@@ -48,39 +47,39 @@
             </section>
 
             <div class="desktop-footer-area">
-                <div id="desktop-app-dl" class="app-download-card card">
+                <div class="app-download-card card">
                     <div class="app-info">
                         <span class="material-symbols-outlined app-icon">android</span>
-                        <div><h4>客户端下载</h4><p>体验升级</p></div>
+                        <div><h4>下载客户端</h4><p>更流畅的体验</p></div>
                     </div>
-                    <button class="filled-btn">下载</button>
+                    <button class="app-download-btn">下载</button>
                 </div>
-                <p class="copyright">© 2025 Copyright. All rights reserved.</p>
+                <p style="text-align:center; color:var(--md-sys-color-outline); margin-top:16px; font-size:0.8rem;">© 2025 All rights reserved.</p>
             </div>
         </aside>
 
         <section class="content-area">
             <div class="section-header">
                 <h3>近期新闻</h3>
-                <button class="tonal-btn small-btn" id="history-news-btn">历史新闻</button>
+                <button class="tonal-btn" id="history-news-btn">历史归档</button>
             </div>
             
-            <div class="news-list" id="news-list">
-                <div class="loading-placeholder">加载新闻中...</div>
+            <div id="news-list" data-expanded="false">
+                <div style="padding:20px; text-align:center;">加载中...</div>
             </div>
             
-            <button class="outlined-btn full-width-btn" id="load-more-news" style="display:none;">展开更多</button>
+            <button class="outlined-btn" id="load-more-news" style="display:none;">展开更多</button>
         </section>
 
         <footer class="mobile-footer-area">
-            <div id="mobile-app-dl" class="app-download-card card">
+            <div class="app-download-card card">
                 <div class="app-info">
                     <span class="material-symbols-outlined app-icon">android</span>
-                    <div><h4>客户端下载</h4><p>体验升级</p></div>
+                    <div><h4>下载客户端</h4><p>更流畅的体验</p></div>
                 </div>
-                <button class="filled-btn">下载</button>
+                <button class="app-download-btn">下载</button>
             </div>
-            <p class="copyright">© 2025 Copyright. All rights reserved.</p>
+            <p style="text-align:center; color:var(--md-sys-color-outline); margin-top:20px; font-size:0.8rem;">© 2025 All rights reserved.</p>
         </footer>
 
     </main>
@@ -89,41 +88,24 @@
         <div class="dialog-header">
             <button class="icon-btn" id="close-search"><span class="material-symbols-outlined">arrow_back</span></button>
             <div class="search-bar-container">
-                <input type="text" id="search-input" placeholder="搜索...">
+                <input type="text" id="search-input" placeholder="搜索新闻、作者...">
             </div>
         </div>
-        <div class="dialog-content" id="search-results"></div>
-    </dialog>
-
-    <dialog id="history-dialog" class="md-dialog fullscreen-dialog">
-        <div class="dialog-header">
-            <button class="icon-btn" id="close-history"><span class="material-symbols-outlined">arrow_back</span></button>
-            <h2>历史归档</h2>
-        </div>
-        <div class="dialog-content">
-            <input type="text" id="history-search-input" class="styled-input" placeholder="筛选归档...">
-            <div id="history-list" class="news-list" style="margin-top:16px;"></div>
-        </div>
+        <div class="dialog-content" id="search-results" style="padding-top:16px;">
+            </div>
     </dialog>
 
     <dialog id="settings-dialog" class="md-dialog">
         <div class="dialog-header">
-            <h2>设置</h2>
+            <h2 style="flex:1; margin-left:8px;">设置</h2>
             <button class="icon-btn" id="close-settings"><span class="material-symbols-outlined">close</span></button>
         </div>
         <div class="dialog-content">
-            <div class="setting-item">
+            <div class="setting-item" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:24px;">
                 <span>地区筛选</span>
-                <select id="location-select" class="md-select"><option value="all">全部</option></select>
+                <select id="location-select" class="styled-input" style="width:auto; padding:8px 16px;"><option value="all">全部</option></select>
             </div>
-            <div class="setting-item">
-                <span>新闻通知</span>
-                <label class="switch"><input type="checkbox" id="notification-switch" checked><span class="slider round"></span></label>
-            </div>
-            <div class="setting-item">
-                <span>显示下载入口</span>
-                <label class="switch"><input type="checkbox" id="app-dl-switch" checked><span class="slider round"></span></label>
-            </div>
+            <p style="color:var(--md-sys-color-outline); font-size:0.9rem;">更多设置项开发中...</p>
         </div>
     </dialog>
 
