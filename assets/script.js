@@ -1,279 +1,431 @@
 // 全局状态
 let allNews = [];
-let menuExpanded = false;
-let locationFilter = 'all';
+let locationFilter = localStorage.getItem('pref_loc') || 'all';
+let showNotifications = localStorage.getItem('pref_notify') === 'true'; // 默认false，需设置开启
+let showDownloadCard = localStorage.getItem('pref_dl_card') !== 'false'; // 默认true
+
+// 归档状态
+let currentArchiveYear = new Date().getFullYear();
+let currentArchiveMonth = new Date().getMonth() + 1;
+
+// 头条轮播状态
 let carouselInterval = null;
-let currentHeadlineIndex = 0;
+let currentHeadlineIdx = 0;
+let carouselItems = []; // 存储当前的头条DOM元素
 
 document.addEventListener('DOMContentLoaded', () => {
     initApp();
 });
 
 async function initApp() {
+    // 1. 加载数据
     await loadNewsData();
     
-    renderMenu();         // 渲染快捷菜单 & 侧边栏
-    loadSettings();
+    // 2. 初始化功能模块
+    initSettings();     // 设置与通知
+    renderMenus();      // 渲染菜单（区分快捷和侧边栏）
+    renderHeadlines();  // 渲染头条
+    renderNewsList();   // 渲染主列表
     
-    renderHeadlines();    // 渲染头条 DOM
-    startCarousel();      // 启动自动轮播
-    
-    renderNewsList();
-    bindEvents();
+    // 3. 绑定事件
+    bindGlobalEvents();
 }
 
-// === 1. 数据加载 ===
+// === A. 数据加载 ===
 async function loadNewsData() {
     try {
         const res = await fetch('news_content.json');
-        if (!res.ok) throw new Error("File load failed");
+        if (!res.ok) throw new Error("Load failed");
         const data = await res.json();
-        // 处理数据：添加ID，确保有图片链接(没有则用默认占位，防止布局崩塌)
+        // 处理数据，添加ID
         allNews = data.map((item, index) => ({ 
             ...item, 
             id: index + 1,
-            // 如果JSON里没有image，给一个默认的渐变色占位逻辑在CSS里处理，或者这里给默认图
-            image: item.image || '' 
+            image: item.image || '' // 确保有字段
         }));
     } catch (err) {
         console.error(err);
-        document.getElementById('news-list').innerHTML = `<p style="padding:20px; text-align:center; color:red">需使用本地服务器(Live Server)运行才能读取JSON数据</p>`;
+        document.getElementById('news-list').innerHTML = `<p style="text-align:center; padding:20px; color:red;">请使用 Local Server 运行以读取数据</p>`;
     }
 }
 
-// === 2. 通用组件生成器 (核心：复用卡片逻辑) ===
-// 生成标准新闻卡片HTML，供主页列表、搜索结果、历史记录共用
-function generateNewsCardHTML(news) {
-    const hasImg = news.image && news.image.trim() !== "";
-    // 如果没有图片，可以用一个图标代替，保持布局对齐
-    const imgHtml = hasImg 
-        ? `<img src="${news.image}" class="news-img" loading="lazy">` 
-        : `<div class="news-img" style="background:var(--md-sys-color-surface-variant); display:flex; align-items:center; justify-content:center; color:var(--md-sys-color-outline);"><span class="material-symbols-outlined">article</span></div>`;
+// === B. 系统设置与通知 ===
+function initSettings() {
+    // 1. 读取并应用设置
+    const locSelect = document.getElementById('location-select');
+    const notifySwitch = document.getElementById('notification-switch');
+    const dlSwitch = document.getElementById('dl-card-switch');
 
-    return `
-    <div class="news-card" onclick="location.href='news_detail.html?id=${news.id}'">
-        ${imgHtml}
-        <div class="news-content">
-            <span class="news-tag">${news.location}</span>
-            <h4 class="news-title">${news.title}</h4>
-            <div class="news-meta-row">
-                <span>${news.date}</span>
-                <span>•</span>
-                <span>${news.author}</span>
+    // 填充地区选择器
+    const locs = [...new Set(allNews.map(n => n.location))];
+    locs.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l; opt.innerText = l;
+        locSelect.appendChild(opt);
+    });
+
+    // 恢复UI状态
+    locSelect.value = locationFilter;
+    notifySwitch.checked = showNotifications;
+    dlSwitch.checked = showDownloadCard;
+
+    // 应用 "下载卡片" 显示状态
+    toggleDownloadCard(showDownloadCard);
+
+    // 检查并显示顶部系统通知
+    checkSystemNotification();
+
+    // 2. 绑定设置变更事件 (自动保存)
+    locSelect.addEventListener('change', (e) => {
+        locationFilter = e.target.value;
+        localStorage.setItem('pref_loc', locationFilter);
+        renderNewsList(); // 刷新列表
+        checkSystemNotification(); // 刷新通知
+    });
+
+    notifySwitch.addEventListener('change', (e) => {
+        showNotifications = e.target.checked;
+        localStorage.setItem('pref_notify', showNotifications);
+        checkSystemNotification();
+    });
+
+    dlSwitch.addEventListener('change', (e) => {
+        showDownloadCard = e.target.checked;
+        localStorage.setItem('pref_dl_card', showDownloadCard);
+        toggleDownloadCard(showDownloadCard);
+    });
+}
+
+function checkSystemNotification() {
+    const banner = document.getElementById('system-banner');
+    const msg = document.getElementById('system-msg');
+    
+    if (showNotifications) {
+        // 模拟：如果是北京，显示特殊通知；否则显示通用
+        if (locationFilter === '北京') {
+            msg.innerText = "⚠️ 北京地区雷雨预警，部分航班可能延误，请关注动态。";
+            banner.style.display = 'flex';
+        } else if (locationFilter !== 'all') {
+            msg.innerText = `🔔 您当前关注 ${locationFilter} 地区的最新资讯。`;
+            banner.style.display = 'flex';
+        } else {
+            // 全部地区时不显示，或者显示通用
+             banner.style.display = 'none';
+        }
+    } else {
+        banner.style.display = 'none';
+    }
+}
+
+function toggleDownloadCard(show) {
+    const display = show ? 'flex' : 'none';
+    document.querySelectorAll('.app-download-card').forEach(el => el.style.display = display);
+}
+
+// === C. 菜单渲染 (分离数据) ===
+function renderMenus() {
+    // 1. 快捷服务 (Quick Actions)
+    const quickGrid = document.getElementById('menu-grid');
+    if(window.QUICK_ACTIONS) {
+        quickGrid.innerHTML = window.QUICK_ACTIONS.map(item => `
+            <a href="${item.link}" class="menu-item">
+                <div class="menu-icon-box"><span class="material-symbols-outlined">${item.icon}</span></div>
+                <p>${item.title}</p>
+            </a>
+        `).join('');
+    }
+
+    // 2. 侧边栏 (Sidebar Items)
+    const sidebarList = document.getElementById('drawer-menu-list');
+    if(window.SIDEBAR_ITEMS) {
+        sidebarList.innerHTML = window.SIDEBAR_ITEMS.map(item => {
+            // 拦截设置点击
+            const isSettings = item.title === '设置';
+            return `
+            <a href="${item.link}" class="drawer-item" ${isSettings ? 'id="sidebar-settings-btn" onclick="return false;"' : ''}>
+                <span class="material-symbols-outlined">${item.icon}</span>
+                <span>${item.title}</span>
+            </a>
+            `;
+        }).join('');
+    }
+
+    // 侧边栏打开设置
+    const setBtn = document.getElementById('sidebar-settings-btn');
+    if(setBtn) setBtn.addEventListener('click', () => {
+        document.getElementById('nav-drawer').classList.remove('open');
+        document.getElementById('drawer-scrim').style.display = 'none';
+        document.getElementById('settings-dialog').showModal();
+    });
+}
+
+// === D. 新闻头条 (七天逻辑 & 滑动 & 柔和动画) ===
+function renderHeadlines() {
+    if (allNews.length === 0) return;
+
+    // 1. 筛选最近7天的数据
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    // 简单的日期比较 (假设格式 YYYY-MM-DD)
+    let freshNews = allNews.filter(n => {
+        const parts = n.date.split(/[- :]/); // 分割 2024-12-14 10:00
+        // 简单构造Date对象，注意月份-1
+        const nDate = new Date(parts[0], parts[1]-1, parts[2]);
+        return nDate >= oneWeekAgo;
+    });
+
+    // 如果最近7天没新闻，取最新的3条兜底，防止空白
+    if (freshNews.length === 0) {
+        freshNews = allNews.slice(0, 3);
+    }
+
+    const container = document.getElementById('headlines-container');
+    
+    // 生成DOM
+    container.innerHTML = freshNews.map((item, idx) => `
+        <div class="headline-item ${idx === 0 ? 'active' : ''}" 
+             style="background-image: url('${item.image || 'assets/default_bg.jpg'}');"
+             data-id="${item.id}" onclick="location.href='news_detail.html?id=${item.id}'">
+            <div class="headline-overlay">
+                <span style="background:var(--md-sys-color-primary); width:fit-content; padding:4px 8px; border-radius:6px; font-size:0.75rem;">${item.location}</span>
+                <div style="font-size:1.5rem; font-weight:bold; line-height:1.3; margin-top:4px;">${item.title}</div>
+                <div style="font-size:0.95rem; opacity:0.9; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${item.content}</div>
+                <div style="font-size:0.8rem; margin-top:8px; opacity:0.8;">${item.date} · ${item.author}</div>
             </div>
+        </div>
+    `).join('') + 
+    // 指示器
+    `<div class="carousel-indicators" style="position:absolute; bottom:16px; right:24px; display:flex; gap:8px; z-index:2;">
+        ${freshNews.map((_, i) => `<div class="indicator-dot ${i===0?'active':''}" id="dot-${i}" style="width:8px; height:8px; background:rgba(255,255,255,0.5); border-radius:50%; transition:all 0.3s;"></div>`).join('')}
+    </div>`;
+
+    carouselItems = document.querySelectorAll('.headline-item');
+    startCarousel();
+    initTouchSwipe(container);
+}
+
+function startCarousel() {
+    if(carouselItems.length < 2) return;
+    if(carouselInterval) clearInterval(carouselInterval);
+    carouselInterval = setInterval(() => nextHeadline(), 5000);
+}
+
+function nextHeadline() {
+    switchHeadline((currentHeadlineIdx + 1) % carouselItems.length);
+}
+function prevHeadline() {
+    switchHeadline((currentHeadlineIdx - 1 + carouselItems.length) % carouselItems.length);
+}
+
+function switchHeadline(nextIdx) {
+    if(!carouselItems.length) return;
+    
+    // 移除当前类
+    carouselItems[currentHeadlineIdx].classList.remove('active');
+    document.getElementById(`dot-${currentHeadlineIdx}`).style.background = 'rgba(255,255,255,0.5)';
+    document.getElementById(`dot-${currentHeadlineIdx}`).style.width = '8px';
+
+    // 激活下一类
+    currentHeadlineIdx = nextIdx;
+    carouselItems[currentHeadlineIdx].classList.add('active');
+    document.getElementById(`dot-${currentHeadlineIdx}`).style.background = '#fff';
+    document.getElementById(`dot-${currentHeadlineIdx}`).style.width = '24px';
+    document.getElementById(`dot-${currentHeadlineIdx}`).style.borderRadius = '4px';
+}
+
+// 触摸滑动逻辑
+function initTouchSwipe(element) {
+    let startX = 0;
+    let endX = 0;
+
+    element.addEventListener('touchstart', e => {
+        startX = e.changedTouches[0].screenX;
+        clearInterval(carouselInterval); // 触摸时暂停自动播放
+    }, {passive: true});
+
+    element.addEventListener('touchend', e => {
+        endX = e.changedTouches[0].screenX;
+        handleGesture();
+        startCarousel(); // 恢复自动播放
+    }, {passive: true});
+
+    function handleGesture() {
+        if (endX < startX - 50) nextHeadline(); // 左滑 -> 下一张
+        if (endX > startX + 50) prevHeadline(); // 右滑 -> 上一张
+    }
+}
+
+// === E. 列表渲染 (纯文稿逻辑) ===
+function renderNewsList() {
+    const container = document.getElementById('news-list');
+    
+    // 过滤逻辑
+    let filtered = locationFilter === 'all' ? allNews : allNews.filter(n => n.location === locationFilter);
+    const showCount = container.getAttribute('data-expanded') === 'true' ? filtered.length : 6;
+    
+    container.innerHTML = filtered.slice(0, showCount).map(news => createNewsCard(news)).join('');
+    
+    // 按钮逻辑
+    const btn = document.getElementById('load-more-news');
+    btn.style.display = filtered.length > 6 ? 'block' : 'none';
+}
+
+// 通用卡片生成器
+function createNewsCard(news) {
+    const hasImg = news.image && news.image.trim() !== "";
+    const textOnlyClass = hasImg ? '' : 'text-only';
+    
+    return `
+    <div class="news-card ${textOnlyClass}" onclick="location.href='news_detail.html?id=${news.id}'">
+        ${hasImg ? `<img src="${news.image}" class="news-img" loading="lazy">` : ''}
+        <div class="news-content">
+            <div class="news-tag">${news.location}</div>
+            <h4 class="news-title">${news.title}</h4>
+            <div class="news-meta">${news.date} · ${news.author}</div>
         </div>
     </div>
     `;
 }
 
-// === 3. 头条轮播 (Carousel) ===
-function renderHeadlines() {
-    if (allNews.length === 0) return;
+// === F. 历史归档 (MD3 设计) ===
+function initArchive() {
+    const dialog = document.getElementById('history-dialog');
+    const container = document.getElementById('archive-results');
     
-    // 筛选规则：一周内的数据，按日期排序
-    // 简单模拟日期解析，实际项目建议用 date-fns
-    const sorted = [...allNews].sort((a,b) => b.date.localeCompare(a.date));
-    const headlines = sorted.slice(0, 5); // 取前5条做轮播
-
-    const container = document.getElementById('headlines-container');
-    
-    // 生成轮播项 HTML
-    const itemsHtml = headlines.map((item, idx) => `
-        <div class="headline-item ${idx === 0 ? 'active' : ''}" 
-             style="background-image: url('${item.image}');" 
-             data-index="${idx}"
-             onclick="location.href='news_detail.html?id=${item.id}'">
-            <div class="headline-overlay">
-                <span style="background:var(--md-sys-color-primary); width:fit-content; padding:2px 8px; border-radius:4px; font-size:0.75rem;">${item.location}</span>
-                <div class="headline-title">${item.title}</div>
-                <div class="headline-snippet">${item.content}</div>
-                <div class="headline-meta">${item.date} • ${item.author}</div>
-            </div>
+    // 渲染年份选择和月份条
+    document.getElementById('archive-toolbar').innerHTML = `
+        <div class="year-selector">
+            <button class="icon-btn" onclick="changeArchiveYear(-1)"><span class="material-symbols-outlined">chevron_left</span></button>
+            <span id="archive-year-display">${currentArchiveYear}年</span>
+            <button class="icon-btn" onclick="changeArchiveYear(1)"><span class="material-symbols-outlined">chevron_right</span></button>
         </div>
-    `).join('');
-
-    // 生成指示器 HTML
-    const dotsHtml = `<div class="carousel-indicators">
-        ${headlines.map((_, idx) => `<div class="indicator-dot ${idx === 0 ? 'active' : ''}"></div>`).join('')}
-    </div>`;
-
-    container.innerHTML = itemsHtml + dotsHtml;
-}
-
-function startCarousel() {
-    const items = document.querySelectorAll('.headline-item');
-    if(items.length < 2) return;
-
-    // 清除旧的定时器
-    if(carouselInterval) clearInterval(carouselInterval);
-
-    carouselInterval = setInterval(() => {
-        const nextIndex = (currentHeadlineIndex + 1) % items.length;
-        switchHeadline(nextIndex);
-    }, 5000); // 5秒切换
-}
-
-function switchHeadline(index) {
-    const items = document.querySelectorAll('.headline-item');
-    const dots = document.querySelectorAll('.indicator-dot');
-    
-    if(!items.length) return;
-
-    // 移除当前激活状态
-    items[currentHeadlineIndex].classList.remove('active');
-    if(dots[currentHeadlineIndex]) dots[currentHeadlineIndex].classList.remove('active');
-
-    // 激活下一个
-    currentHeadlineIndex = index;
-    items[currentHeadlineIndex].classList.add('active');
-    if(dots[currentHeadlineIndex]) dots[currentHeadlineIndex].classList.add('active');
-}
-
-// === 4. 菜单与侧边栏 (统一数据源) ===
-function renderMenu() {
-    const data = window.MENU_DATA || [];
-    
-    // A. 渲染主页快捷菜单
-    const grid = document.getElementById('menu-grid');
-    // 如果折叠，只显示前4个，否则显示全部
-    const displayData = menuExpanded ? data : data.slice(0, 4);
-    
-    grid.innerHTML = displayData.map(item => `
-        <a href="${item.link}" class="menu-item">
-            <div class="menu-icon-box">
-                <span class="material-symbols-outlined">${item.icon}</span>
-            </div>
-            <p>${item.title}</p>
-        </a>
-    `).join('');
-    
-    document.getElementById('toggle-menu').innerText = menuExpanded ? "收起" : "展开全部";
-
-    // B. 渲染侧边栏 (Drawer)
-    const drawerList = document.getElementById('drawer-menu-list');
-    drawerList.innerHTML = data.map(item => `
-        <a href="${item.link}" class="drawer-item">
-            <span class="material-symbols-outlined">${item.icon}</span>
-            <span>${item.title}</span>
-        </a>
-    `).join('');
-    
-    // 侧边栏底部可以加额外的设置入口
-    drawerList.innerHTML += `
-        <div style="height:1px; background:var(--md-sys-color-outline); opacity:0.2; margin:16px 0;"></div>
-        <div class="drawer-item" id="drawer-settings-btn" style="cursor:pointer">
-            <span class="material-symbols-outlined">settings</span>
-            <span>设置</span>
+        <div class="month-scroller" id="month-scroller">
+            ${[1,2,3,4,5,6,7,8,9,10,11,12].map(m => 
+                `<div class="month-chip ${m===currentArchiveMonth?'active':''}" onclick="selectArchiveMonth(${m})">${m}月</div>`
+            ).join('')}
         </div>
     `;
-    
-    // 绑定侧边栏内设置按钮点击
-    setTimeout(() => {
-        document.getElementById('drawer-settings-btn').addEventListener('click', () => {
-             document.getElementById('settings-dialog').showModal();
-        });
-    }, 0);
+
+    renderArchiveList();
 }
 
-// === 5. 新闻列表与搜索 ===
-function renderNewsList() {
-    const container = document.getElementById('news-list');
-    const loadMoreBtn = document.getElementById('load-more-news');
-    
-    let filtered = locationFilter === 'all' ? allNews : allNews.filter(n => n.location === locationFilter);
-    
-    // 展开/收起逻辑
-    const isExpanded = container.getAttribute('data-expanded') === 'true';
-    const showCount = isExpanded ? filtered.length : 6;
-    const listData = filtered.slice(0, showCount);
+window.changeArchiveYear = (delta) => {
+    currentArchiveYear += delta;
+    document.getElementById('archive-year-display').innerText = `${currentArchiveYear}年`;
+    renderArchiveList();
+};
 
-    container.innerHTML = listData.map(news => generateNewsCardHTML(news)).join('');
+window.selectArchiveMonth = (m) => {
+    currentArchiveMonth = m;
+    // 更新UI高亮
+    document.querySelectorAll('.month-chip').forEach((el, idx) => {
+        if((idx+1) === m) el.classList.add('active');
+        else el.classList.remove('active');
+    });
+    renderArchiveList();
+};
 
-    // 按钮状态
-    loadMoreBtn.style.display = filtered.length > 6 ? 'block' : 'none';
-    loadMoreBtn.innerText = isExpanded ? "收起" : "展开更多";
+function renderArchiveList() {
+    const container = document.getElementById('archive-results');
+    // 筛选 年-月 (匹配 date 字符串 "2024-12-14")
+    const target = `${currentArchiveYear}-${String(currentArchiveMonth).padStart(2, '0')}`;
+    
+    const filtered = allNews.filter(n => n.date.startsWith(target));
+    
+    if(filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:40px; color:#999;">该月份暂无归档新闻</div>`;
+    } else {
+        container.innerHTML = filtered.map(n => createNewsCard(n)).join('');
+    }
 }
 
-// === 6. 事件绑定 ===
-function bindEvents() {
-    // 侧边栏开关
+// === G. 混合搜索 (功能+新闻) ===
+function handleSearch(term) {
+    const resBox = document.getElementById('search-results');
+    if(!term) { resBox.innerHTML = ''; return; }
+    
+    term = term.toLowerCase();
+
+    // 1. 搜功能 (Quick Actions & Sidebar)
+    const matchedActions = [
+        ...(window.QUICK_ACTIONS || []),
+        ...(window.SIDEBAR_ITEMS || [])
+    ].filter(i => i.title.toLowerCase().includes(term));
+
+    // 2. 搜新闻
+    const matchedNews = allNews.filter(n => 
+        n.title.toLowerCase().includes(term) || 
+        n.content.toLowerCase().includes(term)
+    );
+
+    let html = '';
+
+    // 渲染功能入口 Chips
+    if(matchedActions.length > 0) {
+        html += `<div style="margin-bottom:16px;">
+            <div style="font-size:0.8rem; color:var(--md-sys-color-outline); margin-bottom:8px;">快捷入口</div>
+            <div>
+                ${matchedActions.map(a => `
+                    <a href="${a.link}" class="search-action-chip">
+                        <span class="material-symbols-outlined" style="font-size:18px;">${a.icon}</span>
+                        ${a.title}
+                    </a>
+                `).join('')}
+            </div>
+        </div>`;
+    }
+
+    // 渲染新闻列表
+    if(matchedNews.length > 0) {
+         html += `<div style="font-size:0.8rem; color:var(--md-sys-color-outline); margin-bottom:8px;">相关新闻</div>`;
+         html += matchedNews.map(n => createNewsCard(n)).join('');
+    } else if (matchedActions.length === 0) {
+         html = `<div style="text-align:center; padding:20px; color:#999;">无相关结果</div>`;
+    }
+
+    resBox.innerHTML = html;
+}
+
+// === H. 事件绑定汇总 ===
+function bindGlobalEvents() {
+    // 侧边栏
     const drawer = document.getElementById('nav-drawer');
     const scrim = document.getElementById('drawer-scrim');
-    const toggleDrawer = (open) => {
-        open ? drawer.classList.add('open') : drawer.classList.remove('open');
-        open ? scrim.style.display = 'block' : setTimeout(()=>scrim.style.display='none', 400); // 等动画结束
+    document.getElementById('menu-btn').addEventListener('click', () => { drawer.classList.add('open'); scrim.style.display='block'; });
+    const closeD = () => { drawer.classList.remove('open'); setTimeout(()=>scrim.style.display='none', 300); };
+    document.getElementById('close-drawer').addEventListener('click', closeD);
+    scrim.addEventListener('click', closeD);
+
+    // 弹窗通用
+    const bindDialog = (triggerId, dialogId, onOpen) => {
+        const btn = document.getElementById(triggerId);
+        const dlg = document.getElementById(dialogId);
+        const closeBtn = dlg.querySelector('.icon-btn'); // 假设第一个是关闭
+        if(btn) btn.addEventListener('click', () => {
+            dlg.showModal();
+            if(onOpen) onOpen();
+        });
+        if(closeBtn) closeBtn.addEventListener('click', () => dlg.close());
     };
 
-    document.getElementById('menu-btn').addEventListener('click', () => toggleDrawer(true));
-    document.getElementById('close-drawer').addEventListener('click', () => toggleDrawer(false));
-    scrim.addEventListener('click', () => toggleDrawer(false));
+    bindDialog('search-trigger', 'search-dialog');
+    bindDialog('settings-trigger', 'settings-dialog');
+    bindDialog('history-news-btn', 'history-dialog', initArchive); // 打开归档时初始化UI
 
-    // 快捷菜单展开
-    document.getElementById('toggle-menu').addEventListener('click', () => {
-        menuExpanded = !menuExpanded;
-        renderMenu();
+    // 搜索输入
+    document.getElementById('search-input').addEventListener('input', (e) => handleSearch(e.target.value));
+    
+    // 关闭系统通知
+    document.getElementById('close-banner').addEventListener('click', () => {
+        document.getElementById('system-banner').style.display = 'none';
     });
 
-    // 新闻列表展开
+    // 展开更多
     document.getElementById('load-more-news').addEventListener('click', function() {
-        const container = document.getElementById('news-list');
-        const current = container.getAttribute('data-expanded') === 'true';
-        container.setAttribute('data-expanded', !current);
+        const c = document.getElementById('news-list');
+        c.setAttribute('data-expanded', c.getAttribute('data-expanded') !== 'true');
         renderNewsList();
+        this.innerText = c.getAttribute('data-expanded') === 'true' ? "收起" : "展开更多";
     });
-
-    // 搜索 (实时显示完整卡片)
-    const searchInput = document.getElementById('search-input');
-    searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
-        const resBox = document.getElementById('search-results');
-        
-        if(!term) { resBox.innerHTML = ''; return; }
-        
-        const matched = allNews.filter(n => 
-            n.title.toLowerCase().includes(term) || 
-            n.content.toLowerCase().includes(term) ||
-            n.author.toLowerCase().includes(term)
-        );
-        
-        if(matched.length === 0) {
-            resBox.innerHTML = '<div style="text-align:center; padding:20px; color:#999">未找到相关内容</div>';
-        } else {
-            // 复用 generateNewsCardHTML
-            resBox.innerHTML = matched.map(n => generateNewsCardHTML(n)).join('');
-        }
-    });
-
-    // 弹窗逻辑通用化
-    const bindDialog = (triggerId, dialogId, closeId) => {
-        const d = document.getElementById(dialogId);
-        document.getElementById(triggerId).addEventListener('click', () => d.showModal());
-        if(closeId) document.getElementById(closeId).addEventListener('click', () => d.close());
-    };
-    bindDialog('search-trigger', 'search-dialog', 'close-search');
-    bindDialog('settings-trigger', 'settings-dialog', 'close-settings');
-    
-    // 设置更改
-    document.getElementById('location-select').addEventListener('change', (e) => {
-        locationFilter = e.target.value;
-        localStorage.setItem('pref_loc', locationFilter);
-        renderNewsList();
-    });
-}
-
-function loadSettings() {
-    const locSelect = document.getElementById('location-select');
-    const locs = [...new Set(allNews.map(n => n.location))];
-    locs.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l;
-        opt.innerText = l;
-        locSelect.appendChild(opt);
-    });
-    
-    const saved = localStorage.getItem('pref_loc');
-    if(saved) {
-        locationFilter = saved;
-        locSelect.value = saved;
-    }
 }
