@@ -1,24 +1,22 @@
 :root {
-  /* MD3 基础色板 */
   --md-sys-color-primary: #006495;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #cbe6ff;
   --md-sys-color-on-primary-container: #001e30;
+  --md-sys-color-secondary-container: #dce2e9;
   --md-sys-color-surface: #fdfcff;
   --md-sys-color-on-surface: #1a1c1e;
-  --md-sys-color-surface-container: #f0f4f8; /* 稍深的背景用于卡片 */
-  --md-sys-color-surface-variant: #dee3eb;
+  --md-sys-color-surface-container: #f0f4f8;
   --md-sys-color-outline: #72777f;
-  --md-sys-color-outline-variant: #c2c7cf;
-
-  /* Expressive 变量 */
-  --shape-corner-extra-large: 28px;
-  --shape-corner-large: 24px;
-  --shape-corner-medium: 16px;
   
-  /* MD3 标准缓动曲线 */
+  /* MD3 Expressive 规范变量 */
+  --shape-corner-xl: 28px;
+  --shape-corner-l: 24px;
+  --shape-corner-m: 16px;
+  
+  /* 动画曲线：Emphasized Decelerate (更柔和) */
   --motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
-  --motion-duration-long: 500ms;
+  --motion-duration-long: 600ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -26,354 +24,170 @@
     --md-sys-color-surface: #1a1c1e;
     --md-sys-color-on-surface: #e2e2e6;
     --md-sys-color-surface-container: #202429;
-    --md-sys-color-surface-variant: #40484c;
-    --md-sys-color-on-primary-container: #ffffff;
     --md-sys-color-primary-container: #004b73;
     --md-sys-color-primary: #93cae4;
     --md-sys-color-on-primary: #00324c;
+    --md-sys-color-secondary-container: #3e4449;
   }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { 
-    font-family: 'Roboto', system-ui, -apple-system, sans-serif; 
-    background: var(--md-sys-color-surface); 
-    color: var(--md-sys-color-on-surface);
-    transition: background 0.3s ease;
-}
+body { font-family: 'Roboto', system-ui, sans-serif; background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface); }
 
-/* --- 顶栏 (Top App Bar) --- */
-.top-app-bar {
-    height: 64px;
-    display: flex;
+/* --- 系统通知栏 --- */
+.system-banner {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    padding: 12px 16px;
+    display: none; /* 默认隐藏，JS控制 */
     align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    background: var(--md-sys-color-surface);
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    gap: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    animation: slideDown 0.4s var(--motion-easing-emphasized);
 }
+@keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+/* --- 顶栏 & 布局 --- */
+.top-app-bar { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--md-sys-color-surface); position: sticky; top: 0; z-index: 100; }
 .app-logo { height: 32px; width: auto; display: block; }
 @media (prefers-color-scheme: dark) { .app-logo { filter: brightness(0) invert(1); } }
 
-/* --- 按钮 (Buttons) --- */
-.icon-btn { 
-    background: transparent; border: none; padding: 12px; 
-    border-radius: 50%; color: var(--md-sys-color-on-surface); 
-    cursor: pointer; transition: background 0.2s; 
-}
-.icon-btn:hover { background: var(--md-sys-color-surface-variant); }
+.icon-btn { background:0 0; border:none; padding:12px; border-radius:50%; color:inherit; cursor:pointer; }
+.filled-btn { background:var(--md-sys-color-primary); color:var(--md-sys-color-on-primary); border:none; padding:10px 24px; border-radius:20px; font-weight:500; cursor:pointer; }
+.tonal-btn { background:var(--md-sys-color-secondary-container); color:var(--md-sys-color-on-surface); border:none; padding:8px 16px; border-radius:12px; font-weight:600; font-size: 0.85rem; cursor: pointer;}
+.text-btn { background:0 0; border:none; color:var(--md-sys-color-primary); font-weight:600; cursor:pointer; padding: 8px 16px;}
 
-.text-btn { 
-    background: transparent; border: none; 
-    color: var(--md-sys-color-primary); font-weight: 500; 
-    padding: 8px 16px; border-radius: 20px; cursor: pointer; 
-}
-.text-btn:hover { background: var(--md-sys-color-surface-variant); }
-
-.filled-btn {
-    background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
-    border: none; padding: 10px 24px; border-radius: 20px;
-    font-weight: 500; font-size: 0.95rem; cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: box-shadow 0.2s;
-}
-.filled-btn:active { box-shadow: none; }
-
-.tonal-btn {
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    border: none; padding: 8px 16px; border-radius: 12px;
-    font-weight: 600; font-size: 0.85rem; cursor: pointer;
-}
-
-.outlined-btn {
-    background: transparent; border: 1px solid var(--md-sys-color-outline);
-    color: var(--md-sys-color-primary); padding: 12px;
-    border-radius: 24px; width: 100%; margin-top: 16px;
-    font-weight: 500; cursor: pointer;
-}
-
-/* --- 布局框架 (Layout) --- */
-.main-layout {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-/* 响应式：大屏布局 */
+.main-layout { max-width: 1200px; margin: 0 auto; padding: 16px; display: flex; flex-direction: column; gap: 24px; }
 @media (min-width: 900px) {
-    .main-layout {
-        display: grid;
-        grid-template-columns: 400px 1fr; /* 左侧加宽，更符合 Expressive */
-        gap: 40px;
-        align-items: start;
-    }
-    .top-app-bar .logo-container { flex: 1; display: flex; justify-content: center; }
-    
-    .sidebar-area {
-        position: sticky;
-        top: 80px;
-    }
+    .main-layout { display: grid; grid-template-columns: 380px 1fr; gap: 40px; align-items: start; }
+    .sidebar-area { position: sticky; top: 80px; }
     .desktop-footer-area { display: block; margin-top: 32px; }
     .mobile-footer-area { display: none; }
 }
-
 @media (max-width: 899px) {
     .desktop-footer-area { display: none; }
     .mobile-footer-area { display: block; margin-top: 24px; }
 }
 
-/* --- 卡片通用 (Cards) --- */
-.card {
-    background: var(--md-sys-color-surface-container);
-    border-radius: var(--shape-corner-large);
-    padding: 24px;
-    margin-bottom: 24px;
-}
-.section-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 16px;
-}
-.section-header h3 { font-size: 1.25rem; font-weight: 500; }
-
-/* --- 1. 新闻头条 (Carousel - 重构) --- */
+/* --- 1. 新闻头条 (优化动画) --- */
 .headlines-section {
-    position: relative;
-    width: 100%;
-    height: 320px; /* 加大高度 */
-    border-radius: var(--shape-corner-extra-large);
+    position: relative; width: 100%; height: 340px;
+    border-radius: var(--shape-corner-xl);
     overflow: hidden;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    /* 增加触摸操作提示 */
+    touch-action: pan-y; 
 }
 
 .headline-item {
-    position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    opacity: 0;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    opacity: 0; transform: scale(1.05); /* 默认微放大 */
     visibility: hidden;
     transition: opacity var(--motion-duration-long) var(--motion-easing-emphasized),
                 transform var(--motion-duration-long) var(--motion-easing-emphasized);
-    background-size: cover;
-    background-position: center;
-    /* 默认背景色，防图片加载慢 */
-    background-color: var(--md-sys-color-primary-container);
+    background-size: cover; background-position: center;
 }
 
 .headline-item.active {
-    opacity: 1;
-    visibility: visible;
-    z-index: 1;
+    opacity: 1; transform: scale(1); /* 激活时恢复正常 */
+    visibility: visible; z-index: 1;
 }
 
-/* 头条遮罩与文字 */
 .headline-overlay {
-    position: absolute;
-    bottom: 0; left: 0; width: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.85), rgba(0,0,0,0));
-    padding: 24px;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    position: absolute; bottom: 0; left: 0; width: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.9), rgba(0,0,0,0));
+    padding: 24px; color: white;
+    display: flex; flex-direction: column; gap: 8px;
+    pointer-events: none; /* 让点击穿透到父容器 */
 }
 
-.headline-title {
-    font-size: 1.4rem;
-    font-weight: 700;
-    line-height: 1.3;
-}
+/* --- 菜单与卡片 --- */
+.card { background: var(--md-sys-color-surface-container); border-radius: var(--shape-corner-l); padding: 20px; }
+.menu-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.menu-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit; gap: 8px; text-align: center; }
+.menu-icon-box { width: 52px; height: 52px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border-radius: 16px; display: flex; align-items: center; justify-content: center; }
+.menu-item p { font-size: 0.75rem; font-weight: 500; }
 
-.headline-snippet {
-    font-size: 0.95rem;
-    opacity: 0.9;
-    display: -webkit-box;
-    -webkit-line-clamp: 2; /* 限制2行 */
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 4px;
-}
-
-.headline-meta {
-    font-size: 0.8rem;
-    opacity: 0.7;
-    font-weight: 500;
-    display: flex;
-    gap: 12px;
-}
-
-/* 进度条指示器 */
-.carousel-indicators {
-    position: absolute;
-    bottom: 12px;
-    right: 24px;
-    display: flex;
-    gap: 8px;
-    z-index: 2;
-}
-.indicator-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.4);
-    transition: all 0.3s;
-}
-.indicator-dot.active {
-    background: #fff;
-    width: 24px; /* 激活时变长条 */
-    border-radius: 4px;
-}
-
-/* --- 2. 菜单网格 (Menu) --- */
-.menu-grid { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 16px; 
-}
-.menu-item { 
-    display: flex; flex-direction: column; align-items: center; 
-    text-decoration: none; color: var(--md-sys-color-on-surface); 
-    gap: 10px; padding: 8px 0;
-    border-radius: 12px;
-    transition: background 0.2s;
-}
-.menu-item:hover { background: rgba(0,0,0,0.03); }
-.menu-icon-box {
-    width: 56px; height: 56px;
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-}
-.menu-item p { font-size: 0.8rem; font-weight: 500; text-align: center; }
-
-/* --- 3. 新闻列表 (News Cards) --- */
+/* --- 2. 新闻卡片 (纯文字模式支持) --- */
 .news-card {
-    display: flex;
-    background: var(--md-sys-color-surface-container);
-    border-radius: var(--shape-corner-large); /* 大圆角 */
-    overflow: hidden;
-    margin-bottom: 16px;
-    cursor: pointer;
-    transition: transform 0.2s, background 0.2s;
-    min-height: 120px;
-}
-/* 列表项悬停效果 */
-.news-card:hover { 
-    background: var(--md-sys-color-surface-variant); 
+    display: flex; background: var(--md-sys-color-surface-container); border-radius: var(--shape-corner-l);
+    overflow: hidden; margin-bottom: 16px; cursor: pointer; min-height: 110px;
+    transition: transform 0.2s;
 }
 .news-card:active { transform: scale(0.98); }
 
-.news-img {
-    width: 130px;
-    object-fit: cover;
-    display: block;
-}
-.news-content {
-    padding: 16px 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-.news-tag {
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    font-size: 0.75rem;
-    padding: 4px 8px;
-    border-radius: 6px;
-    align-self: flex-start;
-    margin-bottom: 8px;
-    font-weight: 600;
-}
-.news-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    line-height: 1.4;
-    margin-bottom: 6px;
-    color: var(--md-sys-color-on-surface);
-}
-.news-meta-row {
-    display: flex;
-    gap: 12px;
-    font-size: 0.85rem;
-    color: var(--md-sys-color-outline);
-    margin-top: 4px;
-}
+/* 有图模式 */
+.news-img { width: 120px; object-fit: cover; display: block; }
+.news-content { padding: 16px 20px; flex: 1; display: flex; flex-direction: column; justify-content: center; }
 
-/* 下载区域 */
-.app-download-card {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--md-sys-color-primary); /* 强调色背景 */
-    color: var(--md-sys-color-on-primary);
-    border-radius: var(--shape-corner-extra-large);
-}
-.app-info { display: flex; align-items: center; gap: 16px; }
-.app-icon { font-size: 32px; }
-.app-info h4 { font-size: 1rem; margin-bottom: 2px; }
-.app-info p { font-size: 0.8rem; opacity: 0.8; }
-.app-download-btn {
-    background: var(--md-sys-color-surface);
-    color: var(--md-sys-color-primary);
-    border: none; padding: 10px 20px;
-    border-radius: 18px; font-weight: 600;
-    cursor: pointer;
-}
+/* 纯文字模式 (无图) - 当没有img标签时 */
+.news-card.text-only .news-content { padding: 20px 24px; } 
 
-/* --- 侧边栏 (Drawer) --- */
-.drawer {
-    position: fixed; top: 0; left: -360px; /* 默认隐藏 */
-    width: 320px; height: 100%;
-    background: var(--md-sys-color-surface-container); /* 更有层次感 */
-    z-index: 200;
-    transition: left 400ms var(--motion-easing-emphasized);
-    padding: 24px 16px;
-    border-top-right-radius: var(--shape-corner-extra-large);
-    border-bottom-right-radius: var(--shape-corner-extra-large);
-}
-.drawer.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,0.15); }
-.drawer-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; padding-left: 8px; }
-.drawer-item {
-    display: flex; align-items: center; gap: 16px;
-    padding: 16px 24px;
-    margin-bottom: 8px;
-    border-radius: 28px; /* 胶囊形 */
-    text-decoration: none;
-    color: var(--md-sys-color-on-surface);
-    font-weight: 500;
-    transition: background 0.2s;
-}
-.drawer-item:hover { background: rgba(0,0,0,0.05); }
-.drawer-item.active { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.news-tag { color: var(--md-sys-color-primary); font-size: 0.75rem; font-weight: 700; margin-bottom: 6px; }
+.news-title { font-size: 1.1rem; font-weight: 600; line-height: 1.45; margin-bottom: 6px; }
+.news-meta { font-size: 0.8rem; color: var(--md-sys-color-outline); }
 
-/* --- 弹窗 (Dialogs) --- */
+/* 下载卡片 */
+.app-download-card { display: flex; align-items: center; justify-content: space-between; background: var(--md-sys-color-primary); color: white; border-radius: var(--shape-corner-xl); }
+
+/* --- 3. 弹窗 (Settings & Search & Archive) --- */
 dialog {
     border: none; background: var(--md-sys-color-surface);
-    width: 100%; max-width: 600px;
-    border-radius: var(--shape-corner-extra-large);
-    margin: auto; padding: 0;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    margin: auto; padding: 0; box-shadow: 0 25px 50px rgba(0,0,0,0.3);
 }
-dialog::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(2px); }
+dialog::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
 
-.fullscreen-dialog {
-    width: 100%; height: 100%;
-    max-width: 100%; max-height: 100%;
-    border-radius: 0;
+/* 修复设置弹窗在手机上被压缩的问题 */
+.center-dialog {
+    width: min(90%, 400px); /* 关键：最大400px，最小90%屏幕宽 */
+    border-radius: var(--shape-corner-xl);
+    max-height: 80vh; overflow: hidden;
 }
-.dialog-header {
-    padding: 12px 8px;
-    display: flex; align-items: center; gap: 8px;
+
+.fullscreen-dialog { width: 100%; height: 100%; max-width: 100%; max-height: 100%; }
+
+.dialog-header { padding: 12px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+.dialog-content { padding: 24px; overflow-y: auto; max-height: 70vh; }
+
+.setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.setting-label { font-size: 1rem; font-weight: 500; }
+
+/* 开关 Switch */
+.switch { position: relative; display: inline-block; width: 48px; height: 28px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background-color: var(--md-sys-color-outline); border-radius: 34px; transition: .3s; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--md-sys-color-primary); }
+input:checked + .slider:before { transform: translateX(20px); }
+
+/* --- 4. 历史归档 UI (Expressive) --- */
+.archive-toolbar { display: flex; flex-direction: column; gap: 16px; padding: 8px 16px 16px; background: var(--md-sys-color-surface); }
+.year-selector { display: flex; align-items: center; justify-content: space-between; font-size: 1.2rem; font-weight: bold; padding: 0 16px; }
+
+/* 月份横向滚动条 */
+.month-scroller { 
+    display: flex; overflow-x: auto; gap: 8px; padding-bottom: 4px; 
+    scrollbar-width: none; -ms-overflow-style: none; /* 隐藏滚动条 */
 }
-.search-bar-container input, .styled-input {
-    width: 100%; padding: 14px 20px;
-    border-radius: 28px; border: none;
-    background: var(--md-sys-color-surface-container);
-    font-size: 1.1rem; outline: none; color: inherit;
+.month-scroller::-webkit-scrollbar { display: none; }
+.month-chip {
+    flex: 0 0 auto;
+    padding: 8px 16px; border-radius: 16px;
+    border: 1px solid var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface);
+    font-size: 0.9rem; font-weight: 500; cursor: pointer;
+    transition: all 0.2s;
 }
-.dialog-content { padding: 0 24px 24px; overflow-y: auto; height: calc(100% - 80px); }
+.month-chip.active {
+    background: var(--md-sys-color-primary); color: white; border-color: transparent;
+}
+
+/* --- 搜索结果中的功能按钮 --- */
+.search-action-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-surface);
+    padding: 8px 16px; border-radius: 12px;
+    margin-right: 8px; margin-bottom: 8px;
+    font-size: 0.9rem; font-weight: 600; text-decoration: none;
+}
