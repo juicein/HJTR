@@ -1,17 +1,21 @@
-const menuData = [
-    { name: "地铁线网", icon: "train", link: "#" },
-    { name: "公交线路", icon: "directions_bus", link: "#" },
-    { name: "临途出行", icon: "departure_board", link: "#" },
-    { name: "航空地图", icon: "flight", link: "#" },
-    { name: "失物招领", icon: "manage_search", link: "#" },
-    { name: "客服中心", icon: "support_agent", link: "#" },
-    { name: "票务政策", icon: "confirmation_number", link: "#" },
-    { name: "时刻表", icon: "schedule", link: "#" }
-];
-
-const sidebarData = [
-    { name: "首页", icon: "home", link: "index.html" },
-    { name: "新闻动态", icon: "newspaper", link: "#" },
-    { name: "运营公告", icon: "campaign", link: "#" },
-    { name: "关于我们", icon: "info", link: "#" }
-];
+// 1. 首页-快捷服务 (Quick Actions)
+window.QUICK_ACTIONS = [
+    { id: 1, title: "航班动态", icon: "flight_takeoff", link: "#" },
+    { id: 2, title: "值机选座", icon: "airline_seat_recline_normal", link: "#" },
+    { id: 3, title: "机场大屏", icon: "monitor", link: "#" },
+    { id: 4, title: "行李查询", icon: "luggage", link: "#" },
+    { id: 5, title: "中转服务", icon: "connecting_airports", link: "#" },
+    { id: 6, title: "贵宾厅", icon: "diamond", link: "#" },
+    { id: 7, title: "餐饮购物", icon: "restaurant", link: "#" },
+    { id: 8, title: "交通指南", icon: "directions_bus", link: "#" }
+  ];
+  
+  // 2. 侧边栏-导航 (Navigation Drawer)
+  window.SIDEBAR_ITEMS = [
+    { id: 101, title: "首页", icon: "home", link: "index.html" },
+    { id: 102, title: "我的行程", icon: "calendar_month", link: "#" },
+    { id: 103, title: "会员中心", icon: "account_circle", link: "#" },
+    { id: 104, title: "消息通知", icon: "notifications", link: "#" },
+    { id: 105, title: "设置", icon: "settings", link: "#" }, // 逻辑上我们会拦截这个点击打开弹窗
+    { id: 106, title: "关于我们", icon: "info", link: "#" }
+  ];
