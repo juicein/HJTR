@@ -240,6 +240,80 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 
 
+
+
+
+
+
+
+/* =========================================================
+   Settings Dialog（MD3 优化版）
+   只影响设置弹窗，不影响其他 dialog
+   ========================================================= */
+
+/* 整个设置弹窗 */
+#settings-dialog {
+  padding: 0;
+}
+
+/* Header：不挤、不压 */
+#settings-dialog .dialog-header {
+  padding: 20px 24px;
+  gap: 12px;
+}
+
+/* 内容区域：有呼吸感 + 小屏可滚动 */
+#settings-dialog .dialog-content {
+  padding: 24px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;                 /* 关键：行间距 */
+  max-height: 60vh;          /* 防止小屏溢出 */
+  overflow-y: auto;
+}
+
+/* 单个设置项 = 卡片 */
+#settings-dialog .setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  min-height: 56px;          /* Material 推荐触控高度 */
+  padding: 12px 16px;
+
+  background: var(--md-sys-color-surface-container);
+  border-radius: 16px;
+}
+
+/* 左侧文字 */
+#settings-dialog .setting-label {
+  font-size: 0.95rem;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0.1px;
+}
+
+/* select 下拉框 */
+#settings-dialog .styled-select {
+  min-width: 120px;
+  height: 40px;
+}
+
+/* switch 微调（视觉更平衡） */
+#settings-dialog .switch {
+  transform: scale(1.05);
+}
+
+/* iOS 滚动更顺滑 */
+#settings-dialog .dialog-content {
+  -webkit-overflow-scrolling: touch;
+}
+
+.icon-btn { background:none; border:none; padding:8px; border-radius:50%; color:inherit; cursor:pointer; }
+.icon-btn.on-primary { color: var(--md-sys-color-primary); background: var(--md-sys-color-on-primary); }
+.text-btn { background:none; border:none; color:var(--md-sys-color-primary); font-weight:600; cursor:pointer; padding:4px 8px; }
+.tonal-btn { background:var(--md-sys-color-secondary-container); color:var(--md-sys-color-on-surface); border:none; padding:10px 20px; border-radius:12px; font-weight:600; cursor: pointer; }
+
 dialog {
     border: none; background: var(--md-sys-color-surface);
     margin: auto; padding: 0; box-shadow: 0 25px 50px rgba(0,0,0,0.3);
