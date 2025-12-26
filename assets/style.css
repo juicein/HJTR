@@ -223,3 +223,63 @@ dialog::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
 .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
 input:checked + .slider { background-color: var(--md-sys-color-primary); }
 input:checked + .slider:before { transform: translateX(20px); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+dialog {
+    border: none; background: var(--md-sys-color-surface);
+    margin: auto; padding: 0; box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+dialog::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+
+
+/* --- 侧边栏 Drawer (修复版) --- */
+.drawer {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 300px;
+    background: var(--md-sys-color-surface-container);
+    z-index: 200;
+    transform: translateX(-100%); /* 默认移出屏幕 */
+    transition: transform var(--motion-duration-medium) var(--motion-easing-emphasized);
+    padding: 16px;
+    box-shadow: 1px 0 10px rgba(0,0,0,0.1);
+    display: flex; flex-direction: column;
+}
+.drawer.open { transform: translateX(0); }
+
+.drawer-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-top: var(--safe-top); }
+.drawer-content { display: flex; flex-direction: column; gap: 8px; }
+.drawer-item {
+    display: flex; align-items: center; gap: 16px; padding: 16px;
+    border-radius: var(--shape-corner-m);
+    text-decoration: none; color: var(--md-sys-color-on-surface);
+    font-weight: 500;
+    transition: background 0.2s;
+}
+.drawer-item:active, .drawer-item:hover { background: rgba(0,0,0,0.05); }
+
+.drawer-scrim {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 150;
+    opacity: 0; pointer-events: none; /* 默认不挡点击 */
+    transition: opacity 0.3s;
+}
+.drawer.open + .drawer-scrim { opacity: 1; pointer-events: auto; }
+
+/* --- 顶部栏 --- */
+.top-app-bar { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--md-sys-color-surface); position: sticky; top: 0; z-index: 100; }
+.logo-container { flex: 1; display: flex; justify-content: center; }
+.app-logo { height: 28px; width: auto; }
+@media (prefers-color-scheme: dark) { .app-logo { filter: brightness(0) invert(1); } }
