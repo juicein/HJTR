@@ -10,27 +10,26 @@
 <body>
     <div id="system-banner" class="system-banner">
         <span class="material-symbols-outlined">campaign</span>
-        <span id="system-msg" style="flex:1;">系统通知...</span>
+        <span id="system-msg" style="flex:1;">系统通知内容...</span>
         <button class="icon-btn" id="close-banner"><span class="material-symbols-outlined">close</span></button>
     </div>
 
-    <aside id="nav-drawer" class="drawer">
+    <div id="drawer-scrim" class="drawer-scrim"></div>
+    <nav id="nav-drawer" class="nav-drawer">
         <div class="drawer-header">
-            <h2 class="drawer-title">导航</h2>
             <button class="icon-btn" id="close-drawer"><span class="material-symbols-outlined">menu_open</span></button>
+            <div class="drawer-title">导航菜单</div>
         </div>
         <div id="drawer-menu-list" class="drawer-content"></div>
-    </aside>
-    <div id="drawer-scrim" class="scrim"></div>
+    </nav>
 
     <header class="top-app-bar">
-        <div style="display:flex; align-items:center; gap:4px;">
+        <div class="start-section">
             <button class="icon-btn" id="menu-btn"><span class="material-symbols-outlined">menu</span></button>
+            <img src="assets/logo.png" alt="Logo" class="app-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+            <span style="display:none; font-weight:bold; font-size:1.2rem;">资讯中心</span>
         </div>
-        <div class="logo-container">
-            <img src="assets/logo.png" alt="Logo" class="app-logo">
-        </div>
-        <div>
+        <div class="end-section">
             <button class="icon-btn" id="search-trigger"><span class="material-symbols-outlined">search</span></button>
             <button class="icon-btn" id="settings-trigger"><span class="material-symbols-outlined">settings</span></button>
         </div>
@@ -38,30 +37,21 @@
 
     <main class="main-layout">
         
-        <section class="left-column">
-            
-            <div id="headlines-container" class="headlines-section"></div>
+        <div class="layout-sidebar-group">
+            <section class="headlines-card" id="headlines-container">
+                </section>
 
-            <div class="card service-card">
+            <section class="card menu-card">
                 <div class="section-header">
                     <h3>快捷服务</h3>
-                    <button class="text-btn" id="toggle-menu-btn" style="font-size:0.8rem;">全部</button>
+                    <button class="text-btn" id="toggle-menu-btn" style="font-size:0.8rem;">展开</button>
                 </div>
-                <div class="menu-grid" id="menu-grid"></div>
-            </div>
+                <div class="menu-grid" id="menu-grid">
+                    </div>
+            </section>
+        </div>
 
-            <div class="app-download-card desktop-only" id="dl-card-desktop">
-                <div class="dl-content">
-                    <span class="material-symbols-outlined icon-lg">android</span>
-                    <div><h4>下载客户端</h4><p>体验升级</p></div>
-                </div>
-                <button class="icon-btn on-primary"><span class="material-symbols-outlined">download</span></button>
-            </div>
-            
-            <p class="copyright desktop-only">© 2025 All rights reserved.</p>
-        </section>
-
-        <section class="right-column">
+        <div class="layout-content-group">
             <div class="section-header">
                 <h3>近期新闻</h3>
                 <button class="tonal-btn" id="history-news-btn">历史归档</button>
@@ -72,55 +62,63 @@
             </div>
             
             <button class="tonal-btn load-more-btn" id="load-more-news">展开更多</button>
-        </section>
+        </div>
 
-        <footer class="mobile-footer mobile-only">
-            <div class="app-download-card" id="dl-card-mobile">
+        <div class="layout-footer-group">
+            <div class="app-download-card">
                 <div class="dl-content">
-                    <span class="material-symbols-outlined icon-lg">android</span>
-                    <div><h4>下载客户端</h4><p>体验升级</p></div>
+                    <div class="dl-icon-box">
+                        <span class="material-symbols-outlined">android</span>
+                    </div>
+                    <div>
+                        <h4>下载客户端</h4>
+                        <p>实时推送 · 体验升级</p>
+                    </div>
                 </div>
-                <button class="icon-btn on-primary"><span class="material-symbols-outlined">download</span></button>
+                <button class="icon-btn dl-btn"><span class="material-symbols-outlined">download</span></button>
             </div>
-            <p class="copyright">© 2025 All rights reserved.</p>
-        </footer>
+            <p class="copyright-text">© 2025 News Portal. All rights reserved.</p>
+        </div>
 
     </main>
 
     <dialog id="search-dialog" class="fullscreen-dialog">
         <div class="dialog-header">
-            <button class="icon-btn" onclick="document.getElementById('search-dialog').close()"><span class="material-symbols-outlined">arrow_back</span></button>
-            <input type="text" id="search-input" placeholder="搜索新闻、服务..." class="search-field">
+            <button class="icon-btn form-close"><span class="material-symbols-outlined">arrow_back</span></button>
+            <input type="text" id="search-input" placeholder="搜索新闻、服务..." autocomplete="off">
         </div>
         <div class="dialog-content" id="search-results"></div>
     </dialog>
 
     <dialog id="history-dialog" class="fullscreen-dialog">
         <div class="dialog-header">
-            <button class="icon-btn" onclick="document.getElementById('history-dialog').close()"><span class="material-symbols-outlined">close</span></button>
+            <button class="icon-btn form-close"><span class="material-symbols-outlined">close</span></button>
             <h2>历史归档</h2>
         </div>
-        <div id="archive-toolbar" class="archive-toolbar"></div>
+        <div id="archive-toolbar" class="archive-toolbar">
+            </div>
         <div class="dialog-content" id="archive-results"></div>
     </dialog>
 
     <dialog id="settings-dialog" class="center-dialog">
         <div class="dialog-header">
             <h2 style="flex:1;">设置</h2>
-            <button class="icon-btn" onclick="document.getElementById('settings-dialog').close()"><span class="material-symbols-outlined">close</span></button>
+            <button class="icon-btn form-close"><span class="material-symbols-outlined">close</span></button>
         </div>
         <div class="dialog-content">
-            <div class="setting-row">
-                <span class="setting-label">地区筛选</span>
-                <select id="location-select" class="md-select"><option value="all">全部</option></select>
-            </div>
-            <div class="setting-row">
-                <span class="setting-label">开启系统通知</span>
-                <label class="switch"><input type="checkbox" id="notification-switch"><span class="slider"></span></label>
-            </div>
-            <div class="setting-row">
-                <span class="setting-label">显示下载入口</span>
-                <label class="switch"><input type="checkbox" id="dl-card-switch"><span class="slider"></span></label>
+            <div class="setting-group">
+                <div class="setting-row">
+                    <span class="setting-label">地区筛选</span>
+                    <select id="location-select" class="md-select"><option value="all">全部</option></select>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">系统通知</span>
+                    <label class="switch"><input type="checkbox" id="notification-switch"><span class="slider"></span></label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">显示下载入口</span>
+                    <label class="switch"><input type="checkbox" id="dl-card-switch"><span class="slider"></span></label>
+                </div>
             </div>
         </div>
     </dialog>
