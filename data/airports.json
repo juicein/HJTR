@@ -305,5 +305,33 @@
     "aliases": ["茶花"],
     "level": "4E",
     "runways": 2
+  },
+  {
+    "name": "兴州兴扬",
+    "code": "XZA",
+    "lat": 36.50770,
+    "lng": 103.61755,
+    "aliases": ["兴州"],
+    "level": "4E",
+    "runways": 1
+  },
+{
+    "name": "鸭城海希",
+    "code": "HXA",
+    "lat": 30.57941,
+    "lng": 103.95920,
+    "aliases": ["鸭城"],
+    "level": "4E",
+    "runways": 1
+  },
+{
+    "name": "鸭城云琴",
+    "code": "YQA",
+    "lat": 30.31034,
+    "lng": 104.44397,
+    "aliases": ["鸭城"],
+    "level": "4F",
+    "runways": 3
   }
+
 ]
