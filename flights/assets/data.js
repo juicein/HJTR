@@ -239,3 +239,21 @@ const flightsData = `
 
 
 `;
+
+
+
+
+async function loadFlights() {
+  const response = await fetch("../data/flight_data.txt");
+
+  if (!response.ok) {
+    throw new Error("读取 flight_data.txt 失败");
+  }
+
+  const flightsData = await response.text();
+  console.log(flightsData);
+
+  return flightsData;
+}
+
+loadFlights();
