@@ -257,3 +257,8 @@ async function loadFlights() {
 }
 
 loadFlights();
+
+
+
+const response = await fetch("../data/flight_data.txt");
+const flightsData = await response.text();
