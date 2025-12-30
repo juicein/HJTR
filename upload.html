@@ -2,26 +2,19 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>航班数据可视化编辑器</title>
+<title>航班数据编辑器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root {
-  --primary: #006495;
-  --bg: #f4f7fb;
-  --card: #ffffff;
-  --border: #dbe3ec;
-}
-
 body {
   margin: 0;
-  background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  font-family: system-ui, -apple-system;
+  background: #f4f7fb;
 }
 
 header {
-  background: var(--primary);
-  color: #fff;
+  background: #006495;
+  color: white;
   padding: 14px 20px;
   font-size: 18px;
 }
@@ -33,7 +26,7 @@ main {
 }
 
 .card {
-  background: var(--card);
+  background: white;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,.08);
   overflow: hidden;
@@ -43,7 +36,7 @@ main {
   display: flex;
   gap: 10px;
   padding: 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #ddd;
 }
 
 button {
@@ -51,18 +44,10 @@ button {
   border-radius: 8px;
   padding: 8px 14px;
   cursor: pointer;
-  font-size: 14px;
 }
 
-.load {
-  background: #e3f2fd;
-  color: #004b7a;
-}
-
-.save {
-  background: #006495;
-  color: white;
-}
+.load { background: #e3f2fd; }
+.save { background: #006495; color: white; }
 
 textarea {
   width: 100%;
@@ -71,110 +56,138 @@ textarea {
   outline: none;
   resize: none;
   padding: 16px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 14px;
-  line-height: 1.6;
+  font-family: ui-monospace, monospace;
   white-space: pre;
+  font-size: 14px;
 }
-.footer {
-  padding: 10px 16px;
-  font-size: 12px;
-  color: #666;
-  background: #fafafa;
+
+dialog {
+  border: none;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.3);
+}
+
+dialog button {
+  margin-top: 12px;
 }
 </style>
 </head>
 
 <body>
-<header>✈ 航班数据 TXT 在线编辑器（原格式保留）</header>
+<header>✈ 航班数据 TXT 在线编辑</header>
 
 <main>
   <div class="card">
     <div class="toolbar">
-      <button class="load" onclick="loadFile()">读取 GitHub 文件</button>
-      <button class="save" onclick="saveFile()">保存并提交</button>
+      <button class="save" onclick="saveFile()">保存到 GitHub</button>
     </div>
 
-    <textarea id="editor" spellcheck="false"></textarea>
-
-    <div class="footer" id="status">
-      未加载
-    </div>
+    <textarea id="editor"></textarea>
   </div>
 </main>
 
-<script>
-/* ==========================
-   ⚠️ 危险区域（内部使用）
-   ========================== */
+<dialog id="msgBox">
+  <div id="msgText"></div>
+  <button onclick="msgBox.close()">确定</button>
+</dialog>
 
-const GITHUB_TOKEN = "ghp_XXXXXXXXXXXXXXXXXXXXXXXX"; // ⚠️不要公开
+<script>
+const GITHUB_TOKEN = "ghp_XXXXXXXXXXXXXXXXXXXX"; // ⚠️内部使用
 const REPO = "juicein/HJTR";
 const FILE_PATH = "data/flight_data.txt";
 
-/* ========================== */
-
 let fileSha = "";
 
-/* 读取文件 */
-async function loadFile() {
-  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-    headers: {
-      Authorization: "token " + GITHUB_TOKEN
-    }
-  });
+const editor = document.getElementById("editor");
+const msgBox = document.getElementById("msgBox");
+const msgText = document.getElementById("msgText");
 
-  const data = await res.json();
-  fileSha = data.sha;
-
-  const content = decodeURIComponent(
-    escape(atob(data.content))
-  );
-
-  editor.value = content;
-  status.innerText = "已从 GitHub 读取";
+function showMsg(text) {
+  msgText.innerText = text;
+  msgBox.showModal();
 }
 
-/* 获取公网 IP */
+/* 自动加载 */
+document.addEventListener("DOMContentLoaded", loadFile);
+
+/* 加载文件 */
+async function loadFile() {
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`,
+      {
+        headers: { Authorization: "token " + GITHUB_TOKEN }
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("无法读取文件：" + res.status);
+    }
+
+    const data = await res.json();
+    fileSha = data.sha;
+
+    editor.value = decodeURIComponent(
+      escape(atob(data.content))
+    );
+
+  } catch (e) {
+    showMsg("加载失败\n" + e.message);
+  }
+}
+
+/* 获取 IP */
 async function getIP() {
   try {
-    const res = await fetch("https://api.ipify.org?format=json");
-    const data = await res.json();
-    return data.ip;
+    const r = await fetch("https://api.ipify.org?format=json");
+    const j = await r.json();
+    return j.ip;
   } catch {
     return "unknown";
   }
 }
 
-/* 保存文件 */
+/* 保存 */
 async function saveFile() {
-  const ip = await getIP();
-  const ua = navigator.userAgent;
+  if (!fileSha) {
+    showMsg("未加载原文件，无法保存");
+    return;
+  }
 
-  const contentBase64 = btoa(
-    unescape(encodeURIComponent(editor.value))
-  );
+  try {
+    const ip = await getIP();
+    const content = btoa(
+      unescape(encodeURIComponent(editor.value))
+    );
 
-  const message =
-    `更新航班数据\nIP: ${ip}\n设备: ${ua}\n时间: ${new Date().toLocaleString()}`;
+    const res = await fetch(
+      `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "token " + GITHUB_TOKEN,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: `更新航班数据\nIP:${ip}\n设备:${navigator.userAgent}`,
+          content,
+          sha: fileSha
+        })
+      }
+    );
 
-  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
-    method: "PUT",
-    headers: {
-      Authorization: "token " + GITHUB_TOKEN,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      message,
-      content: contentBase64,
-      sha: fileSha
-    })
-  });
+    const result = await res.json();
 
-  if (res.ok) {
-    status.innerText = "保存成功（已写入  历史）";
-  } else {
-    status.innerText = "保存失败";
+    if (!res.ok) {
+      throw new Error(result.message || "保存失败");
+    }
+
+    fileSha = result.content.sha;
+    showMsg("✅ 保存成功，已写入 历史");
+
+  } catch (e) {
+    showMsg("❌ 保存失败\n" + e.message);
   }
 }
 </script>
