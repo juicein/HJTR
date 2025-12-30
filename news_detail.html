@@ -5,13 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新闻详情</title>
 
-    <!-- ===== QQ / 微信 兜底分享 Meta（HTML 首次加载可读）===== -->
+    <!-- ===== QQ / 微信 兜底分享 Meta（首次 HTML 可读）===== -->
     <meta property="og:type" content="article">
     <meta property="og:title" content="新闻详情">
     <meta property="og:description" content="点击查看新闻内容">
     <meta property="og:image" content="https://your-domain.com/assets/share.jpg">
     <meta property="og:url" content="">
-
     <meta name="description" content="点击查看新闻内容">
     <!-- =================================================== -->
 
@@ -62,14 +61,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const res = await fetch('news_content.json');
         const list = await res.json();
         const news = list[id - 1];
+        if (!news) throw 0;
 
-        if (!news) throw 'not found';
-
+        // ===== 页面内容 =====
         d('d-title').innerText = news.title;
-        d('d-loc').innerText = news.location;
-        d('d-date').innerText = news.date;
-        d('d-auth').innerText = news.author;
-        d('d-content').innerText = news.content;
+        d('d-loc').innerText = news.location || '';
+        d('d-date').innerText = news.date || '';
+        d('d-auth').innerText = news.author || '';
+        d('d-content').innerText = news.content || '';
+        document.title = news.title;
 
         if (news.image) {
             d('d-img').src = news.image;
@@ -81,22 +81,39 @@ document.addEventListener('DOMContentLoaded', async () => {
             d('d-link').style.display = 'block';
         }
 
-        document.title = news.title;
+        // ===== 关键：同步更新 OG（仅对“已打开页面→点分享”有效）=====
+        setOG('og:title', news.title);
+        setOG('og:description', (news.content || '').slice(0, 80));
+        setOG('og:image', news.image || '');
+        setOG('og:url', location.href);
+        setName('description', (news.content || '').slice(0, 80));
 
     } catch {
         d('d-title').innerText = '加载失败';
     }
 
+    // 分享按钮
     d('share-btn').onclick = () => {
         if (navigator.share) {
-            navigator.share({ title: document.title, url: location.href });
+            navigator.share({
+                title: document.title,
+                url: location.href
+            });
         } else {
             navigator.clipboard.writeText(location.href);
             alert('链接已复制');
         }
     };
 
-    function d(id){ return document.getElementById(id) }
+    function d(id){ return document.getElementById(id); }
+    function setOG(p, v){
+        const m = document.querySelector(`meta[property="${p}"]`);
+        if (m) m.setAttribute('content', v);
+    }
+    function setName(n, v){
+        const m = document.querySelector(`meta[name="${n}"]`);
+        if (m) m.setAttribute('content', v);
+    }
 });
 </script>
 
