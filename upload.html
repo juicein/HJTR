@@ -1,234 +1,256 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>航班数据可视化编辑器</title>
+<meta charset="UTF-8">
+<title>HJTR 航班数据可视化编辑器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-  background: #f5f7fb;
+:root {
+  --primary:#006495;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --border:#e0e6ed;
 }
-header {
-  padding: 16px;
-  background: #006495;
-  color: white;
-  font-size: 20px;
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont;
+  background:var(--bg);
 }
-.toolbar {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
+
+header{
+  background:var(--primary);
+  color:#fff;
+  padding:16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-button {
-  padding: 8px 14px;
-  border: none;
-  border-radius: 8px;
-  background: #006495;
-  color: white;
-  cursor: pointer;
+
+header h1{
+  margin:0;
+  font-size:18px;
 }
-button.secondary {
-  background: #ddd;
-  color: #333;
+
+nav button{
+  margin-left:8px;
 }
-select, input {
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+
+button{
+  border:none;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
 }
-#list {
-  padding: 12px;
+
+main{
+  padding:16px;
 }
-.card {
-  background: white;
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 12px;
-  box-shadow: 0 4px 10px rgba(0,0,0,.06);
+
+.toolbar{
+  display:flex;
+  gap:10px;
+  margin-bottom:12px;
 }
-.card h3 {
-  margin: 0 0 6px;
+
+input, select, textarea{
+  width:100%;
+  padding:8px;
+  border-radius:6px;
+  border:1px solid var(--border);
 }
-.card small {
-  color: #666;
+
+.flight-card{
+  background:var(--card);
+  border-radius:10px;
+  padding:12px;
+  margin-bottom:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,.05);
 }
-.card-actions {
-  margin-top: 10px;
+
+.flight-card h3{
+  margin:0 0 6px;
 }
-.card-actions button {
-  margin-right: 6px;
+
+.meta{
+  font-size:13px;
+  color:#555;
 }
-#editor {
-  width: 100%;
-  height: 70vh;
-  font-family: monospace;
+
+.actions{
+  margin-top:8px;
+  display:flex;
+  gap:8px;
 }
-.hidden {
-  display: none;
+
+.hidden{display:none}
+
+textarea{
+  height:60vh;
+  font-family:monospace;
 }
 </style>
 </head>
 
 <body>
 
-<header>✈️ 航班数据可视化管理器</header>
+<header>
+  <h1>HJTR 航班数据编辑器</h1>
+  <nav>
+    <button onclick="showVisual()">可视化</button>
+    <button onclick="showRaw()">纯文本</button>
+    <button onclick="saveToGitHub()">保存</button>
+  </nav>
+</header>
 
-<div class="toolbar">
-  <button onclick="showVisual()">可视化管理</button>
-  <button onclick="showRaw()" class="secondary">纯文本模式</button>
-  <select id="airlineFilter"></select>
-  <button onclick="saveToGitHub()">保存到 GitHub</button>
+<main>
+
+<div id="visualView">
+  <div class="toolbar">
+    <select id="airlineFilter" onchange="render()">
+      <option value="">全部航空公司</option>
+    </select>
+    <button onclick="addFlight()">➕ 新增航班</button>
+  </div>
+
+  <div id="list"></div>
 </div>
 
-<div id="list"></div>
+<div id="rawView" class="hidden">
+  <textarea id="rawText"></textarea>
+</div>
 
-<textarea id="editor" class="hidden"></textarea>
+</main>
 
 <script>
-/* ========= 配置 ========= */
 const githubToken = "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";
 const apiUrl = "https://api.github.com/repos/juicein/HJTR/contents/data/flight_data.txt";
-const airportsUrl = "/data/airports.json";
 
-/* ========= 全局 ========= */
-let rawText = "";
+let rawContent = "";
 let flights = [];
-let airports = [];
+let sha = "";
 
-/* ========= 初始化 ========= */
-init();
-
-async function init() {
-  rawText = await fetchText();
-  airports = await fetch(airportsUrl).then(r=>r.json());
+async function loadData(){
+  const res = await fetch(apiUrl);
+  const data = await res.json();
+  sha = data.sha;
+  rawContent = atob(data.content);
+  document.getElementById("rawText").value = rawContent;
   parseFlights();
+}
+
+function parseFlights(){
+  flights = rawContent.match(/【[^]*?《航班结束》/g) || [];
   buildFilter();
   render();
 }
 
-/* ========= 读取 ========= */
-async function fetchText() {
-  const res = await fetch(apiUrl, {
-    headers: { Authorization: `token ${githubToken}` }
+function buildFilter(){
+  const set = new Set();
+  flights.forEach(f=>{
+    const m = f.match(/『(.+?)』/);
+    if(m) set.add(m[1]);
   });
-  const data = await res.json();
-  return atob(data.content);
+  const sel = document.getElementById("airlineFilter");
+  sel.innerHTML = `<option value="">全部航空公司</option>`;
+  set.forEach(a=>{
+    sel.innerHTML += `<option>${a}</option>`;
+  });
 }
 
-/* ========= 解析（不修改格式） ========= */
-function parseFlights() {
-  flights = rawText.match(/【[^《]+《航班结束》/g) || [];
-}
-
-/* ========= 渲染 ========= */
-function render() {
+function render(){
+  const filter = document.getElementById("airlineFilter").value;
   const list = document.getElementById("list");
   list.innerHTML = "";
 
-  flights.forEach((f, i) => {
-    const airline = f.match(/『(.+?)』/)?.[1] || "";
-    const from = f.match(/《(.+?)出发》/)?.[1] || "";
-    const to = f.match(/《(.+?)到达》/)?.[1] || "";
-    const dep = f.match(/\{(\d+:\d+)\}/)?.[1] || "";
-    const arr = f.match(/\{(\d+:\d+)\}#\+\d+#/)?.[1] || "";
+  flights.forEach((f,i)=>{
+    if(filter && !f.includes(`『${filter}』`)) return;
 
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <h3>${from} → ${to}</h3>
-      <small>${airline} ｜ ${dep} - ${arr}</small>
-      <pre>${f}</pre>
-      <div class="card-actions">
-        <button onclick="editFlight(${i})">编辑</button>
-        <button onclick="deleteFlight(${i})" class="secondary">删除</button>
+    const no = f.match(/【(.+?)】/)?.[1]||"";
+    const airline = f.match(/『(.+?)』/)?.[1]||"";
+    const dep = f.match(/《(.+?)出发》/)?.[1]||"";
+    const arr = f.match(/《(.+?)到达》/)?.[1]||"";
+    const t1 = f.match(/出发》\{(.+?)\}/)?.[1]||"";
+    const t2 = f.match(/到达》\{(.+?)\}/)?.[1]||"";
+
+    list.innerHTML += `
+    <div class="flight-card">
+      <h3>${no}</h3>
+      <div class="meta">${airline}</div>
+      <div class="meta">${dep} ${t1} → ${arr} ${t2}</div>
+      <div class="actions">
+        <button onclick="edit(${i})">✏️ 编辑</button>
+        <button onclick="del(${i})">🗑 删除</button>
       </div>
-    `;
-    list.appendChild(card);
+    </div>`;
   });
 }
 
-/* ========= 筛选 ========= */
-function buildFilter() {
-  const sel = document.getElementById("airlineFilter");
-  const set = new Set(flights.map(f => f.match(/『(.+?)』/)?.[1]).filter(Boolean));
-  sel.innerHTML = `<option value="">全部航空公司</option>`;
-  set.forEach(a=>{
-    const o = document.createElement("option");
-    o.value = a;
-    o.textContent = a;
-    sel.appendChild(o);
-  });
-  sel.onchange = () => {
-    const v = sel.value;
-    flights = v ? rawText.match(/【[^《]+《航班结束》/g).filter(f=>f.includes(`『${v}』`)) : rawText.match(/【[^《]+《航班结束》/g);
-    render();
-  };
-}
-
-/* ========= 编辑 ========= */
-function editFlight(i) {
-  const t = prompt("直接编辑原始字符串（不会改格式）", flights[i]);
-  if (t) {
-    rawText = rawText.replace(flights[i], t);
-    parseFlights();
-    render();
+function edit(i){
+  const text = prompt("编辑完整航班字符串：", flights[i]);
+  if(text){
+    flights[i] = text;
+    rebuildRaw();
   }
 }
 
-function deleteFlight(i) {
-  if (!confirm("确认删除该航班？")) return;
-  rawText = rawText.replace(flights[i], "");
-  parseFlights();
+function del(i){
+  if(confirm("确认删除该航班？")){
+    flights.splice(i,1);
+    rebuildRaw();
+  }
+}
+
+function addFlight(){
+  const text = prompt("粘贴新的航班字符串：");
+  if(text){
+    flights.push(text);
+    rebuildRaw();
+  }
+}
+
+function rebuildRaw(){
+  rawContent = flights.join("\n");
+  document.getElementById("rawText").value = rawContent;
   render();
 }
 
-/* ========= 模式切换 ========= */
-function showRaw() {
-  document.getElementById("list").classList.add("hidden");
-  const ed = document.getElementById("editor");
-  ed.classList.remove("hidden");
-  ed.value = rawText;
+function showRaw(){
+  document.getElementById("visualView").classList.add("hidden");
+  document.getElementById("rawView").classList.remove("hidden");
 }
 
-function showVisual() {
-  document.getElementById("list").classList.remove("hidden");
-  document.getElementById("editor").classList.add("hidden");
+function showVisual(){
+  document.getElementById("rawView").classList.add("hidden");
+  document.getElementById("visualView").classList.remove("hidden");
 }
 
-/* ========= 保存 ========= */
-async function saveToGitHub() {
-  const ed = document.getElementById("editor");
-  if (!ed.classList.contains("hidden")) {
-    rawText = ed.value;
-  }
+async function saveToGitHub(){
+  const content = btoa(unescape(encodeURIComponent(
+    document.getElementById("rawText").value
+  )));
 
-  const ip = await fetch("https://api.ipify.org").then(r=>r.text());
-  const device = navigator.userAgent;
+  const msg = `编辑航班数据 | ${navigator.userAgent} | ${new Date().toISOString()}`;
 
-  rawText += `\n# Edited by IP: ${ip} | Device: ${device} | Time: ${new Date().toLocaleString()}`;
-
-  const sha = (await fetch(apiUrl, {
-    headers: { Authorization: `token ${githubToken}` }
-  }).then(r=>r.json())).sha;
-
-  await fetch(apiUrl, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${githubToken}`,
-      "Content-Type": "application/json"
+  const res = await fetch(apiUrl,{
+    method:"PUT",
+    headers:{
+      "Authorization":"token "+githubToken,
+      "Content-Type":"application/json"
     },
-    body: JSON.stringify({
-      message: "Update flight_data.txt via visual editor",
-      content: btoa(unescape(encodeURIComponent(rawText))),
+    body:JSON.stringify({
+      message: msg,
+      content,
       sha
     })
   });
 
-  alert("已成功写入 GitHub");
+  alert(res.ok ? "保存成功" : "保存失败");
 }
+
+loadData();
 </script>
+
 </body>
 </html>
