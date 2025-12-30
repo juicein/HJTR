@@ -4,8 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新闻详情</title>
+
+    <!-- ===== QQ / 微信 分享 Meta（新增） ===== -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="新闻详情">
+    <meta property="og:description" content="查看新闻详情">
+    <meta property="og:image" content="">
+    <meta property="og:url" content="">
+
+    <meta name="description" content="查看新闻详情">
+    <meta itemprop="name" content="新闻详情">
+    <meta itemprop="description" content="查看新闻详情">
+    <meta itemprop="image" content="">
+
+    <!-- =================================== -->
+
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="assets/style.css">
+
     <style>
         .detail-page { max-width: 800px; margin: 0 auto; padding: 24px; animation: fadeUp 0.4s ease-out; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -17,9 +33,13 @@
 </head>
 <body>
     <header class="top-app-bar">
-        <button class="icon-btn" onclick="history.back()"><span class="material-symbols-outlined">arrow_back</span></button>
+        <button class="icon-btn" onclick="history.back()">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
         <div style="flex:1; text-align:center; font-weight:bold;">详情</div>
-        <button class="icon-btn" id="share-btn"><span class="material-symbols-outlined">share</span></button>
+        <button class="icon-btn" id="share-btn">
+            <span class="material-symbols-outlined">share</span>
+        </button>
     </header>
 
     <main class="detail-page">
@@ -30,7 +50,11 @@
         </div>
         <img id="d-img" class="d-img" src="">
         <div id="d-content" class="d-content"></div>
-        <a id="d-link" href="#" target="_blank" class="icon-btn method-close" style="display:none; margin-top:30px; text-align:center;">查看原文</a>
+        <a id="d-link" href="#" target="_blank"
+           class="icon-btn method-close"
+           style="display:none; margin-top:30px; text-align:center;">
+            查看原文
+        </a>
     </main>
 
     <script>
@@ -55,23 +79,62 @@
                         img.src = news.image;
                         img.style.display = 'block';
                     }
+
                     if (news.link) {
                         const btn = document.getElementById('d-link');
                         btn.href = news.link;
                         btn.style.display = 'block';
                     }
+
+                    /* ===== 动态更新分享 Meta（新增） ===== */
+                    document.title = news.title;
+
+                    setMeta('og:title', news.title);
+                    setMeta('og:description', news.content.slice(0, 60));
+                    setMeta('og:image', news.image || '');
+                    setMeta('og:url', location.href);
+
+                    setMetaName('description', news.content.slice(0, 60));
+                    setItemProp('name', news.title);
+                    setItemProp('description', news.content.slice(0, 60));
+                    setItemProp('image', news.image || '');
+                    /* ==================================== */
+
                 } else {
                     document.getElementById('d-title').innerText = "未找到该新闻";
                 }
             } catch (e) {
                 document.getElementById('d-title').innerText = "加载失败，请确保使用 Local Server";
             }
-            
+
             document.getElementById('share-btn').addEventListener('click', () => {
-                if(navigator.share) navigator.share({title: document.title, url: location.href});
-                else alert('链接已复制');
+                if (navigator.share) {
+                    navigator.share({
+                        title: document.title,
+                        url: location.href
+                    });
+                } else {
+                    navigator.clipboard.writeText(location.href);
+                    alert('链接已复制');
+                }
             });
         });
+
+        /* ===== Meta 工具函数（新增） ===== */
+        function setMeta(property, content) {
+            const el = document.querySelector(`meta[property="${property}"]`);
+            if (el) el.setAttribute('content', content);
+        }
+
+        function setMetaName(name, content) {
+            const el = document.querySelector(`meta[name="${name}"]`);
+            if (el) el.setAttribute('content', content);
+        }
+
+        function setItemProp(prop, content) {
+            const el = document.querySelector(`meta[itemprop="${prop}"]`);
+            if (el) el.setAttribute('content', content);
+        }
     </script>
 </body>
 </html>
