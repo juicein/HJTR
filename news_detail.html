@@ -3,27 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>新闻详情</title>
+    <title>加载中...</title>
 
-    <!-- ===== QQ / 微信 OG（初始占位，JS 会覆盖）===== -->
+    <!-- ===== 默认 OG（用于 QQ WebView 分享）===== -->
     <meta property="og:type" content="article">
     <meta property="og:title" content="加载中...">
-    <meta property="og:description" content="正在加载新闻内容">
+    <meta property="og:description" content="正在加载新闻...">
     <meta property="og:image" content="">
     <meta property="og:url" content="">
-    <meta name="description" content="正在加载新闻内容">
-    <!-- ================================================= -->
+    <!-- ========================================= -->
 
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <link rel="stylesheet" href="assets/style.css">
 
     <style>
-        .detail-page { max-width: 800px; margin: 0 auto; padding: 24px; animation: fadeUp .4s ease-out; }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(20px) } to { opacity:1; transform:none } }
-        .d-img { width:100%; border-radius:20px; margin-bottom:20px; display:none }
-        .d-meta { color:var(--md-sys-color-outline); margin-bottom:20px; font-size:.9rem }
-        .d-tag { background:var(--md-sys-color-primary-container); color:var(--md-sys-color-on-primary-container); padding:4px 10px; border-radius:8px; font-weight:bold; margin-right:10px }
-        .d-content { line-height:1.8; font-size:1.1rem; white-space:pre-wrap }
+        .detail-page { max-width: 800px; margin: 0 auto; padding: 24px; animation: fadeUp 0.4s ease-out; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .d-img { width: 100%; border-radius: 20px; margin-bottom: 20px; display: none; }
+        .d-meta { color: var(--md-sys-color-outline); margin-bottom: 20px; font-size: 0.9rem; }
+        .d-tag { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 4px 10px; border-radius: 8px; font-weight: bold; margin-right: 10px;}
+        .d-content { line-height: 1.8; font-size: 1.1rem; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -32,44 +31,46 @@
     <button class="icon-btn" onclick="history.back()">
         <span class="material-symbols-outlined">arrow_back</span>
     </button>
-    <div style="flex:1;text-align:center;font-weight:bold">详情</div>
+    <div style="flex:1; text-align:center; font-weight:bold;">详情</div>
     <button class="icon-btn" id="share-btn">
         <span class="material-symbols-outlined">share</span>
     </button>
 </header>
 
 <main class="detail-page">
-    <h1 id="d-title">加载中...</h1>
+    <h1 id="d-title" style="margin-bottom:16px;">加载中...</h1>
     <div class="d-meta">
         <span id="d-loc" class="d-tag"></span>
-        <span id="d-date"></span> · <span id="d-auth"></span>
+        <span id="d-date"></span> &nbsp; <span id="d-auth"></span>
     </div>
-    <img id="d-img" class="d-img">
+    <img id="d-img" class="d-img" src="">
     <div id="d-content" class="d-content"></div>
-    <a id="d-link" target="_blank"
+    <a id="d-link" href="#" target="_blank"
        class="icon-btn method-close"
-       style="display:none;margin-top:30px;text-align:center">
-       查看原文
+       style="display:none; margin-top:30px; text-align:center;">
+        查看原文
     </a>
 </main>
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-    const id = Number(new URLSearchParams(location.search).get('id'));
+    const params = new URLSearchParams(window.location.search);
+    const id = parseInt(params.get('id'));
 
     try {
         const res = await fetch('news_content.json');
-        const list = await res.json();
-        const news = list[id - 1];
+        const data = await res.json();
+        const news = data.find((item, index) => (index + 1) === id);
+
         if (!news) throw 0;
 
-        // 页面内容
+        // ===== 页面内容 =====
+        document.title = news.title;
         d('d-title').innerText = news.title;
         d('d-loc').innerText = news.location;
         d('d-date').innerText = news.date;
         d('d-auth').innerText = news.author;
         d('d-content').innerText = news.content;
-        document.title = news.title;
 
         if (news.image) {
             d('d-img').src = news.image;
@@ -81,14 +82,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             d('d-link').style.display = 'block';
         }
 
-        /* ===== 关键：同步更新 OG（和你“能用”的代码一致） ===== */
+        // ===== 关键：同步更新 OG（完全学习你上面的方式）=====
         setOG('og:title', news.title);
-        setOG('og:description', news.content.slice(0, 80) + '…');
-        setOG('og:image', news.image || '');
+        setOG('og:description', news.content.slice(0, 80) + '...');
+        if (news.image) setOG('og:image', news.image);
         setOG('og:url', location.href);
-
-        setMetaName('description', news.content.slice(0, 80) + '…');
-        /* ===================================================== */
+        // ======================================================
 
     } catch {
         d('d-title').innerText = '加载失败';
@@ -96,20 +95,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     d('share-btn').onclick = () => {
         if (navigator.share) {
-            navigator.share({ title: document.title, url: location.href });
+            navigator.share({
+                title: document.title,
+                url: location.href
+            });
         } else {
             navigator.clipboard.writeText(location.href);
             alert('链接已复制');
         }
     };
 
-    function d(id){ return document.getElementById(id) }
+    function d(id){ return document.getElementById(id); }
     function setOG(p, v){
         const m = document.querySelector(`meta[property="${p}"]`);
-        if (m) m.setAttribute('content', v);
-    }
-    function setMetaName(n, v){
-        const m = document.querySelector(`meta[name="${n}"]`);
         if (m) m.setAttribute('content', v);
     }
 });
