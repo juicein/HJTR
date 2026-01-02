@@ -4,46 +4,21 @@
 <meta charset="UTF-8">
 <title>航班数据编辑器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <style>
-body {
-  margin: 0;
-  font-family: system-ui;
-  background: #f4f7fb;
-}
-header {
-  background: #006495;
-  color: white;
-  padding: 14px 20px;
-  font-size: 18px;
-}
-main {
-  max-width: 1100px;
-  margin: 20px auto;
-  padding: 0 16px;
-}
+body { margin:0; font-family:system-ui; background:#f4f7fb }
+header { background:#006495; color:#fff; padding:14px 20px }
+main { max-width:1100px; margin:20px auto; padding:0 16px }
 textarea {
-  width: 100%;
-  height: 70vh;
-  padding: 14px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-  font-family: ui-monospace, monospace;
-  white-space: pre;
+  width:100%; height:65vh; padding:14px;
+  font-family:ui-monospace,monospace;
+  white-space:pre; border-radius:10px;
 }
 button {
-  margin-top: 12px;
-  padding: 10px 18px;
-  border-radius: 8px;
-  border: none;
-  background: #006495;
-  color: white;
-  cursor: pointer;
+  margin-top:10px; padding:10px 18px;
+  background:#006495; color:#fff;
+  border:none; border-radius:8px;
 }
-.status {
-  margin-top: 10px;
-  color: #555;
-}
+.status { margin-top:8px; color:#444 }
 </style>
 </head>
 
@@ -51,59 +26,41 @@ button {
 <header>✈ 航班数据 TXT 编辑器</header>
 
 <main>
-  <textarea id="editor" placeholder="正在加载数据..."></textarea>
+  <textarea id="editor">加载中…</textarea>
   <br>
-  <button onclick="save()">保存到 GitHub</button>
+  <input id="pwd" type="password" placeholder="编辑口令">
+  <br>
+  <button onclick="save()">保存</button>
   <div class="status" id="status"></div>
 </main>
 
 <script>
-/* ⚠️ 一定要换成你真实的 Worker 地址 */
 const API = "https://odd-flower-c9ed.1693076637.workers.dev";
-
 const editor = document.getElementById("editor");
 const status = document.getElementById("status");
 
-/* 页面加载即读取 */
 window.onload = async () => {
   try {
     const res = await fetch(API);
-
-    if (!res.ok) {
-      editor.value = "";
-      status.textContent = "加载失败：" + res.status;
-      return;
-    }
-
     editor.value = await res.text();
-    status.textContent = "已加载 GitHub flight_data.txt";
-
+    status.textContent = "已加载数据";
   } catch (e) {
-    editor.value = "";
-    status.textContent = "无法连接 Worker：" + e.message;
+    status.textContent = "加载失败：" + e.message;
   }
 };
 
-/* 保存 */
 async function save() {
-  status.textContent = "正在保存…";
+  status.textContent = "保存中…";
+  const res = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: editor.value,
+      password: document.getElementById("pwd").value
+    })
+  });
 
-  try {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: editor.value })
-    });
-
-    if (res.ok) {
-      status.textContent = "保存成功 ✔";
-    } else {
-      status.textContent = "保存失败：" + res.status;
-    }
-
-  } catch (e) {
-    status.textContent = "保存异常：" + e.message;
-  }
+  status.textContent = res.ok ? "保存成功" : "保存失败";
 }
 </script>
 </body>
