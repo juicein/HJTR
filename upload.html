@@ -1,68 +1,173 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>航班数据编辑器（基础版）</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<title>航班数据 Wiki 编辑器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <style>
-body{margin:0;font-family:system-ui;background:#f4f7fb}
-header{background:#006495;color:#fff;padding:14px 18px}
-main{max-width:1100px;margin:20px auto;padding:0 16px}
+:root {
+  --p:#006495;
+}
+body{
+  margin:0;
+  font-family:system-ui;
+  background:#f4f7fb;
+}
+header{
+  background:var(--p);
+  color:#fff;
+  padding:14px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+main{
+  max-width:1200px;
+  margin:20px auto;
+  padding:0 16px;
+}
+.tabs button{
+  margin-right:8px;
+  padding:6px 12px;
+  border-radius:6px;
+  border:none;
+}
 textarea{
   width:100%;
-  height:70vh;
+  height:65vh;
   padding:14px;
   border-radius:10px;
   border:1px solid #ccc;
   font-family:ui-monospace,monospace;
   white-space:pre;
 }
-button{
-  margin-top:10px;
-  padding:10px 16px;
-  border-radius:8px;
-  border:none;
-  background:#006495;
-  color:#fff;
+#visual .card{
+  background:#fff;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:10px;
 }
+button{
+  background:var(--p);
+  color:#fff;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
+}
+#status{margin-top:8px;color:#666}
 </style>
 </head>
 
 <body>
-<header>✈ 航班数据 TXT 编辑器（基础）</header>
+<header>
+  ✈ 航班 Wiki 编辑器
+  <button onclick="auth()">管理</button>
+</header>
 
 <main>
+  <div class="tabs">
+    <button onclick="setMode('text')">文本模式</button>
+    <button onclick="setMode('visual')">可视化模式</button>
+  </div>
+
   <textarea id="editor"></textarea>
-  <button onclick="save()">保存到 GitHub</button>
+  <div id="visual" hidden></div>
+
+  <button onclick="save()">保存</button>
   <div id="status"></div>
 </main>
 
 <script>
+/* ================= 配置 ================= */
 const API = "https://odd-flower-c9ed.1693076637.workers.dev";
+
+/* ================= 状态 ================= */
+let mode = "text";
 const editor = document.getElementById("editor");
+const visual = document.getElementById("visual");
 const status = document.getElementById("status");
 
-/* 页面加载即读取 */
-window.onload = async () => {
-  try {
+/* ================= 认证 ================= */
+function auth(){
+  const p = prompt("请输入编辑口令");
+  if(p) localStorage.setItem("wiki_pwd",p);
+}
+function pwd(){
+  return localStorage.getItem("wiki_pwd");
+}
+
+/* ================= 加载 ================= */
+window.onload = async ()=>{
+  try{
     const res = await fetch(API);
-    editor.value = await res.text(); // ⚠️ 必须是 text()
-  } catch (e) {
-    alert("无法读取数据");
+    editor.value = await res.text();   // 中文不乱码
+  }catch(e){
+    alert("无法连接 Worker");
   }
 };
 
-/* 保存 */
-async function save() {
-  status.textContent = "保存中...";
-  const res = await fetch(API, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      content: editor.value
+/* ================= 模式 ================= */
+function setMode(m){
+  mode = m;
+  if(m==="visual"){
+    editor.hidden=true;
+    visual.hidden=false;
+    renderVisual();
+  }else{
+    visual.hidden=true;
+    editor.hidden=false;
+  }
+}
+
+/* ================= 保存 ================= */
+async function save(){
+  status.textContent="保存中...";
+  const res = await fetch(API,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json" },
+    body:JSON.stringify({
+      content:editor.value,
+      password:pwd()
     })
   });
   status.textContent = res.ok ? "保存成功" : "保存失败";
+}
+
+/* ================= 解析 ================= */
+function parseFlights(txt){
+  return txt
+    .split("《航班结束》")
+    .filter(x=>x.includes("【"))
+    .map(x=>x+"《航班结束》");
+}
+function field(s,r){
+  return s.match(r)?.[1]||"";
+}
+
+/* ================= 可视化 ================= */
+function renderVisual(){
+  visual.innerHTML="";
+  let flights=parseFlights(editor.value);
+
+  flights.forEach((f,i)=>{
+    const no = field(f,/【(.+?)】/);
+    const air = field(f,/『(.+?)』/);
+
+    const div=document.createElement("div");
+    div.className="card";
+    div.innerHTML=`
+      <b>${no}</b> ｜ ${air}<br>
+      <button>删除</button>
+    `;
+
+    div.querySelector("button").onclick=()=>{
+      flights.splice(i,1);
+      editor.value=flights.join("");
+      renderVisual();
+    };
+    visual.appendChild(div);
+  });
 }
 </script>
 </body>
