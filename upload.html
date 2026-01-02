@@ -1,62 +1,69 @@
-export default {
-  async fetch(req, env) {
-    const GITHUB_API =
-      "https://api.github.com/repos/juicein/HJTR/contents/data/flight_data.txt";
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>航班数据编辑器（基础版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{margin:0;font-family:system-ui;background:#f4f7fb}
+header{background:#006495;color:#fff;padding:14px 18px}
+main{max-width:1100px;margin:20px auto;padding:0 16px}
+textarea{
+  width:100%;
+  height:70vh;
+  padding:14px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  font-family:ui-monospace,monospace;
+  white-space:pre;
+}
+button{
+  margin-top:10px;
+  padding:10px 16px;
+  border-radius:8px;
+  border:none;
+  background:#006495;
+  color:#fff;
+}
+</style>
+</head>
 
-    const headers = {
-      "Authorization": `token ${env.GITHUB_TOKEN}`,
-      "User-Agent": "flight-wiki-editor",
-      "Accept": "application/vnd.github.v3.raw"
-    };
+<body>
+<header>✈ 航班数据 TXT 编辑器（基础）</header>
 
-    // ===== 读取 =====
-    if (req.method === "GET") {
-      const gh = await fetch(GITHUB_API, { headers });
+<main>
+  <textarea id="editor"></textarea>
+  <button onclick="save()">保存到 GitHub</button>
+  <div id="status"></div>
+</main>
 
-      if (!gh.ok) {
-        return new Response("读取 GitHub 文件失败", { status: 500 });
-      }
+<script>
+const API = "https://odd-flower-c9ed.1693076637.workers.dev";
+const editor = document.getElementById("editor");
+const status = document.getElementById("status");
 
-      // ⚠️ 关键：不要 text()，不要 JSON
-      const buffer = await gh.arrayBuffer();
-
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": "text/plain; charset=utf-8"
-        }
-      });
-    }
-
-    // ===== 写入 =====
-    if (req.method === "POST") {
-      const { content, password } = await req.json();
-
-      // 简单口令示例（你可扩展）
-      if (!["1693076637"].includes(password)) {
-        return new Response("无权限", { status: 403 });
-      }
-
-      // 先拿 SHA
-      const meta = await fetch(GITHUB_API, { headers }).then(r => r.json());
-
-      const body = {
-        message: `Wiki 编辑 @ ${req.headers.get("CF-Connecting-IP")}`,
-        content: btoa(unescape(encodeURIComponent(content))), // UTF-8 → Base64
-        sha: meta.sha
-      };
-
-      const put = await fetch(GITHUB_API, {
-        method: "PUT",
-        headers: {
-          ...headers,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-
-      return new Response(put.ok ? "ok" : "fail");
-    }
-
-    return new Response("Method Not Allowed", { status: 405 });
+/* 页面加载即读取 */
+window.onload = async () => {
+  try {
+    const res = await fetch(API);
+    editor.value = await res.text(); // ⚠️ 必须是 text()
+  } catch (e) {
+    alert("无法读取数据");
   }
 };
+
+/* 保存 */
+async function save() {
+  status.textContent = "保存中...";
+  const res = await fetch(API, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: editor.value
+    })
+  });
+  status.textContent = res.ok ? "保存成功" : "保存失败";
+}
+</script>
+</body>
+</html>
