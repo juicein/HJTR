@@ -2,207 +2,227 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>航行 StarFlight</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>航行 - 航班预订</title>
   <link rel="stylesheet" href="style.css" />
   <link href="https://fonts.googleapis.com/icon?family=Material+Symbols+Rounded" rel="stylesheet">
 </head>
 <body>
 
-  <header class="top-app-bar">
-    <div class="leading">
-      <button class="icon-btn" id="navHome" onclick="routeTo('search')" title="主页">
-        <span class="material-symbols-rounded">home</span>
-      </button>
-      <span class="headline" id="pageTitle">探索航班</span>
+  <header class="app-top-bar">
+    <div class="logo-section">
+      <span class="material-symbols-rounded logo-icon">flight_takeoff</span>
+      <span class="page-title" id="pageTitle">探索航班</span>
     </div>
-    <div class="trailing">
-      <button class="icon-btn" onclick="routeTo('search')" title="预订">
-        <span class="material-symbols-rounded">flight_takeoff</span>
+    
+    <div class="top-bar-actions">
+      <button class="icon-nav active" onclick="switchTab('search')" title="预订">
+        <span class="material-symbols-rounded">search</span>
       </button>
-      <button class="icon-btn" onclick="routeTo('wallet')" title="卡包">
+      <button class="icon-nav" onclick="switchTab('wallet')" title="卡包">
         <span class="material-symbols-rounded">wallet</span>
       </button>
-      <button class="icon-btn" onclick="routeTo('settings')" title="设置">
+      <button class="icon-nav" onclick="switchTab('settings')" title="设置">
         <span class="material-symbols-rounded">settings</span>
       </button>
-      <button class="icon-btn" onclick="window.location.href='../flights/dgree.html'" title="热度">
+      <a href="../flights/dgree.html" class="icon-nav" title="热度">
         <span class="material-symbols-rounded">local_fire_department</span>
-      </button>
+      </a>
     </div>
   </header>
 
   <main class="main-content">
     
     <section id="view-search" class="view active">
-      <div class="layout-container">
+      <div class="split-layout">
         
-        <aside class="search-pane">
-          <div class="search-card">
-            
-            <div class="input-airport-group">
-              <div class="airport-display" onclick="triggerAirportInput('from')">
+        <div class="search-panel">
+          <div class="station-card">
+            <div class="station-row">
+              <div class="station-input-group">
                 <span class="label">从</span>
-                <div class="code-text" id="dispFromCode">SIN</div>
-                <div class="city-text" id="dispFromCity">新加坡</div>
+                <div class="station-display">
+                  <h2 id="fromCodeDisp">---</h2>
+                  <input type="text" id="fromInput" placeholder="出发城市" list="airportSuggestions">
+                </div>
+                <button class="mini-btn" onclick="openAirportPicker('from')" title="选择机场">
+                  <span class="material-symbols-rounded">arrow_drop_down</span>
+                </button>
               </div>
-              <button class="swap-btn" id="swapBtn">
-                <span class="material-symbols-rounded">sync_alt</span>
-              </button>
-              <div class="airport-display" onclick="triggerAirportInput('to')">
+
+              <div class="exchange-icon">
+                <button class="icon-btn-outlined" id="swapBtn">
+                  <span class="material-symbols-rounded">sync_alt</span>
+                </button>
+              </div>
+
+              <div class="station-input-group right-align">
                 <span class="label">至</span>
-                <div class="code-text" id="dispToCode">HND</div>
-                <div class="city-text" id="dispToCity">东京</div>
+                <div class="station-display">
+                  <h2 id="toCodeDisp">---</h2>
+                  <input type="text" id="toInput" placeholder="到达城市" list="airportSuggestions">
+                </div>
+                <button class="mini-btn" onclick="openAirportPicker('to')" title="选择机场">
+                  <span class="material-symbols-rounded">arrow_drop_down</span>
+                </button>
               </div>
             </div>
+          </div>
 
-            <div class="date-section">
-              <label for="searchDate">起飞日期</label>
-              <div class="date-input-wrapper">
-                <input type="date" id="searchDate">
-                <span class="material-symbols-rounded date-icon">calendar_month</span>
-              </div>
+          <div class="control-card">
+            <div class="input-field-box">
+              <label>起飞日期</label>
+              <input type="date" id="searchDate">
             </div>
+            <div class="week-display" id="weekDisplay">今天</div>
+          </div>
 
-            <div class="filters-section">
-              <select id="filterTime" class="md-select">
-                <option value="all">全天时段</option>
-                <option value="morning">上午 (06:00-11:59)</option>
-                <option value="noon">中午 (12:00-13:59)</option>
-                <option value="afternoon">下午 (14:00-17:59)</option>
-                <option value="evening">晚上 (18:00-23:59)</option>
-                <option value="midnight">午夜 (00:00-05:59)</option>
-              </select>
-              
-              <select id="filterAirline" class="md-select">
-                <option value="all">所有航空公司</option>
+          <div class="filter-card">
+            <div class="filter-group">
+              <label>航空公司</label>
+              <select id="airlineFilter">
+                <option value="all">所有航司</option>
                 </select>
             </div>
-
-            <button class="btn-filled full-width" id="searchBtn">
-              <span class="material-symbols-rounded">search</span>
-              搜索航班
-            </button>
+            <div class="filter-group">
+              <label>起飞时段</label>
+              <select id="timeFilter">
+                <option value="all">全部时段</option>
+                <option value="morning">早上 (06:00-11:59)</option>
+                <option value="noon">中午 (12:00-13:59)</option>
+                <option value="afternoon">下午 (14:00-17:59)</option>
+                <option value="evening">傍晚 (18:00-23:59)</option>
+                <option value="midnight">午夜/凌晨 (00:00-05:59)</option>
+              </select>
+            </div>
           </div>
-        </aside>
 
-        <div class="results-pane">
-          <div class="pane-header">
-            <h3>航班列表</h3>
-            <span id="resultCount" class="badge">0</span>
+          <button class="btn-filled big-search-btn" id="searchBtn">
+            查询航班
+          </button>
+        </div>
+
+        <div class="results-panel">
+          <div class="results-header" id="resultsHeader" hidden>
+            <span>搜索结果</span>
           </div>
-          <div id="flightGrid" class="card-grid">
+          <div id="flightGrid" class="card-list">
             <div class="empty-state">
               <span class="material-symbols-rounded">travel_explore</span>
-              <p>设置行程以开始探索</p>
+              <p>输入出发地与目的地开始探索</p>
             </div>
           </div>
         </div>
-      </div>
 
-      <dialog id="airportSelector" class="selector-dialog">
-        <div class="selector-header">
-          <input type="text" id="airportSearchInput" placeholder="输入城市或机场代码..." autocomplete="off">
-          <button class="icon-btn" onclick="document.getElementById('airportSelector').close()">
-            <span class="material-symbols-rounded">close</span>
-          </button>
-        </div>
-        
-        <div id="suggestionList" class="list-group" hidden></div>
-        
-        <div class="list-divider">所有机场</div>
-        <div id="fullAirportList" class="list-group"></div>
-      </dialog>
+      </div>
     </section>
 
     <section id="view-wallet" class="view">
-      <div class="layout-single">
-         <div id="walletGrid" class="card-grid"></div>
-      </div>
+      <div id="walletGrid" class="card-list"></div>
     </section>
 
     <section id="view-settings" class="view">
       <div class="settings-container">
-        <div class="setting-group">
-          <h2>偏好设置</h2>
-          
-          <div class="setting-item">
-            <div class="text">
-              <h3>行程通知</h3>
-              <p>包括购买成功、值机(前2h)、登机(前30m)及起飞通知</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="notifySwitch">
-              <span class="slider"></span>
-            </label>
+        <div class="setting-item">
+          <div class="text">
+            <h3>行程通知</h3>
+            <p>包含出票、值机(前120分)、登机(前30分)及起飞提醒</p>
           </div>
+          <label class="switch">
+            <input type="checkbox" id="masterNotifySwitch">
+            <span class="slider"></span>
+          </label>
+        </div>
+        
+        <div class="setting-item">
+          <div class="text">
+            <h3>输入记忆</h3>
+            <p>记住上次搜索的出发地和目的地</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="inputMemorySwitch">
+            <span class="slider"></span>
+          </label>
+        </div>
 
-          <div class="setting-item">
-            <div class="text">
-              <h3>记忆搜索历史</h3>
-              <p>自动保存上次搜索的出发地和目的地</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="historySwitch">
-              <span class="slider"></span>
-            </label>
+        <div class="setting-item">
+          <div class="text">
+            <h3>清除数据</h3>
+            <p>清空所有购票记录、缓存及设置</p>
           </div>
-
-          <div class="setting-item">
-            <div class="text">
-              <h3>清除数据</h3>
-              <p>删除所有本地缓存和机票记录</p>
-            </div>
-            <button class="btn-text error" id="clearDataBtn">立即清除</button>
-          </div>
+          <button class="btn-text error" id="clearDataBtn">清除所有</button>
         </div>
       </div>
     </section>
 
   </main>
 
-  <dialog id="bookingDialog" class="md-dialog full-screen-mobile">
+  <datalist id="airportSuggestions"></datalist>
+
+  <dialog id="airportPickerDialog" class="bottom-sheet-dialog">
     <div class="dialog-content">
       <div class="dialog-header">
-        <div class="airline-brand">
-          <img id="modalAirlineIcon" src="" alt="Icon" class="airline-icon-small">
-          <span id="modalAirlineName">Airline</span>
+        <h3>选择机场</h3>
+        <button class="icon-btn" onclick="document.getElementById('airportPickerDialog').close()">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="airport-grid" id="airportGridPicker">
         </div>
-        <button class="icon-btn" onclick="document.getElementById('bookingDialog').close()">
+    </div>
+  </dialog>
+
+  <dialog id="bookingDialog" class="md-dialog">
+    <div class="dialog-content full-width">
+      <div class="dialog-header">
+        <div class="route-title">
+          <span id="modalDep">BKE</span>
+          <span class="material-symbols-rounded">arrow_right_alt</span>
+          <span id="modalArr">KLM</span>
+        </div>
+        <button class="icon-btn" id="closeDialogBtn">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
 
-      <div class="ticket-visual">
-        <div class="route-row">
-          <div class="port-group">
-            <span class="code" id="modalDepCode">XXX</span>
-            <span class="time" id="modalDepTime">00:00</span>
+      <div class="ticket-preview">
+        <div class="airline-info-row">
+          <img src="" alt="Logo" id="modalAirlineIcon" class="airline-logo-sm">
+          <span id="modalAirlineName">--</span>
+          <span id="modalFlightNo">--</span>
+        </div>
+        <div class="flight-timeline">
+          <div class="time-group">
+            <span class="big-time" id="modalDepTime">--:--</span>
+            <span class="terminal" id="modalDepTerm">--</span>
           </div>
-          <div class="flight-path">
-            <span class="duration" id="modalDuration">--h --m</span>
-            <div class="path-line"></div>
-            <span class="flight-no" id="modalFlightNo">--</span>
+          <div class="duration-line">
+            <span id="modalDuration">--</span>
+            <div class="line"></div>
           </div>
-          <div class="port-group right">
-            <span class="code" id="modalArrCode">XXX</span>
-            <span class="time" id="modalArrTime">00:00</span>
+          <div class="time-group">
+            <span class="big-time" id="modalArrTime">--:--</span>
+            <span class="terminal" id="modalArrTerm">--</span>
           </div>
         </div>
-        <div class="date-row" id="modalDate">YYYY-MM-DD</div>
+        <div class="date-row" id="modalDate">--</div>
+        
+        <div id="trackerContainer" class="tracker-box" hidden>
+           <a href="#" target="_blank" id="trackerLink" class="btn-tonal full-width">
+             <span class="material-symbols-rounded">radar</span>
+             查看飞机实时动态
+           </a>
+        </div>
       </div>
 
-      <div class="seat-selection" id="seatSelectionArea">
+      <div class="seat-selection">
         <h3>选择舱位</h3>
         <div class="seat-options" id="seatOptions"></div>
       </div>
 
       <div class="dialog-actions">
-        <div class="price-box">
-          <span class="label">总计</span>
-          <span class="value" id="totalPrice">--</span>
-        </div>
-        <button class="btn-filled" id="confirmBuyBtn" disabled>确认支付</button>
+        <span class="price-display" id="totalPrice">请选择</span>
+        <button class="btn-filled" id="confirmBuyBtn" disabled>确认购买</button>
       </div>
     </div>
   </dialog>
@@ -210,7 +230,7 @@
   <dialog id="boardingPassDialog" class="md-dialog pass-dialog">
     <div class="pass-content">
       <div class="pass-header">
-        <img id="passAirlineIcon" src="" class="airline-icon-small">
+        <span class="material-symbols-rounded">flight</span>
         <span>电子登机牌</span>
         <button class="icon-btn close-pass" onclick="document.getElementById('boardingPassDialog').close()">
           <span class="material-symbols-rounded">close</span>
@@ -218,52 +238,44 @@
       </div>
       <div class="pass-body">
         <div class="pass-row">
-          <div class="col">
-            <span class="lbl">航班</span>
-            <strong class="val" id="passFlightNo">--</strong>
+          <div class="pass-port">
+            <span class="code" id="bpDepCode">SHA</span>
+            <span class="city" id="bpDepCity">上海</span>
           </div>
-          <div class="col">
-            <span class="lbl">日期</span>
-            <strong class="val" id="passDate">--</strong>
-          </div>
-          <div class="col">
-            <span class="lbl">舱位</span>
-            <strong class="val" id="passClass">--</strong>
+          <div class="pass-icon">✈</div>
+          <div class="pass-port align-right">
+            <span class="code" id="bpArrCode">BJS</span>
+            <span class="city" id="bpArrCity">北京</span>
           </div>
         </div>
-        <div class="pass-route">
-          <h1 id="passDepCode">DEP</h1>
-          <span class="material-symbols-rounded">flight</span>
-          <h1 id="passArrCode">ARR</h1>
-        </div>
-        <div class="pass-times">
-          <div class="t-group">
-            <span id="passDepTime">00:00</span>
-            <small id="passDepCity">City</small>
+        <div class="pass-info-grid">
+          <div>
+            <label>航班</label>
+            <strong id="bpFlightNo">MU1234</strong>
           </div>
-          <div class="t-group">
-            <span id="passArrTime">00:00</span>
-            <small id="passArrCity">City</small>
+          <div>
+            <label>日期</label>
+            <strong id="bpDate">2026-01-01</strong>
+          </div>
+          <div>
+            <label>登机时间</label>
+            <strong id="bpBoardTime" class="highlight">12:00</strong>
+          </div>
+          <div>
+            <label>舱位</label>
+            <strong id="bpClass">经济舱</strong>
           </div>
         </div>
-        
         <div class="qr-section">
-          <div class="qr-code-box" id="qrContainer">
-            <span class="material-symbols-rounded qr-placeholder">qr_code_2</span>
-          </div>
-          <p class="qr-text">凭此二维码登机</p>
+          <div id="qrPlaceholder" class="qr-box"></div>
+          <span class="qr-label">仅供模拟使用</span>
         </div>
-
-        <div class="actions-stack">
-          <a href="#" target="_blank" id="passTrackerLink" class="btn-tonal full-width">
-            <span class="material-symbols-rounded">radar</span>
-            查看飞机实时动态
-          </a>
-          <button id="deleteTicketBtn" class="btn-text error full-width">
-            <span class="material-symbols-rounded">delete</span>
-            删除行程
-          </button>
-        </div>
+      </div>
+      <div class="pass-actions">
+        <button class="btn-text error" id="deleteTicketBtn">
+          <span class="material-symbols-rounded">delete</span>
+          删除订单
+        </button>
       </div>
     </div>
   </dialog>
