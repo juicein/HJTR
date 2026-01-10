@@ -1,674 +1,570 @@
-// ==========================================
-// 1. 数据与状态管理
-// ==========================================
+/* =========================================
+   1. 初始化与数据 (Init & Data)
+   ========================================= */
+
 const STATE = {
-  flights: [],     // 原始航班数据
-  airports: [],    // 机场数据
-  airlines: [],    // 航司数据
-  purchased: [],   // 已购票据
+  flights: [],     // 解析后
+  airports: [],    // JSON
+  airlines: {},    // Map: Name -> IconUrl
+  purchased: [],   // LocalStorage
   settings: {
-    notifications: false, // 默认关闭
-    memory: true          // 默认开启输入记忆
+    notifications: false,
+    history: true,
+    lastFrom: { code: 'SIN', city: '新加坡' },
+    lastTo: { code: 'HND', city: '东京' }
   },
-  cache: {
-    selectingInput: null // 当前正在操作“按钮选择机场”的输入框ID
-  }
+  currentInputTarget: null // 'from' or 'to'
 };
 
-const DATES = {
-  weekMap: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
-  getTodayStr: () => new Date().toISOString().split('T')[0],
-  getWeekStr: (dateStr) => DATES.weekMap[new Date(dateStr).getDay()],
-  // 比较两个 HH:MM
-  isTimePast: (timeStr) => {
-    const now = new Date();
-    const [h, m] = timeStr.split(':').map(Number);
-    const flightTime = h * 60 + m;
-    const nowTime = now.getHours() * 60 + now.getMinutes();
-    return nowTime > flightTime;
-  }
+const CONSTANTS = {
+  MAX_DAYS: 60,
+  MS_PER_DAY: 86400000
 };
 
-// ==========================================
-// 2. 初始化与核心加载
-// ==========================================
 async function initApp() {
-  await Promise.all([loadAirports(), loadFlights(), loadAirlines()]);
+  await loadData();
   loadStorage();
+  initRouter();
+  initUI();
+  setupNotifications(); // 检查权限
   
-  setupUI();
-  setupNotifications();
-  handleUrlRouting(); // 处理深层链接
-  
-  // 恢复输入记忆
-  if (STATE.settings.memory) {
-    const savedFrom = localStorage.getItem('last_search_from');
-    const savedTo = localStorage.getItem('last_search_to');
-    if (savedFrom) setStationInput('fromInput', savedFrom);
-    if (savedTo) setStationInput('toInput', savedTo);
+  // 恢复上次搜索
+  if (STATE.settings.history) {
+    setAirportInput('from', STATE.settings.lastFrom);
+    setAirportInput('to', STATE.settings.lastTo);
   }
 }
 
-async function loadAirports() {
+async function loadData() {
   try {
-    const res = await fetch('data/airports.json');
-    STATE.airports = await res.json();
-    populateDatalist();
-  } catch(e) { console.error("机场数据加载失败", e); }
-}
+    const [airRes, fltRes, alRes] = await Promise.all([
+      fetch('data/airports.json'),
+      fetch('data/flight_data.txt'),
+      fetch('data/airlines.json').catch(() => ({ json: () => [] })) // 容错
+    ]);
 
-async function loadAirlines() {
-  try {
-    const res = await fetch('data/airlines.json');
-    STATE.airlines = await res.json();
-  } catch(e) {
-    // 失败回退默认
-    STATE.airlines = [{name: "默认", icon: "https://img.mcwfmtr.cc/i/2025/01/10/logo_default.png"}];
-  }
-}
+    STATE.airports = await airRes.json();
+    STATE.flights = parseFlightData(await fltRes.text());
+    
+    // 处理航司图标
+    const alData = await alRes.json();
+    if(Array.isArray(alData)) {
+      alData.forEach(a => STATE.airlines[a.name] = a.icon);
+    }
 
-async function loadFlights() {
-  try {
-    const res = await fetch('data/flight_data.txt');
-    const text = await res.text();
-    STATE.flights = parseFlightData(text);
     populateAirlineFilter();
-  } catch(e) { console.error("航班数据加载失败", e); }
+  } catch (e) {
+    console.error("Data Load Error", e);
+    showToast("数据加载失败");
+  }
 }
 
-// 解析器 (保留原正则逻辑，增强机型/航司提取)
+/* =========================================
+   2. 核心搜索与过滤 (Search Logic)
+   ========================================= */
+
+// 解析TXT (保持原有正则逻辑，增加健壮性)
 function parseFlightData(raw) {
   const entries = raw.split("《航班结束》").map(s => s.trim()).filter(Boolean);
   return entries.map(str => {
     try {
-      const flightNo = str.match(/【(.*?)】/)?.[1] || "UNK";
+      const flightNo = str.match(/【(.*?)】/)?.[1] || "Unknown";
       const weekdays = (str.match(/«(.*?)»/)?.[1] || "").split(",").map(s=>s.trim());
       const aircraft = str.match(/〔(.*?)〕/)?.[1] || "";
-      const airline = str.match(/『(.*?)』/)?.[1] || "";
-      const equipId = str.match(/<(R-.*?)>/)?.[1] || "";
+      const airline  = str.match(/『(.*?)』/)?.[1] || "";
+      const equipId  = str.match(/<(R-.*?)>/)?.[1] || "";
       
-      const depMatch = str.match(/《(.*?)出发》{(.*?)}#\+(\d+)#@(.*?)@/);
-      const arrMatch = str.match(/《(.*?)到达》{(.*?)}#\+(\d+)#@(.*?)@/);
+      const getPort = (type) => {
+        const m = str.match(type === 'dep' ? /《(.*?)出发》{(.*?)}#\+(\d+)#@(.*?)@/ : /《(.*?)到达》{(.*?)}#\+(\d+)#@(.*?)@/);
+        return m ? { name: m[1], time: m[2], dayOff: parseInt(m[3]), term: m[4] } : null;
+      };
       
-      if (!depMatch || !arrMatch) return null;
-
+      const origin = getPort('dep');
+      const dest = getPort('arr');
+      
       const prices = {
         eco: parsePrice(str.match(/§(.*?)§/)?.[1]),
         bus: parsePrice(str.match(/θ(.*?)θ/)?.[1]),
         first: parsePrice(str.match(/△(.*?)△/)?.[1])
       };
-      
-      // 简单机型判断
-      const isWide = /747|777|787|330|350|380|929/.test(aircraft);
+
+      if (!origin || !dest) return null;
+
+      // 找机场代码
+      const findCode = (name) => STATE.airports.find(a => a.name === name)?.code || "---";
+      origin.code = findCode(origin.name);
+      dest.code = findCode(dest.name);
 
       return {
-        raw: str,
-        flightNo, weekdays, aircraft, airline, equipmentId: equipId,
-        isWide,
-        origin: { name: depMatch[1], time: depMatch[2], term: depMatch[4] },
-        dest: { name: arrMatch[1], time: arrMatch[2], term: arrMatch[4] },
-        prices,
-        duration: calculateDuration(depMatch[2], parseInt(depMatch[3]), arrMatch[2], parseInt(arrMatch[3]))
+        raw: str, flightNo, weekdays, aircraft, airline, equipmentId: equipId,
+        origin, dest, prices,
+        duration: calculateDuration(origin.time, origin.dayOff, dest.time, dest.dayOff)
       };
-    } catch (e) { return null; }
+    } catch(e) { return null; }
   }).filter(Boolean);
 }
 
-function parsePrice(s) { return s ? parseInt(s.replace(/\D/g, '')) : null; }
-function calculateDuration(t1, d1, t2, d2) {
-  const [h1, m1] = t1.split(':').map(Number);
-  const [h2, m2] = t2.split(':').map(Number);
-  return (d2 * 24 * 60 + h2 * 60 + m2) - (d1 * 24 * 60 + h1 * 60 + m1);
-}
-
-// ==========================================
-// 3. UI 交互逻辑
-// ==========================================
-function setupUI() {
-  // 导航
-  document.querySelectorAll('.nav-tab').forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.target));
-  });
-  document.getElementById('navHomeBtn').addEventListener('click', () => {
-    window.location.hash = '';
-    switchTab('search');
-  });
-
-  // 搜索相关
-  const dateInput = document.getElementById('searchDate');
-  const today = DATES.getTodayStr();
-  dateInput.value = today;
-  dateInput.min = today;
-  // 最大60天
-  const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + 60);
-  dateInput.max = maxDate.toISOString().split('T')[0];
-  
-  dateInput.addEventListener('change', (e) => {
-    document.getElementById('searchWeekBadge').textContent = DATES.getWeekStr(e.target.value);
-  });
-
-  // 机场输入逻辑 (自动匹配 Code)
-  ['fromInput', 'toInput'].forEach(id => {
-    const el = document.getElementById(id);
-    el.addEventListener('input', (e) => updateInputVisuals(id, e.target.value));
-    el.addEventListener('change', (e) => saveInputMemory(id, e.target.value));
-  });
-
-  // 交换按钮
-  document.getElementById('swapBtn').addEventListener('click', () => {
-    const f = document.getElementById('fromInput');
-    const t = document.getElementById('toInput');
-    const tempVal = f.value;
-    setStationInput('fromInput', t.value);
-    setStationInput('toInput', tempVal);
-  });
-
-  // 机场下拉弹窗逻辑
-  document.getElementById('depDropdownBtn').addEventListener('click', () => openAirportSheet('fromInput'));
-  document.getElementById('arrDropdownBtn').addEventListener('click', () => openAirportSheet('toInput'));
-
-  document.getElementById('searchBtn').addEventListener('click', performSearch);
-  
-  // 弹窗关闭
-  document.getElementById('closeTicketBtn').addEventListener('click', () => document.getElementById('ticketDialog').close());
-
-  // 设置逻辑
-  const nSwitch = document.getElementById('masterNotifySwitch');
-  nSwitch.checked = STATE.settings.notifications;
-  nSwitch.addEventListener('change', (e) => toggleNotifications(e.target.checked));
-
-  const mSwitch = document.getElementById('memorySwitch');
-  mSwitch.checked = STATE.settings.memory;
-  mSwitch.addEventListener('change', (e) => {
-    STATE.settings.memory = e.target.checked;
-    saveStorage();
-  });
-
-  document.getElementById('clearDataBtn').addEventListener('click', () => {
-    if(confirm("确定清除所有数据？")) {
-      localStorage.clear();
-      location.reload();
-    }
-  });
-
-  // 初始渲染卡包
-  renderWallet();
-}
-
-// 辅助：设置输入框并更新视觉
-function setStationInput(id, cityName) {
-  const el = document.getElementById(id);
-  el.value = cityName;
-  updateInputVisuals(id, cityName);
-  saveInputMemory(id, cityName);
-}
-
-function updateInputVisuals(inputId, val) {
-  // 查找匹配的机场对象
-  const airport = STATE.airports.find(a => a.name === val || a.code === val || (a.aliases && a.aliases.includes(val)));
-  const displayId = inputId === 'fromInput' ? 'depCodeDisplay' : 'arrCodeDisplay';
-  const displayEl = document.getElementById(displayId);
-  
-  if (airport) {
-    displayEl.textContent = airport.code;
-    displayEl.style.color = 'var(--md-sys-color-primary)';
-  } else {
-    displayEl.textContent = "---";
-    displayEl.style.color = 'var(--md-sys-color-outline)';
-  }
-}
-
-function saveInputMemory(id, val) {
-  if (!STATE.settings.memory) return;
-  if (id === 'fromInput') localStorage.setItem('last_search_from', val);
-  if (id === 'toInput') localStorage.setItem('last_search_to', val);
-}
-
-// 填充原生 datalist (用于文字输入联想)
-function populateDatalist() {
-  const dl = document.getElementById('airportDatalist');
-  dl.innerHTML = '';
-  STATE.airports.forEach(ap => {
-    const opt = document.createElement('option');
-    opt.value = ap.name;
-    opt.label = ap.code; // 尝试显示 Code
-    dl.appendChild(opt);
-  });
-}
-
-// 填充下拉弹窗 (用于按钮点击选择)
-function openAirportSheet(targetInputId) {
-  STATE.cache.selectingInput = targetInputId;
-  const list = document.getElementById('airportSelectionList');
-  list.innerHTML = '';
-  
-  STATE.airports.forEach(ap => {
-    const div = document.createElement('div');
-    div.className = 'airport-item';
-    div.innerHTML = `<span class="code">${ap.code}</span><span>${ap.name}</span>`;
-    div.addEventListener('click', () => {
-      setStationInput(targetInputId, ap.name);
-      document.getElementById('airportSelectDialog').close();
-    });
-    list.appendChild(div);
-  });
-  
-  document.getElementById('airportSelectDialog').showModal();
-}
-
-function populateAirlineFilter() {
-  const select = document.getElementById('filterAirline');
-  const airlines = [...new Set(STATE.flights.map(f => f.airline))];
-  airlines.forEach(al => {
-    const opt = document.createElement('option');
-    opt.value = al;
-    opt.textContent = al;
-    select.appendChild(opt);
-  });
-}
-
-// ==========================================
-// 4. 搜索逻辑 (增强版)
-// ==========================================
 function performSearch() {
-  const from = document.getElementById('fromInput').value.trim();
-  const to = document.getElementById('toInput').value.trim();
+  const fromCode = document.getElementById('dispFromCode').innerText;
+  const toCode = document.getElementById('dispToCode').innerText;
   const dateStr = document.getElementById('searchDate').value;
   
-  if (!from || !to) { showToast("请输入出发地和目的地"); return; }
+  // 1. 日期校验
+  const todayStr = new Date().toISOString().split('T')[0];
+  const searchDate = new Date(dateStr);
+  const todayDate = new Date(todayStr);
   
-  // 日期校验
-  const today = DATES.getTodayStr();
-  const isToday = dateStr === today;
-  if (new Date(dateStr) < new Date(today)) {
-    showToast("不能选择过去的日期"); return;
-  }
+  if (dateStr < todayStr) return showToast("不能选择过去的日期");
+  const diffDays = (searchDate - todayDate) / CONSTANTS.MS_PER_DAY;
+  if (diffDays > CONSTANTS.MAX_DAYS) return showToast("仅支持预订60天内的航班");
 
-  const weekStr = DATES.getWeekStr(dateStr);
+  // 2. 筛选器
+  const timeFilter = document.getElementById('filterTime').value;
+  const airlineFilter = document.getElementById('filterAirline').value;
+  const weekStr = getWeekStr(dateStr);
   
-  // 过滤器
-  const fAirline = document.getElementById('filterAirline').value;
-  const fTime = document.getElementById('filterTime').value; // morning, etc
-  const fCabin = document.getElementById('filterCabin').value;
-  const fPlane = document.getElementById('filterPlane').value; // wide, narrow
+  // 当前时间用于过滤已起飞航班 (如果搜的是今天)
+  const now = new Date();
+  const isToday = dateStr === todayStr;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   const results = STATE.flights.filter(f => {
     // 基础匹配
-    const matchRoute = (f.origin.name.includes(from) && f.dest.name.includes(to));
-    const matchDay = f.weekdays.includes(weekStr);
+    if (f.origin.code !== fromCode || f.dest.code !== toCode) return false;
+    if (!f.weekdays.includes(weekStr)) return false;
+
+    // 航司过滤
+    if (airlineFilter !== 'all' && f.airline !== airlineFilter) return false;
+
+    // 时间段过滤
+    const [h, m] = f.origin.time.split(':').map(Number);
+    const depMins = h * 60 + m;
     
-    // 时间逻辑：如果是今天，不能搜已经起飞的
-    let matchLive = true;
-    if (isToday) {
-       matchLive = !DATES.isTimePast(f.origin.time);
+    // 如果是今天，且起飞时间早于当前时间 -> 隐藏
+    if (isToday && depMins < currentMinutes) return false;
+
+    // 时段逻辑
+    if (timeFilter !== 'all') {
+      if (timeFilter === 'midnight' && !(depMins >= 0 && depMins < 360)) return false;
+      if (timeFilter === 'morning' && !(depMins >= 360 && depMins < 720)) return false;
+      if (timeFilter === 'noon' && !(depMins >= 720 && depMins < 840)) return false;
+      if (timeFilter === 'afternoon' && !(depMins >= 840 && depMins < 1080)) return false;
+      if (timeFilter === 'evening' && !(depMins >= 1080)) return false;
     }
 
-    // 高级筛选
-    const matchAl = fAirline ? f.airline === fAirline : true;
-    const matchPl = fPlane ? (fPlane === 'wide' ? f.isWide : !f.isWide) : true;
-    const matchCb = fCabin ? (f.prices[fCabin] !== null) : true;
-    
-    let matchTi = true;
-    if (fTime) {
-      const h = parseInt(f.origin.time.split(':')[0]);
-      if (fTime === 'morning') matchTi = (h >= 6 && h < 12);
-      if (fTime === 'afternoon') matchTi = (h >= 12 && h < 18);
-      if (fTime === 'evening') matchTi = (h >= 18 && h <= 23);
-      if (fTime === 'night') matchTi = (h >= 0 && h < 6);
-    }
-
-    return matchRoute && matchDay && matchLive && matchAl && matchPl && matchCb && matchTi;
+    return true;
   });
 
   renderResults(results, dateStr);
-}
-
-function getAirlineLogo(name) {
-  const al = STATE.airlines.find(a => a.name === name) || STATE.airlines.find(a => a.name === "默认");
-  return al ? al.icon : '';
+  
+  // 记忆
+  if (STATE.settings.history) {
+    STATE.settings.lastFrom = { code: fromCode, city: document.getElementById('dispFromCity').innerText };
+    STATE.settings.lastTo = { code: toCode, city: document.getElementById('dispToCity').innerText };
+    saveStorage();
+  }
 }
 
 function renderResults(list, dateStr) {
   const grid = document.getElementById('flightGrid');
+  document.getElementById('resultCount').innerText = list.length;
   grid.innerHTML = '';
 
   if (list.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><span class="material-symbols-rounded" style="font-size:48px;color:#ccc">search_off</span><p>暂无符合条件的航班</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><span class="material-symbols-rounded" style="font-size:48px;color:#ccc">block</span><p>暂无符合条件的航班</p></div>`;
     return;
   }
 
   list.forEach(f => {
+    const iconUrl = STATE.airlines[f.airline] || 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0iIzY2NiIgZD0iTTIxIDE2djItMmwtOC01VjMuNWMwLS44My0uNjctMS41LTEuNS0xLjVTMTAgMi42NyAxMCAzLjVWOUwyIDd2MmwyIDMgMiAzaC0ydjJoNHYyaDJ2LTJoNHYtMmgxem0tMy41IDJINy41VjE1SDE3LjV2M3oiLz48L3N2Zz4='; // 默认飞机图标
+
     const card = document.createElement('div');
     card.className = 'flight-card';
-    const minPrice = Math.min(...[f.prices.eco, f.prices.bus, f.prices.first].filter(p => p !== null));
-    
     card.innerHTML = `
       <div class="fc-header">
         <div class="airline-badge">
-          <img src="${getAirlineLogo(f.airline)}" alt="logo">
+          <img src="${iconUrl}" class="airline-icon-small">
           <span>${f.airline} · ${f.flightNo}</span>
         </div>
-        <span>${dateStr}</span>
+        <span>${f.aircraft}</span>
       </div>
       <div class="fc-body">
         <div class="fc-port">
           <div class="fc-time">${f.origin.time}</div>
-          <div class="fc-port-code">${f.origin.name}</div>
+          <div class="fc-code">${f.origin.code}</div>
         </div>
         <div class="fc-arrow">
+          <span>${fmtDuration(f.duration)}</span>
           <span class="material-symbols-rounded">trending_flat</span>
         </div>
-        <div class="fc-port">
-          <div class="fc-time">${f.dest.time}</div>
-          <div class="fc-port-code">${f.dest.name}</div>
+        <div class="fc-port right">
+          <div class="fc-time">${f.dest.time} <small style="font-size:12px">${f.dest.dayOff>0?'+1':''}</small></div>
+          <div class="fc-code">${f.dest.code}</div>
         </div>
       </div>
       <div class="fc-footer">
-        <span class="plane-tag">${f.aircraft} ${f.isWide ? '宽体' : ''}</span>
-        <span class="price-tag">¥${minPrice} 起</span>
+        <span>${f.origin.term} - ${f.dest.term}</span>
+        <span class="price">¥${f.prices.eco || f.prices.bus} 起</span>
       </div>
     `;
-    card.addEventListener('click', () => openTicketDialog(f, dateStr));
+    card.onclick = () => openBooking(f, dateStr);
     grid.appendChild(card);
   });
 }
 
-// ==========================================
-// 5. 购票与详情 (Dialog)
-// ==========================================
-function openTicketDialog(flight, dateStr, existingTicket = null) {
-  const dialog = document.getElementById('ticketDialog');
-  const isPurchased = !!existingTicket;
+/* =========================================
+   3. 交互与UI (Interaction)
+   ========================================= */
+
+// 路由控制
+function initRouter() {
+  window.addEventListener('hashchange', handleRoute);
+  handleRoute(); // 初始加载
+}
+
+function handleRoute() {
+  const hash = window.location.hash.replace('#', '') || 'search';
+  const views = ['search', 'wallet', 'settings'];
   
-  // 填充头部信息
-  document.getElementById('modalDepCode').textContent = getStateCode(flight.origin.name);
-  document.getElementById('modalArrCode').textContent = getStateCode(flight.dest.name);
-  document.getElementById('modalDepTime').textContent = flight.origin.time;
-  document.getElementById('modalArrTime').textContent = flight.dest.time;
-  document.getElementById('modalDepName').textContent = flight.origin.name;
-  document.getElementById('modalArrName').textContent = flight.dest.name;
-  document.getElementById('modalDepTerm').textContent = flight.origin.term;
-  document.getElementById('modalArrTerm').textContent = flight.dest.term;
-  document.getElementById('modalAirline').textContent = flight.airline;
-  document.getElementById('modalAircraft').textContent = flight.aircraft;
-  document.getElementById('modalDate').textContent = dateStr;
+  if (!views.includes(hash)) return;
+
+  // 切换视图
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${hash}`).classList.add('active');
   
-  const durMins = flight.duration;
-  document.getElementById('modalDuration').textContent = `${Math.floor(durMins/60)}h ${durMins%60}m`;
+  // 更新标题
+  const titles = { search: '探索航班', wallet: '我的卡包', settings: '设置' };
+  document.getElementById('pageTitle').innerText = titles[hash];
 
-  const bpArea = document.getElementById('boardingPassArea');
-  const bookArea = document.getElementById('bookingArea');
-  const footer = document.getElementById('bookingFooter');
+  if (hash === 'wallet') renderWallet();
+}
 
-  if (isPurchased) {
-    // === 已购票模式 ===
-    bpArea.hidden = false;
-    bookArea.hidden = true;
-    footer.style.display = 'none';
+function routeTo(page) {
+  window.location.hash = page;
+}
 
-    // 设置登机牌
-    document.getElementById('bpAirlineLogo').src = getAirlineLogo(flight.airline);
-    document.getElementById('bpFlightNoDisplay').textContent = flight.flightNo;
-    // 生成二维码 (使用第三方API简化)
-    const qrData = `TICKET:${existingTicket.id}|FLIGHT:${flight.flightNo}`;
-    document.getElementById('bpQrCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
-    
-    // Tracker 逻辑: 如果正在飞行(当前时间在起飞和到达之间)，按照Prompt要求 **不显示** 按钮
-    // "如果这个航班正在处于这个飞行时间中...就不显示这个按钮"
-    // 注意日期：需要判断日期是否是今天，且时间是否在范围内
-    const now = new Date();
-    const isToday = (dateStr === DATES.getTodayStr());
-    
-    // 将 HH:MM 转为分钟数
-    const getMins = (t) => { const[h,m]=t.split(':').map(Number); return h*60+m; };
-    const depMins = getMins(flight.origin.time);
-    const arrMins = getMins(flight.dest.time); // 这里简单处理，未考虑跨天
-    const curMins = now.getHours()*60 + now.getMinutes();
-    
-    const isFlyingNow = isToday && (curMins >= depMins && curMins <= arrMins);
-    
-    const trackerBtn = document.getElementById('bpTrackerBtn');
-    if (isFlyingNow) {
-      trackerBtn.style.display = 'none'; // 飞行中不显示 (按你的Prompt 4)
-    } else {
-      trackerBtn.style.display = 'inline-flex';
-      trackerBtn.href = `https://haojin.guanmu233.cn/flights_map=?${flight.flightNo}`;
+// 机场选择器逻辑
+function triggerAirportInput(target) {
+  STATE.currentInputTarget = target;
+  const dialog = document.getElementById('airportSelector');
+  const input = document.getElementById('airportSearchInput');
+  const list = document.getElementById('fullAirportList');
+  const suggest = document.getElementById('suggestionList');
+  
+  input.value = '';
+  suggest.innerHTML = '';
+  suggest.hidden = true;
+  
+  // 填充完整列表
+  list.innerHTML = '';
+  STATE.airports.forEach(ap => {
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `<span>${ap.name}</span><strong>${ap.code}</strong>`;
+    div.onclick = () => selectAirport(ap);
+    list.appendChild(div);
+  });
+
+  dialog.showModal();
+  input.focus();
+
+  // 联想输入
+  input.oninput = (e) => {
+    const val = e.target.value.toLowerCase();
+    if (!val) {
+      suggest.hidden = true;
+      return;
     }
-
-    // 删除按钮
-    document.getElementById('deleteTicketBtn').onclick = () => {
-      if(confirm('确认删除此行程记录？')) {
-        STATE.purchased = STATE.purchased.filter(t => t.id !== existingTicket.id);
-        saveStorage();
-        renderWallet();
-        dialog.close();
-        switchTab('wallet');
-      }
-    };
-
-  } else {
-    // === 购票模式 ===
-    bpArea.hidden = true;
-    bookArea.hidden = false;
-    footer.style.display = 'flex';
-    document.getElementById('totalPrice').textContent = '--';
-    document.getElementById('confirmBuyBtn').disabled = true;
-
-    // 渲染舱位
-    const seatGrid = document.getElementById('seatOptions');
-    seatGrid.innerHTML = '';
-    const classes = [
-      {k:'eco', n:'经济舱', p: flight.prices.eco},
-      {k:'bus', n:'商务舱', p: flight.prices.bus},
-      {k:'first', n:'头等舱', p: flight.prices.first}
-    ];
-
-    let selectedClass = null;
-
-    classes.forEach(c => {
-      if(!c.p) return;
-      const el = document.createElement('div');
-      el.className = 'seat-option-card';
-      el.innerHTML = `<span>${c.n}</span><span>¥${c.p}</span>`;
-      el.addEventListener('click', () => {
-        document.querySelectorAll('.seat-option-card').forEach(x => x.classList.remove('selected'));
-        el.classList.add('selected');
-        selectedClass = c;
-        document.getElementById('totalPrice').textContent = `¥${c.p}`;
-        document.getElementById('confirmBuyBtn').disabled = false;
-      });
-      seatGrid.appendChild(el);
+    const matches = STATE.airports.filter(ap => 
+      ap.name.includes(val) || ap.code.toLowerCase().includes(val) || (ap.aliases && ap.aliases.some(a=>a.includes(val)))
+    );
+    
+    suggest.hidden = false;
+    suggest.innerHTML = '';
+    matches.forEach(ap => {
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.innerHTML = `<span>${ap.name}</span><strong>${ap.code}</strong>`;
+      div.onclick = () => selectAirport(ap);
+      suggest.appendChild(div);
     });
+  };
+}
 
-    document.getElementById('confirmBuyBtn').onclick = () => {
-      const ticket = {
-        id: Date.now().toString(36),
-        flightData: flight, // 保存完整快照
-        dateStr: dateStr,
-        classInfo: selectedClass,
-        timestamp: new Date(`${dateStr}T${flight.origin.time}`).getTime()
-      };
-      STATE.purchased.push(ticket);
-      saveStorage();
-      showToast("出票成功！已存入卡包");
-      dialog.close();
-      renderWallet(); // 刷新卡包
-      switchTab('wallet');
-      // 触发购买通知
-      if(STATE.settings.notifications) sendNotif("出票成功", `您已成功预订 ${flight.airline} ${flight.flightNo}`);
+function selectAirport(ap) {
+  setAirportInput(STATE.currentInputTarget, ap);
+  document.getElementById('airportSelector').close();
+}
+
+function setAirportInput(target, ap) {
+  document.getElementById(`disp${target === 'from' ? 'From' : 'To'}Code`).innerText = ap.code;
+  document.getElementById(`disp${target === 'from' ? 'From' : 'To'}City`).innerText = ap.name || ap.city;
+}
+
+/* =========================================
+   4. 购票与卡包 (Booking & Wallet)
+   ========================================= */
+
+let pendingBooking = null;
+
+function openBooking(f, dateStr) {
+  const dialog = document.getElementById('bookingDialog');
+  pendingBooking = { flight: f, date: dateStr, class: null, price: 0 };
+  
+  // 填充UI
+  document.getElementById('modalAirlineName').innerText = f.airline;
+  document.getElementById('modalAirlineIcon').src = STATE.airlines[f.airline] || '';
+  document.getElementById('modalDepCode').innerText = f.origin.code;
+  document.getElementById('modalArrCode').innerText = f.dest.code;
+  document.getElementById('modalDepTime').innerText = f.origin.time;
+  document.getElementById('modalArrTime').innerText = f.dest.time;
+  document.getElementById('modalFlightNo').innerText = f.flightNo;
+  document.getElementById('modalDuration').innerText = fmtDuration(f.duration);
+  document.getElementById('modalDate').innerText = dateStr;
+
+  // 舱位
+  const seatBox = document.getElementById('seatOptions');
+  seatBox.innerHTML = '';
+  const classes = [
+    {k:'eco', n:'经济舱', p: f.prices.eco},
+    {k:'bus', n:'商务舱', p: f.prices.bus},
+    {k:'first', n:'头等舱', p: f.prices.first}
+  ];
+
+  classes.forEach(c => {
+    if(!c.p) return;
+    const lbl = document.createElement('label');
+    lbl.innerHTML = `<input type="radio" name="seat" value="${c.k}"> 
+                     <div>${c.n}</div> <div>¥${c.p}</div>`;
+    lbl.querySelector('input').onchange = () => {
+      pendingBooking.class = c.n;
+      pendingBooking.price = c.p;
+      document.getElementById('totalPrice').innerText = `¥${c.p}`;
+      document.getElementById('confirmBuyBtn').disabled = false;
     };
-  }
+    seatBox.appendChild(lbl);
+  });
 
+  document.getElementById('totalPrice').innerText = '--';
+  document.getElementById('confirmBuyBtn').disabled = true;
   dialog.showModal();
 }
 
-function getStateCode(cityName) {
-  const ap = STATE.airports.find(a => a.name === cityName);
-  return ap ? ap.code : '???';
-}
+document.getElementById('confirmBuyBtn').onclick = () => {
+  if (!pendingBooking) return;
+  const t = {
+    id: Date.now().toString(36),
+    ...pendingBooking.flight, // 展开所有航班信息
+    depDate: pendingBooking.date,
+    class: pendingBooking.class,
+    price: pendingBooking.price,
+    ts: new Date(`${pendingBooking.date}T${pendingBooking.flight.origin.time}`).getTime()
+  };
+  
+  STATE.purchased.push(t);
+  saveStorage();
+  scheduleTicketNotifs(t);
+  
+  document.getElementById('bookingDialog').close();
+  showToast("出票成功！已存入卡包");
+  
+  if(STATE.settings.notifications) {
+     new Notification("出票成功", { body: `您已预订 ${t.depDate} ${t.origin.name} -> ${t.dest.name}` });
+  }
+};
 
-// ==========================================
-// 6. 卡包 (Wallet) & 通知核心
-// ==========================================
 function renderWallet() {
   const grid = document.getElementById('walletGrid');
   grid.innerHTML = '';
+  const now = Date.now();
   
-  // 按时间排序
-  const list = STATE.purchased.sort((a,b) => a.timestamp - b.timestamp);
-
-  if(list.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><span class="material-symbols-rounded icon-big">wallet</span><p>暂无行程，快去预订吧</p></div>`;
+  // 排序：未来的在前，过去的在后
+  const list = STATE.purchased.sort((a,b) => a.ts - b.ts);
+  
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><p>暂无行程</p></div>`;
     return;
   }
 
   list.forEach(t => {
-    const f = t.flightData;
-    const isPast = t.timestamp < Date.now();
-    
+    const isPast = now > t.ts + (t.duration * 60000); // 落地后算结束
     const card = document.createElement('div');
     card.className = 'flight-card';
     if(isPast) card.style.opacity = '0.6';
     
     card.innerHTML = `
       <div class="fc-header">
-        <div class="airline-badge">
-          <img src="${getAirlineLogo(f.airline)}" alt="logo">
-          <span>${t.dateStr}</span>
-        </div>
-        <span style="color:${isPast ? 'gray' : 'green'}">${isPast ? '已结束' : '待出行'}</span>
+        <span>${t.depDate} · ${t.flightNo}</span>
+        <span style="color:${isPast ? 'gray' : '#006495'}">${isPast ? '已结束' : '即将出行'}</span>
       </div>
       <div class="fc-body">
-         <div class="fc-port">
-           <div class="fc-time">${f.origin.time}</div>
-           <div class="fc-port-code">${f.origin.name}</div>
-         </div>
-         <div class="fc-arrow"><span class="material-symbols-rounded">flight</span></div>
-         <div class="fc-port">
-           <div class="fc-time">${f.dest.time}</div>
-           <div class="fc-port-code">${f.dest.name}</div>
-         </div>
-      </div>
-      <div class="fc-footer">
-        <span>${t.classInfo.n}</span>
-        <button class="btn-tonal-small" style="background:transparent;border:1px solid #ddd">查看电子票</button>
+        <div class="fc-port">
+          <div class="fc-time">${t.origin.time}</div>
+          <div class="fc-city">${t.origin.name}</div>
+        </div>
+        <div class="fc-arrow"><span class="material-symbols-rounded">flight</span></div>
+        <div class="fc-port">
+          <div class="fc-time">${t.dest.time}</div>
+          <div class="fc-city">${t.dest.name}</div>
+        </div>
       </div>
     `;
-    // 点击查看详情/登机牌
-    card.addEventListener('click', () => {
-      // 更新 URL Hash 方便分享
-      window.location.hash = `ticket=${t.id}`;
-      openTicketDialog(f, t.dateStr, t);
-    });
+    card.onclick = () => openBoardingPass(t);
     grid.appendChild(card);
   });
 }
 
-// 通知轮询逻辑
-function setupNotifications() {
-  // 每分钟检查一次
-  setInterval(() => {
-    if (!STATE.settings.notifications) return;
-    
-    const now = Date.now();
-    STATE.purchased.forEach(t => {
-      if (t.timestamp < now) return; // 已过期不处理
-      
-      const diffMins = Math.floor((t.timestamp - now) / 60000);
-      const f = t.flightData;
-      const key = `notif_${t.id}_`; // 避免重复通知的key前缀
-
-      // 值机提醒 (-120m)
-      if (diffMins <= 120 && diffMins > 118 && !hasNotified(key+'checkin')) {
-        sendNotif("值机提醒", `航班 ${f.flightNo} 将在2小时后起飞，请及时值机。`);
-        markNotified(key+'checkin');
-      }
-      
-      // 登机提醒 (-30m)
-      if (diffMins <= 30 && diffMins > 28 && !hasNotified(key+'boarding')) {
-        sendNotif("登机提醒", `航班 ${f.flightNo} 正在登机，请前往 ${f.origin.term}。`);
-        markNotified(key+'boarding');
-      }
-      
-      // 起飞提醒 (0m)
-      if (diffMins <= 1 && diffMins > -1 && !hasNotified(key+'takeoff')) {
-        sendNotif("起飞提醒", `航班 ${f.flightNo} 正在起飞。旅途愉快！`);
-        markNotified(key+'takeoff');
-      }
-    });
-  }, 60000); // 60秒轮询
-}
-
-function hasNotified(key) { return sessionStorage.getItem(key) === '1'; }
-function markNotified(key) { sessionStorage.setItem(key, '1'); }
-
-function toggleNotifications(enable) {
-  STATE.settings.notifications = enable;
-  saveStorage();
-  if(enable && Notification.permission !== 'granted') {
-    Notification.requestPermission();
-  }
-}
-
-function sendNotif(title, body) {
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: 'https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png' });
-  } else {
-    showToast(`${title}: ${body}`); // 降级为 Toast
-  }
-}
-
-// ==========================================
-// 7. 工具与路由
-// ==========================================
-function switchTab(tab) {
-  // UI 更新
-  document.querySelectorAll('.nav-tab').forEach(b => {
-    b.classList.toggle('active', b.dataset.target === tab);
-  });
-  document.querySelectorAll('.view-section').forEach(v => {
-    v.classList.remove('active');
-  });
-  document.getElementById(`view-${tab}`).classList.add('active');
+function openBoardingPass(t) {
+  const dlg = document.getElementById('boardingPassDialog');
   
-  // TopBar 状态
-  const homeBtn = document.getElementById('navHomeBtn');
-  homeBtn.hidden = (tab === 'search');
+  // 填充信息
+  document.getElementById('passFlightNo').innerText = t.flightNo;
+  document.getElementById('passDate').innerText = t.depDate;
+  document.getElementById('passClass').innerText = t.class;
+  document.getElementById('passDepCode').innerText = t.origin.code;
+  document.getElementById('passArrCode').innerText = t.dest.code;
+  document.getElementById('passDepTime').innerText = t.origin.time;
+  document.getElementById('passArrTime').innerText = t.dest.time;
+  document.getElementById('passDepCity').innerText = t.origin.name;
+  document.getElementById('passArrCity').innerText = t.dest.name;
+  document.getElementById('passAirlineIcon').src = STATE.airlines[t.airline] || '';
   
-  if (tab === 'wallet') renderWallet();
-}
-
-function handleUrlRouting() {
-  const hash = window.location.hash;
-  if (hash.startsWith('#ticket=')) {
-    const tid = hash.split('=')[1];
-    const ticket = STATE.purchased.find(t => t.id === tid);
-    if (ticket) {
-      switchTab('wallet');
-      openTicketDialog(ticket.flightData, ticket.dateStr, ticket);
+  // 删除逻辑
+  document.getElementById('deleteTicketBtn').onclick = () => {
+    if(confirm('确定要删除这张票吗？')) {
+      STATE.purchased = STATE.purchased.filter(x => x.id !== t.id);
+      saveStorage();
+      renderWallet();
+      dlg.close();
+      showToast("行程已删除");
     }
-  }
+  };
+
+  // 追踪逻辑：如果航班未结束，显示链接
+  // 需求：所有航班显示，除非"currently in this flight time" (这里按全部显示处理，但可加逻辑)
+  const link = document.getElementById('passTrackerLink');
+  link.href = `https://haojin.guanmu233.cn/flights_map=?${t.flightNo}`;
+  
+  dlg.showModal();
 }
 
+/* =========================================
+   5. 设置与通知 (Settings & Utils)
+   ========================================= */
+
+function setupNotifications() {
+  const sw = document.getElementById('notifySwitch');
+  sw.checked = STATE.settings.notifications;
+  sw.onchange = (e) => {
+    STATE.settings.notifications = e.target.checked;
+    saveStorage();
+    if (e.target.checked) {
+      Notification.requestPermission();
+      STATE.purchased.forEach(scheduleTicketNotifs); // 重新调度
+    }
+  };
+
+  // 历史记录开关
+  const hisSw = document.getElementById('historySwitch');
+  hisSw.checked = STATE.settings.history;
+  hisSw.onchange = (e) => { STATE.settings.history = e.target.checked; saveStorage(); };
+
+  // 清除数据
+  document.getElementById('clearDataBtn').onclick = () => {
+    localStorage.removeItem('starflight_data');
+    STATE.purchased = [];
+    showToast("所有数据已清除");
+    setTimeout(() => location.reload(), 1000);
+  };
+}
+
+function scheduleTicketNotifs(t) {
+  if (!STATE.settings.notifications) return;
+  if (Notification.permission !== 'granted') return;
+
+  const now = Date.now();
+  const depTs = t.ts;
+  
+  // Helper
+  const sched = (time, title, body) => {
+    const delay = time - now;
+    if (delay > 0 && delay < CONSTANTS.MS_PER_DAY) { // 仅在24小时内有效，避免定时器溢出
+      setTimeout(() => new Notification(title, { body, icon: 'icon.png' }), delay);
+    }
+  };
+
+  // 1. 值机提醒 (-120m)
+  sched(depTs - 120*60000, "航班值机提醒", `航班 ${t.flightNo} 建议现在值机，前往 ${t.origin.term}`);
+  
+  // 2. 登机提醒 (-30m)
+  sched(depTs - 30*60000, "准备登机", `航班 ${t.flightNo} 即将登机，请前往登机口`);
+  
+  // 3. 起飞提醒 (0m)
+  sched(depTs, "航班起飞", `您的航班 ${t.flightNo} 正在起飞，旅途愉快！`);
+}
+
+// Utils
 function loadStorage() {
-  const t = localStorage.getItem('starflight_tickets');
-  if(t) STATE.purchased = JSON.parse(t);
-  const s = localStorage.getItem('starflight_settings');
-  if(s) STATE.settings = JSON.parse(s);
+  const data = JSON.parse(localStorage.getItem('starflight_data') || '{}');
+  if(data.purchased) STATE.purchased = data.purchased;
+  if(data.settings) STATE.settings = {...STATE.settings, ...data.settings};
 }
 
 function saveStorage() {
-  localStorage.setItem('starflight_tickets', JSON.stringify(STATE.purchased));
-  localStorage.setItem('starflight_settings', JSON.stringify(STATE.settings));
+  localStorage.setItem('starflight_data', JSON.stringify({
+    purchased: STATE.purchased,
+    settings: STATE.settings
+  }));
 }
+
+function populateAirlineFilter() {
+  const sel = document.getElementById('filterAirline');
+  const set = new Set(STATE.flights.map(f => f.airline));
+  set.forEach(al => {
+    const opt = document.createElement('option');
+    opt.value = al;
+    opt.innerText = al;
+    sel.appendChild(opt);
+  });
+}
+
+function getWeekStr(d) {
+  return ["SUN","MON","TUE","WED","THU","FRI","SAT"][new Date(d).getDay()];
+}
+
+function fmtDuration(m) {
+  return `${Math.floor(m/60)}h ${m%60}m`;
+}
+
+function calculateDuration(t1, d1, t2, d2) {
+  const [h1, m1] = t1.split(':').map(Number);
+  const [h2, m2] = t2.split(':').map(Number);
+  return (d2 * 24 * 60 + h2 * 60 + m2) - (d1 * 24 * 60 + h1 * 60 + m1);
+}
+
+function parsePrice(s) { return s ? parseInt(s.replace(/\D/g,'')) : null; }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  t.innerText = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  setTimeout(()=>t.classList.remove('show'), 3000);
 }
 
-// 启动
+// 默认日期
+document.getElementById('searchDate').value = new Date().toISOString().split('T')[0];
+document.getElementById('swapBtn').onclick = () => {
+  const fC = document.getElementById('dispFromCode').innerText;
+  const fN = document.getElementById('dispFromCity').innerText;
+  const tC = document.getElementById('dispToCode').innerText;
+  const tN = document.getElementById('dispToCity').innerText;
+  
+  document.getElementById('dispFromCode').innerText = tC;
+  document.getElementById('dispFromCity').innerText = tN;
+  document.getElementById('dispToCode').innerText = fC;
+  document.getElementById('dispToCity').innerText = fN;
+};
+document.getElementById('searchBtn').onclick = performSearch;
+
+// Start
 initApp();
