@@ -1,31 +1,40 @@
+/* ========== Material Design 3 Expressive Tokens ========== */
 :root {
   --md-sys-color-primary: #006495;
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #cbe6ff;
   --md-sys-color-on-primary-container: #001e30;
   
-  --md-sys-color-secondary-container: #cbe6ff;
-  --md-sys-color-on-secondary-container: #001e30;
+  --md-sys-color-secondary-container: #dce2e9; 
+  --md-sys-color-on-secondary-container: #1a1c1e;
 
   --md-sys-color-surface: #fdfcff;
-  --md-sys-color-on-surface: #1a1c1e;
   --md-sys-color-surface-container: #f0f4f8;
-  --md-sys-color-outline: #4e5663;
+  --md-sys-color-surface-variant: #e1e2ec;
+  --md-sys-color-on-surface: #1a1c1e;
+  --md-sys-color-on-surface-variant: #44474f;
+  --md-sys-color-outline: #74777f;
   --md-sys-color-error: #ba1a1a;
+  
+  --highlight-orange: #ff6d00;
   
   --shape-corner-xl: 28px;
   --shape-corner-l: 24px;
   --shape-corner-m: 16px;
+  --shape-corner-s: 12px;
   
   --motion-easing-emphasized: cubic-bezier(0.2, 0.0, 0.0, 1.0);
-  --safe-top: env(safe-area-inset-top, 20px);
+  --elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  --elevation-3: 0 10px 20px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.15);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     --md-sys-color-surface: #1a1c1e;
-    --md-sys-color-on-surface: #e2e2e6;
     --md-sys-color-surface-container: #202429;
+    --md-sys-color-surface-variant: #44474f;
+    --md-sys-color-on-surface: #e2e2e6;
+    --md-sys-color-on-surface-variant: #c4c6d0;
     
     --md-sys-color-primary: #93cae4;
     --md-sys-color-on-primary: #00324c;
@@ -33,297 +42,296 @@
     --md-sys-color-on-primary-container: #cbe6ff;
     
     --md-sys-color-secondary-container: #3e4449;
-    --md-sys-color-on-secondary-container: #dce2e9;
+    --md-sys-color-on-secondary-container: #dee0ff;
   }
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
 body {
   margin: 0;
-  font-family: 'Roboto', 'PingFang SC', system-ui, sans-serif;
+  font-family: 'Roboto', 'PingFang SC', sans-serif;
   background: var(--md-sys-color-surface);
   color: var(--md-sys-color-on-surface);
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
   overflow: hidden;
 }
 
-/* --- Top App Bar --- */
-.top-app-bar {
+/* ========== Top App Bar ========== */
+.app-top-bar {
   height: 64px;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 0 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background: var(--md-sys-color-surface);
-  z-index: 100;
-  padding-top: var(--safe-top); /* 适配刘海屏 */
+  z-index: 10;
+  border-bottom: 1px solid transparent;
+}
+.logo-section { display: flex; align-items: center; gap: 12px; color: var(--md-sys-color-primary); }
+.logo-icon { font-size: 28px; }
+.page-title { font-size: 22px; font-weight: 400; }
+
+.top-bar-actions { display: flex; gap: 8px; }
+.icon-nav {
+  background: transparent; border: none; color: var(--md-sys-color-on-surface-variant);
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; justify-content: center; align-items: center;
+  cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.icon-nav:hover { background: var(--md-sys-color-surface-variant); }
+.icon-nav.active {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
 }
 
-.leading, .trailing { display: flex; align-items: center; gap: 8px; }
-.headline { font-size: 22px; font-weight: 400; margin-left: 8px; }
-
-.icon-btn {
-  background: transparent; border: none; cursor: pointer;
-  color: var(--md-sys-color-on-surface);
-  width: 40px; height: 40px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.2s;
-}
-.icon-btn:hover { background: var(--md-sys-color-surface-container); }
-
-/* --- Layout --- */
+/* ========== Main Layout ========== */
 .main-content {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
+  flex: 1; position: relative; overflow: hidden;
 }
-
 .view {
   position: absolute; inset: 0;
-  overflow-y: auto;
+  overflow-y: auto; padding: 16px;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.3s var(--motion-easing-emphasized);
-  background: var(--md-sys-color-surface);
+  transform: translateY(20px);
+  transition: opacity 0.3s var(--motion-easing-emphasized), transform 0.3s var(--motion-easing-emphasized);
 }
-.view.active { opacity: 1; pointer-events: auto; }
+.view.active { opacity: 1; pointer-events: auto; transform: translateY(0); }
 
-/* 响应式布局容器 */
-.layout-container {
-  display: flex;
-  flex-direction: column; /* 手机默认上下结构 */
-  height: 100%;
+/* ========== Split Layout (Search) ========== */
+.split-layout {
+  display: flex; flex-direction: column; gap: 16px;
+  max-width: 1200px; margin: 0 auto;
 }
-
-.layout-single {
-  max-width: 800px; margin: 0 auto; padding: 24px;
-}
-
-/* 平板/桌面 双栏布局 */
-@media (min-width: 800px) {
-  .layout-container { flex-direction: row; }
-  .search-pane {
-    width: 360px;
-    border-right: 1px solid var(--md-sys-color-outline);
-    background: var(--md-sys-color-surface-container);
-    padding: 24px;
-    overflow-y: auto;
-  }
-  .results-pane { flex: 1; padding: 24px; overflow-y: auto; }
+/* Desktop/Tablet Mode */
+@media (min-width: 840px) {
+  .split-layout { flex-direction: row; height: 100%; align-items: flex-start; }
+  .search-panel { width: 360px; flex-shrink: 0; position: sticky; top: 0; }
+  .results-panel { flex: 1; min-width: 0; }
 }
 
-@media (max-width: 799px) {
-  .search-pane {
-    padding: 16px;
-    background: var(--md-sys-color-surface-container);
-    border-radius: 0 0 var(--shape-corner-l) var(--shape-corner-l);
-    flex-shrink: 0;
-  }
-  .results-pane { padding: 16px; flex: 1; }
+/* ========== Search Components ========== */
+.station-card {
+  background: var(--md-sys-color-surface-container);
+  border-radius: var(--shape-corner-l);
+  padding: 20px;
+  margin-bottom: 12px;
 }
+.station-row { display: flex; align-items: center; justify-content: space-between; position: relative; }
+.station-input-group { flex: 1; display: flex; align-items: flex-start; gap: 4px; position: relative; }
+.station-input-group.right-align { justify-content: flex-end; text-align: right; }
+.station-input-group.right-align .station-display { align-items: flex-end; }
 
-/* --- Search Pane UI --- */
-.search-card { display: flex; flex-direction: column; gap: 16px; }
-
-/* 仿Image的机场输入组 */
-.input-airport-group {
-  display: flex;
-  align-items: stretch;
-  background: var(--md-sys-color-surface);
-  border: 1px solid var(--md-sys-color-outline);
-  border-radius: var(--shape-corner-m);
-  position: relative;
+.label { font-size: 11px; color: var(--md-sys-color-on-surface-variant); margin-top: 6px; }
+.station-display { display: flex; flex-direction: column; width: 100px; }
+.station-display h2 { 
+  margin: 0; font-size: 32px; font-weight: 700; color: var(--md-sys-color-primary); 
+  line-height: 1; letter-spacing: 1px;
 }
-
-.airport-display {
-  flex: 1;
-  padding: 12px 16px;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.2s;
+.station-display input {
+  background: transparent; border: none; outline: none;
+  font-size: 14px; font-weight: 500; color: var(--md-sys-color-on-surface);
+  padding: 4px 0; width: 100%; font-family: inherit;
 }
-.airport-display:first-child { border-radius: var(--shape-corner-m) 0 0 var(--shape-corner-m); }
-.airport-display:last-child { border-radius: 0 var(--shape-corner-m) var(--shape-corner-m) 0; }
-.airport-display:hover { background: var(--md-sys-color-surface-container); }
+.station-input-group.right-align input { text-align: right; }
 
-.airport-display .label { font-size: 11px; color: var(--md-sys-color-outline); display: block; }
-.airport-display .code-text { font-size: 24px; font-weight: 700; color: var(--md-sys-color-primary); line-height: 1.2; }
-.airport-display .city-text { font-size: 14px; color: var(--md-sys-color-on-surface); font-weight: 500; }
-
-.swap-btn {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  border: 1px solid var(--md-sys-color-outline);
-  background: var(--md-sys-color-surface);
-  position: absolute;
-  left: 50%; top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: var(--md-sys-color-primary);
+.mini-btn {
+  background: transparent; border: none; padding: 4px;
+  color: var(--md-sys-color-outline); cursor: pointer;
+}
+.exchange-icon {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   z-index: 2;
 }
-
-/* 日期 */
-.date-section label { font-size: 12px; color: var(--md-sys-color-outline); margin-bottom: 4px; display: block; }
-.date-input-wrapper {
-  position: relative;
-  background: var(--md-sys-color-surface);
+.icon-btn-outlined {
+  background: var(--md-sys-color-surface); 
   border: 1px solid var(--md-sys-color-outline);
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; justify-content: center; align-items: center;
+  color: var(--md-sys-color-primary); cursor: pointer;
+}
+
+.control-card, .filter-card {
+  background: var(--md-sys-color-surface-container);
   border-radius: var(--shape-corner-m);
-  padding: 12px 16px;
-  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px; margin-bottom: 12px;
+  display: flex; gap: 12px; align-items: center;
 }
-.date-input-wrapper input {
-  border: none; background: transparent; font-size: 16px; 
-  font-family: inherit; color: var(--md-sys-color-on-surface);
-  width: 100%; outline: none;
+.filter-card { flex-wrap: wrap; }
+
+.input-field-box { flex: 1; display: flex; flex-direction: column; }
+.input-field-box label, .filter-group label {
+  font-size: 11px; color: var(--md-sys-color-primary); margin-bottom: 4px; font-weight: 500;
+}
+.input-field-box input, select {
+  background: transparent; border: 1px solid var(--md-sys-color-outline);
+  border-radius: 8px; padding: 8px; font-size: 14px; color: inherit;
+  outline: none; font-family: inherit;
+}
+.filter-group { flex: 1; display: flex; flex-direction: column; min-width: 120px; }
+
+.week-display {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
 }
 
-/* 筛选器 */
-.filters-section { display: flex; gap: 8px; flex-wrap: wrap; }
-.md-select {
-  flex: 1;
-  padding: 10px 12px;
-  border-radius: var(--shape-corner-m);
-  border: 1px solid var(--md-sys-color-outline);
-  background: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
-  font-size: 14px;
+.big-search-btn {
+  width: 100%; margin-top: 8px;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  height: 56px; border-radius: 28px;
+  font-size: 18px; font-weight: 500; border: none; cursor: pointer;
 }
+.big-search-btn:hover { box-shadow: var(--elevation-3); }
 
-.btn-filled {
-  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
-  border: none; height: 56px; border-radius: var(--shape-corner-xl);
-  font-size: 16px; font-weight: 500; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  transition: box-shadow 0.2s;
-}
-.btn-filled.full-width { width: 100%; }
-.btn-filled:disabled { background: var(--md-sys-color-outline); opacity: 0.5; cursor: not-allowed; }
-
-/* --- 结果列表卡片 --- */
-.card-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px; margin-top: 16px; padding-bottom: 80px;
-}
+/* ========== Flight Cards ========== */
+.card-list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 100px; }
 .flight-card {
-  background: var(--md-sys-color-surface);
+  background: var(--md-sys-color-surface-container);
   border-radius: var(--shape-corner-m);
-  padding: 16px;
-  border: 1px solid transparent;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: all 0.2s var(--motion-easing-emphasized);
-  cursor: pointer;
-  position: relative;
+  padding: 16px; cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+  border-left: 4px solid transparent;
 }
 .flight-card:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-  border-color: var(--md-sys-color-primary-container);
-  transform: translateY(-2px);
+  background: var(--md-sys-color-surface-variant);
+  transform: scale(1.01);
 }
-.fc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 13px; color: var(--md-sys-color-outline); }
-.airline-badge { display: flex; align-items: center; gap: 6px; }
-.airline-icon-small { width: 20px; height: 20px; object-fit: contain; }
+
+.fc-header { display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center; }
+.airline-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+.airline-logo-sm { width: 24px; height: 24px; object-fit: contain; border-radius: 4px; background: #fff; }
 
 .fc-body { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.fc-port { display: flex; flex-direction: column; }
-.fc-port.right { text-align: right; }
-.fc-time { font-size: 26px; font-weight: 300; line-height: 1; color: var(--md-sys-color-on-surface); }
-.fc-code { font-weight: 700; color: var(--md-sys-color-primary); font-size: 14px; margin-top: 4px; }
-.fc-arrow { color: var(--md-sys-color-outline); display: flex; flex-direction: column; align-items: center; font-size: 11px; }
+.fc-port { flex: 1; }
+.fc-time { font-size: 26px; font-weight: 600; line-height: 1.1; color: var(--md-sys-color-on-surface); }
+.fc-city { font-size: 13px; color: var(--md-sys-color-on-surface-variant); margin-top: 2px; }
+.fc-center { text-align: center; color: var(--md-sys-color-outline); font-size: 11px; display: flex; flex-direction: column; }
 
-.fc-footer { border-top: 1px solid var(--md-sys-color-outline); padding-top: 12px; display: flex; justify-content: space-between; font-size: 12px; }
-.price { color: #d95d00; font-weight: 700; font-size: 16px; }
+.fc-footer {
+  border-top: 1px solid rgba(0,0,0,0.1); padding-top: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.fc-equip { font-size: 11px; color: var(--md-sys-color-on-surface-variant); background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; }
+.price-tag { color: var(--highlight-orange); font-weight: 700; font-size: 18px; }
 
-/* --- Airport Selector Dialog --- */
-.selector-dialog {
-  position: absolute; top: 16px; left: 16px; right: 16px; bottom: 16px; /* Floating on Mobile */
-  width: auto; max-width: 400px; height: auto; max-height: 500px;
-  margin: auto; border: none; padding: 0;
-  border-radius: var(--shape-corner-l);
-  background: var(--md-sys-color-surface);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+/* ========== Modals & Dialogs ========== */
+.md-dialog {
+  border: none; padding: 0; background: transparent;
+  width: 100%; max-width: 500px; margin: auto;
+  outline: none;
 }
-.selector-dialog::backdrop { background: rgba(0,0,0,0.5); backdrop-filter: blur(2px); }
-.selector-header { padding: 16px; display: flex; gap: 8px; border-bottom: 1px solid var(--md-sys-color-outline); }
-.selector-header input {
-  flex: 1; border: none; background: transparent; font-size: 16px; color: inherit; outline: none;
+.md-dialog::backdrop { background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); }
+.dialog-content {
+  background: var(--md-sys-color-surface); color: var(--md-sys-color-on-surface);
+  border-radius: var(--shape-corner-xl); padding: 24px;
+  box-shadow: var(--elevation-3);
 }
-.list-group { overflow-y: auto; max-height: 400px; }
-.list-item {
-  padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;
-  border-bottom: 1px solid var(--md-sys-color-surface-container);
-}
-.list-item:hover { background: var(--md-sys-color-surface-container); }
-.list-divider { padding: 8px 16px; background: var(--md-sys-color-surface-container); font-size: 12px; font-weight: 700; color: var(--md-sys-color-primary); }
+.dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.route-title { font-size: 24px; font-weight: 700; color: var(--md-sys-color-primary); display: flex; align-items: center; gap: 8px; }
 
-/* --- Settings Switch --- */
+.ticket-preview { background: var(--md-sys-color-surface-container); border-radius: var(--shape-corner-m); padding: 20px; margin-bottom: 20px; }
+.airline-info-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-weight: 600; font-size: 14px; }
+.flight-timeline { display: flex; justify-content: space-between; align-items: center; }
+.big-time { font-size: 32px; font-weight: 300; }
+.duration-line { flex: 1; height: 1px; background: var(--md-sys-color-outline); margin: 0 16px; position: relative; }
+.duration-line span { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 11px; }
+
+.seat-options { display: grid; gap: 8px; margin-top: 10px; }
+.seat-radio { display: none; }
+.seat-card {
+  border: 1px solid var(--md-sys-color-outline); border-radius: 12px;
+  padding: 12px 16px; display: flex; justify-content: space-between;
+  cursor: pointer; transition: 0.2s;
+}
+.seat-radio:checked + .seat-card {
+  border-color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.dialog-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+.price-display { font-size: 24px; font-weight: 700; color: var(--highlight-orange); }
+.btn-filled {
+  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+  border: none; padding: 12px 24px; border-radius: 24px; font-weight: 600; cursor: pointer;
+}
+.btn-filled:disabled { background: var(--md-sys-color-surface-variant); cursor: not-allowed; }
+.icon-btn { background: transparent; border: none; cursor: pointer; color: inherit; padding: 8px; }
+
+/* ========== Boarding Pass Style ========== */
+.pass-dialog { max-width: 360px; }
+.pass-content {
+  background: #fff; /* Always white for pass style */
+  color: #000;
+  border-radius: 20px; overflow: hidden;
+}
+.pass-header {
+  background: var(--md-sys-color-primary); color: #fff; padding: 16px;
+  display: flex; align-items: center; gap: 12px; font-weight: 600;
+}
+.close-pass { color: #fff; margin-left: auto; }
+.pass-body { padding: 24px; }
+.pass-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.pass-port .code { font-size: 32px; font-weight: 800; display: block; line-height: 1; }
+.pass-port .city { font-size: 12px; color: #666; }
+.pass-icon { font-size: 24px; color: var(--md-sys-color-primary); transform: rotate(90deg); }
+.pass-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+.pass-info-grid label { font-size: 10px; color: #666; display: block; }
+.pass-info-grid strong { font-size: 16px; display: block; }
+.highlight { color: var(--highlight-orange); }
+.qr-section { text-align: center; border-top: 2px dashed #eee; padding-top: 20px; }
+.qr-box { width: 150px; height: 150px; background: #000; margin: 0 auto 8px; }
+.qr-label { font-size: 10px; color: #999; }
+.pass-actions { padding: 16px; background: #f5f5f5; text-align: center; }
+
+/* ========== Airport Picker Modal ========== */
+.bottom-sheet-dialog { width: 100%; max-width: 100%; margin: 0; bottom: 0; top: auto; border-radius: 24px 24px 0 0; }
+.airport-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 12px; margin-top: 16px; max-height: 60vh; overflow-y: auto;}
+.airport-chip {
+  background: var(--md-sys-color-surface-container);
+  border: 1px solid transparent; padding: 12px 4px; border-radius: 12px;
+  text-align: center; cursor: pointer;
+}
+.airport-chip:hover { border-color: var(--md-sys-color-primary); }
+.airport-chip b { display: block; font-size: 16px; color: var(--md-sys-color-primary); }
+.airport-chip span { font-size: 12px; }
+
+/* ========== Switch Toggle ========== */
 .switch { position: relative; display: inline-block; width: 48px; height: 28px; }
 .switch input { opacity: 0; width: 0; height: 0; }
 .slider {
   position: absolute; cursor: pointer; inset: 0;
   background-color: var(--md-sys-color-outline);
-  border-radius: 34px; transition: .3s;
+  border-radius: 34px; transition: .4s;
 }
 .slider:before {
   position: absolute; content: ""; height: 20px; width: 20px;
   left: 4px; bottom: 4px; background-color: white;
-  border-radius: 50%; transition: .3s;
+  border-radius: 50%; transition: .4s;
 }
 input:checked + .slider { background-color: var(--md-sys-color-primary); }
 input:checked + .slider:before { transform: translateX(20px); }
 
-/* --- Boarding Pass Dialog --- */
-.pass-dialog { border: none; background: transparent; padding: 0; width: 100%; max-width: 380px; }
-.pass-content {
-  background: var(--md-sys-color-surface);
-  border-radius: var(--shape-corner-l);
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+/* Settings List */
+.settings-container { max-width: 600px; margin: 0 auto; }
+.setting-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--md-sys-color-outline);
 }
-.pass-header { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); padding: 16px; display: flex; align-items: center; justify-content: space-between; }
-.pass-body { padding: 24px; text-align: center; }
-.pass-row { display: flex; justify-content: space-between; margin-bottom: 24px; font-size: 13px; text-align: left; }
-.pass-row .col { display: flex; flex-direction: column; }
-.pass-row .val { font-size: 15px; margin-top: 4px; }
-.pass-route { display: flex; justify-content: space-between; align-items: center; color: var(--md-sys-color-primary); margin-bottom: 8px; }
-.pass-route h1 { font-size: 42px; margin: 0; font-weight: 300; }
-.pass-times { display: flex; justify-content: space-between; margin-bottom: 24px; }
-.pass-times .t-group { display: flex; flex-direction: column; }
-.pass-times span { font-size: 24px; font-weight: 600; }
+.btn-text.error { color: var(--md-sys-color-error); background: none; border: none; font-weight: 600; cursor: pointer; font-size:14px; display:flex; align-items:center; gap:4px; }
 
-.qr-section { margin: 24px 0; border-top: 2px dashed var(--md-sys-color-outline); padding-top: 24px; }
-.qr-code-box {
-  width: 160px; height: 160px; margin: 0 auto 12px;
-  background: #fff; display: flex; align-items: center; justify-content: center;
-  border: 1px solid #ccc;
-}
-.qr-placeholder { font-size: 120px; color: #000; }
-
-/* Toast */
 .toast {
-  position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(100px);
+  position: fixed; bottom: 40px; left: 50%; transform: translate(-50%, 100px);
   background: #323232; color: #fff; padding: 12px 24px; border-radius: 24px;
-  opacity: 0; transition: all 0.3s; z-index: 2000;
+  opacity: 0; transition: 0.3s; pointer-events: none; z-index: 1000;
 }
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
 
-.error { color: var(--md-sys-color-error) !important; }
-.btn-text { background: none; border: none; cursor: pointer; font-weight: 600; padding: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
-.btn-tonal { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); text-decoration: none; padding: 12px; border-radius: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: 500; margin-bottom: 8px; }
-
-/* Booking Dialog */
-.md-dialog { border-radius: var(--shape-corner-l); border: none; padding: 0; width: 90%; max-width: 500px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-.dialog-content { background: var(--md-sys-color-surface); padding: 24px; }
-.dialog-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.airline-brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 18px; }
-
-.seat-options label {
-  display: flex; justify-content: space-between; padding: 16px; border: 1px solid var(--md-sys-color-outline);
-  border-radius: 12px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+.tracker-box { margin-top: 12px; }
+.btn-tonal {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container);
+  padding: 10px; border-radius: 12px; text-decoration: none; font-size: 14px; font-weight: 600;
 }
-.seat-options input:checked + div { color: var(--md-sys-color-primary); font-weight: 700; }
-.seat-options label:has(input:checked) { border-color: var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.full-width { width: 100%; }
