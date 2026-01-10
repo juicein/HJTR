@@ -1,258 +1,254 @@
 /* =========================================
-   1. Core Data & Config
+   全局状态与配置
    ========================================= */
-
-const CONFIG = {
-  maxDays: 60,
-  notificationOffsets: [
-    { label: 'checkin', min: -120, msg: '航班还有2小时起飞，请确认航站楼并值机' },
-    { label: 'boarding', min: -30, msg: '航班即将开始登机，请前往登机口' },
-    { label: 'takeoff', min: 0, msg: '航班计划起飞，祝您旅途愉快' }
-  ]
-};
-
 const STATE = {
-  flights: [],
-  airports: [],
-  airlines: [], // New
-  purchased: [],
+  flights: [],     // 航班数据
+  airports: [],    // 机场数据
+  airlines: [],    // 航司数据 (Icon)
+  purchased: [],   // 订单
   settings: {
-    notifications: false, // Default OFF
-    rememberInputs: true
-  },
-  notificationTimers: [] // Store timer IDs
+    notifications: false,
+    rememberInputs: false,
+    lastFrom: '',
+    lastTo: ''
+  }
 };
 
 const DATES = {
-  weekMap: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
   today: new Date(),
-  fmtDate: (d) => d.toISOString().split('T')[0],
-  getWeekStr: (dateStr) => DATES.weekMap[new Date(dateStr).getDay()],
-  // Helper: Get flight timestamp based on date string and time string (HH:MM)
-  getTimestamp: (dateStr, timeStr) => new Date(`${dateStr}T${timeStr}:00`).getTime()
+  weekMap: ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"],
+  
+  fmt: (d) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  },
+
+  getWeekStr: (dateStr) => {
+    const d = new Date(dateStr);
+    return DATES.weekMap[d.getDay()];
+  }
 };
 
 /* =========================================
-   2. Initialization
+   核心流程：初始化
    ========================================= */
-
 async function initApp() {
-  await loadData();
+  setupNavigation();
   loadStorage();
-  initUI();
-  handleHashRouting();
+  await loadData();
   
-  // Re-schedule notifications if enabled
-  if (STATE.settings.notifications) {
-    rescheduleAllNotifications();
-  }
+  initSearchUI();
+  initSettingsUI();
+  checkNotifications();
+  
+  handleRouteHash(); // 处理直接 URL 访问
 }
 
+// 1. 数据加载
 async function loadData() {
   try {
+    // 并行加载
     const [airRes, flightRes, airlineRes] = await Promise.all([
-      fetch('data/airports.json'),
-      fetch('data/flight_data.txt'),
-      fetch('data/airlines.json').catch(() => ({ json: () => [] })) // Fallback
+      fetch('../data/airports.json'),
+      fetch('../data/flight_data.txt'),
+      fetch('../data/airlines.json').catch(() => ({ json: () => [] })) // 容错
     ]);
 
     STATE.airports = await airRes.json();
-    STATE.airlines = await airlineRes.json(); // Load Airlines
-    const rawText = await flightRes.text();
-    STATE.flights = parseFlightData(rawText);
+    STATE.airlines = await airlineRes.json();
+    const rawFlight = await flightRes.text();
+    STATE.flights = parseFlightData(rawFlight);
 
-    populateDatalist();
     populateAirlineFilter();
+    console.log("数据加载完毕");
   } catch (e) {
-    console.error("Data Load Error:", e);
-    showToast("数据加载部分失败");
+    showToast("数据加载异常，部分功能可能不可用");
+    console.error(e);
   }
 }
 
-/* =========================================
-   3. Parsing Logic (Regex)
-   ========================================= */
+// 2. 解析逻辑 (正则)
 function parseFlightData(raw) {
   const entries = raw.split("《航班结束》").map(s => s.trim()).filter(Boolean);
   return entries.map(str => {
     try {
-      const flightNo = str.match(/【(.*?)】/)?.[1] || "Unknown";
-      const weekdays = (str.match(/«(.*?)»/)?.[1] || "").split(",").map(s=>s.trim());
-      const aircraft = str.match(/〔(.*?)〕/)?.[1] || "";
-      const airline = str.match(/『(.*?)』/)?.[1] || "";
-      const equipmentId = str.match(/<(R-.*?)>/)?.[1] || "";
-
+      // 基础字段提取
+      const flightNo    = str.match(/【(.*?)】/)?.[1] || "Unknown";
+      const weekdaysStr = str.match(/«(.*?)»/)?.[1] || "";
+      const aircraft    = str.match(/〔(.*?)〕/)?.[1] || "";
+      const airline     = str.match(/『(.*?)』/)?.[1] || "";
+      // 设备号可能不存在
+      const equipmentId = str.match(/<(R-.*?)>/)?.[1] || ""; 
+      
+      // 出发
       const depMatch = str.match(/《(.*?)出发》{(.*?)}#\+(\d+)#@(.*?)@/);
+      // 到达
       const arrMatch = str.match(/《(.*?)到达》{(.*?)}#\+(\d+)#@(.*?)@/);
 
-      if (!depMatch || !arrMatch) return null;
-
+      // 价格
       const eco = parsePrice(str.match(/§(.*?)§/)?.[1]);
       const bus = parsePrice(str.match(/θ(.*?)θ/)?.[1]);
       const first = parsePrice(str.match(/△(.*?)△/)?.[1]);
 
+      if (!depMatch || !arrMatch) return null;
+
+      const [h1, m1] = depMatch[2].split(':').map(Number);
+      const [h2, m2] = arrMatch[2].split(':').map(Number);
+      const durationMins = (arrMatch[3] * 24 * 60 + h2 * 60 + m2) - (depMatch[3] * 24 * 60 + h1 * 60 + m1);
+
       return {
-        flightNo, weekdays, aircraft, airline, equipmentId,
-        origin: { name: depMatch[1], time: depMatch[2], term: depMatch[4] },
-        dest: { name: arrMatch[1], time: arrMatch[2], term: arrMatch[4], dayOff: parseInt(arrMatch[3]) },
+        id: flightNo,
+        flightNo, airline, aircraft, equipmentId,
+        weekdays: weekdaysStr.split(",").map(s=>s.trim()),
+        origin: { name: depMatch[1], time: depMatch[2], term: depMatch[4], offset: parseInt(depMatch[3]) },
+        dest:   { name: arrMatch[1], time: arrMatch[2], term: arrMatch[4], offset: parseInt(arrMatch[3]) },
         prices: { eco, bus, first },
-        duration: calculateDuration(depMatch[2], 0, arrMatch[2], parseInt(arrMatch[3]))
+        duration: durationMins
       };
     } catch (e) { return null; }
   }).filter(Boolean);
 }
 
-function parsePrice(str) {
-  return str ? parseInt(str.replace(/\D/g, '')) : null;
-}
-function calculateDuration(t1, d1, t2, d2) {
-  const [h1, m1] = t1.split(':').map(Number);
-  const [h2, m2] = t2.split(':').map(Number);
-  return (d2 * 24 * 60 + h2 * 60 + m2) - (d1 * 24 * 60 + h1 * 60 + m1);
-}
-function fmtDuration(mins) {
-  return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+function parsePrice(s) {
+  if(!s) return null;
+  const n = parseInt(s.replace(/\D/g, ''));
+  return isNaN(n) ? null : n;
 }
 
 /* =========================================
-   4. UI & Interaction
+   UI 逻辑：搜索与输入
    ========================================= */
 
-function initUI() {
-  // Navigation
-  window.addEventListener('hashchange', handleHashRouting);
-
-  // Date Setup
+function initSearchUI() {
   const dateInput = document.getElementById('searchDate');
-  const todayStr = DATES.fmtDate(DATES.today);
+  const nowStr = DATES.fmt(DATES.today);
   const maxDate = new Date();
-  maxDate.setDate(maxDate.getDate() + CONFIG.maxDays);
+  maxDate.setDate(maxDate.getDate() + 60);
   
-  dateInput.min = todayStr;
-  dateInput.max = DATES.fmtDate(maxDate);
-  dateInput.value = todayStr; // Default
-  dateInput.addEventListener('change', () => {
-    document.getElementById('weekDisplay').textContent = DATES.getWeekStr(dateInput.value);
-    validateDate();
+  // 日期限制
+  dateInput.min = nowStr;
+  dateInput.max = DATES.fmt(maxDate);
+  dateInput.value = nowStr;
+
+  // 输入框记忆回填
+  if(STATE.settings.rememberInputs) {
+    document.getElementById('fromInput').value = STATE.settings.lastFrom || '';
+    document.getElementById('toInput').value = STATE.settings.lastTo || '';
+    updateCodeDisplay('from');
+    updateCodeDisplay('to');
+  }
+
+  // 绑定事件
+  bindInputEvents('fromInput', 'suggestFrom', 'depCodeDisplay', 'from');
+  bindInputEvents('toInput', 'suggestTo', 'arrCodeDisplay', 'to');
+  
+  document.getElementById('swapBtn').addEventListener('click', () => {
+    const f = document.getElementById('fromInput');
+    const t = document.getElementById('toInput');
+    [f.value, t.value] = [t.value, f.value];
+    updateCodeDisplay('from');
+    updateCodeDisplay('to');
   });
 
-  // Input Listeners (Auto-update Code Display)
-  setupStationInput('fromInput', 'fromCodeDisp');
-  setupStationInput('toInput', 'toCodeDisp');
-  
-  if (STATE.settings.rememberInputs) restoreInputs();
-
-  // Buttons
-  document.getElementById('swapBtn').addEventListener('click', swapStations);
   document.getElementById('searchBtn').addEventListener('click', performSearch);
-  document.getElementById('confirmBuyBtn').addEventListener('click', confirmPurchase);
-  document.getElementById('closeDialogBtn').addEventListener('click', () => document.getElementById('bookingDialog').close());
-  
-  // Settings
-  const nSwitch = document.getElementById('masterNotifySwitch');
-  nSwitch.checked = STATE.settings.notifications;
-  nSwitch.addEventListener('change', e => toggleNotifications(e.target.checked));
-
-  const mSwitch = document.getElementById('inputMemorySwitch');
-  mSwitch.checked = STATE.settings.rememberInputs;
-  mSwitch.addEventListener('change', e => {
-    STATE.settings.rememberInputs = e.target.checked;
-    saveStorage();
-  });
-
-  document.getElementById('clearDataBtn').addEventListener('click', clearAllData);
-  document.getElementById('deleteTicketBtn').addEventListener('click', deleteCurrentTicket);
-
-  renderWallet();
 }
 
-function handleHashRouting() {
-  const hash = window.location.hash.replace('#', '');
-  if (hash === 'wallet') switchTab('wallet');
-  else if (hash === 'settings') switchTab('settings');
-  else switchTab('search');
-}
-
-function switchTab(tab) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(`view-${tab}`).classList.add('active');
-  
-  document.querySelectorAll('.icon-nav').forEach(b => b.classList.remove('active'));
-  // Update header title
-  const titles = { search: '探索航班', wallet: '我的行程', settings: '设置' };
-  document.getElementById('pageTitle').textContent = titles[tab] || '航行';
-  
-  // Highlight Icon logic (simple index match)
-  const tabs = ['search', 'wallet', 'settings'];
-  const idx = tabs.indexOf(tab);
-  if (idx > -1) document.querySelectorAll('.icon-nav')[idx].classList.add('active');
-}
-
-/* --- Input Logic --- */
-
-function setupStationInput(inputId, displayId) {
+// 绑定输入框自动联想
+function bindInputEvents(inputId, suggestId, displayId, type) {
   const input = document.getElementById(inputId);
-  const display = document.getElementById(displayId);
-  
-  input.addEventListener('input', () => {
-    const val = input.value.trim();
-    // Find matching code
-    const found = STATE.airports.find(a => a.name === val || a.code === val || a.aliases?.includes(val));
-    display.textContent = found ? found.code : (val ? '???' : '---');
-    if (STATE.settings.rememberInputs) saveInputs();
+  const suggest = document.getElementById(suggestId);
+
+  input.addEventListener('input', (e) => {
+    const val = e.target.value.trim();
+    updateCodeDisplay(type); // 实时更新三字码
+
+    if (!val) {
+      suggest.hidden = true;
+      return;
+    }
+
+    // 联想逻辑：匹配中文名称
+    const matches = STATE.airports.filter(ap => ap.name.includes(val));
+    renderSuggestions(matches, suggest, input, type);
+  });
+
+  // 点击外部关闭
+  document.addEventListener('click', (e) => {
+    if (!input.contains(e.target) && !suggest.contains(e.target)) {
+      suggest.hidden = true;
+    }
   });
 }
 
-function populateDatalist() {
-  const dl = document.getElementById('airportSuggestions');
-  dl.innerHTML = '';
-  STATE.airports.forEach(ap => {
-    const opt = document.createElement('option');
-    opt.value = ap.name;
-    dl.appendChild(opt);
+// 更新顶部的三字码显示
+function updateCodeDisplay(type) {
+  const input = document.getElementById(type === 'from' ? 'fromInput' : 'toInput');
+  const display = document.getElementById(type === 'from' ? 'depCodeDisplay' : 'arrCodeDisplay');
+  const name = input.value.trim();
+  
+  const found = STATE.airports.find(ap => ap.name === name);
+  display.textContent = found ? found.code : '---';
+}
+
+// 渲染联想词
+function renderSuggestions(list, container, inputField, type) {
+  container.innerHTML = '';
+  if (list.length === 0) {
+    container.hidden = true;
+    return;
+  }
+  container.hidden = false;
+  list.forEach(ap => {
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    div.innerHTML = `<span>${ap.name}</span> <span style="color:var(--md-sys-color-primary)">${ap.code}</span>`;
+    div.addEventListener('click', () => {
+      inputField.value = ap.name;
+      updateCodeDisplay(type);
+      container.hidden = true;
+    });
+    container.appendChild(div);
   });
 }
 
-// Modal Picker Logic
-function openAirportPicker(target) { // 'from' or 'to'
-  const dialog = document.getElementById('airportPickerDialog');
-  const grid = document.getElementById('airportGridPicker');
-  grid.innerHTML = '';
+// 下拉弹窗逻辑 (Button Trigger)
+window.toggleAirportList = function(type) {
+  const dialog = document.getElementById('airportSelectDialog');
+  const listBody = document.getElementById('fullAirportList');
+  listBody.innerHTML = '';
   
   STATE.airports.forEach(ap => {
-    const chip = document.createElement('div');
-    chip.className = 'airport-chip';
-    chip.innerHTML = `<b>${ap.code}</b><span>${ap.name}</span>`;
-    chip.onclick = () => {
-      const input = document.getElementById(target + 'Input');
+    const div = document.createElement('div');
+    div.className = 'airport-option';
+    div.innerHTML = `<span>${ap.name}</span> <b>${ap.code}</b>`;
+    div.addEventListener('click', () => {
+      const input = document.getElementById(type === 'from' ? 'fromInput' : 'toInput');
       input.value = ap.name;
-      input.dispatchEvent(new Event('input')); // Trigger update
+      updateCodeDisplay(type);
       dialog.close();
-    };
-    grid.appendChild(chip);
+    });
+    listBody.appendChild(div);
   });
+
   dialog.showModal();
-}
+  // 点击背景关闭
+  dialog.onclick = (e) => { if (e.target === dialog) dialog.close(); }
+};
 
-function swapStations() {
-  const f = document.getElementById('fromInput');
-  const t = document.getElementById('toInput');
-  [f.value, t.value] = [t.value, f.value];
-  f.dispatchEvent(new Event('input'));
-  t.dispatchEvent(new Event('input'));
-}
-
-/* --- Search Logic --- */
+/* =========================================
+   搜索与筛选逻辑
+   ========================================= */
 
 function populateAirlineFilter() {
-  const sel = document.getElementById('airlineFilter');
-  // Get unique airlines from flights
-  const names = [...new Set(STATE.flights.map(f => f.airline))];
-  names.forEach(n => {
+  const select = document.getElementById('filterAirline');
+  const airlines = [...new Set(STATE.flights.map(f => f.airline))];
+  airlines.forEach(al => {
     const opt = document.createElement('option');
-    opt.value = n;
-    opt.textContent = n;
-    sel.appendChild(opt);
+    opt.value = al;
+    opt.textContent = al;
+    select.appendChild(opt);
   });
 }
 
@@ -261,416 +257,433 @@ function performSearch() {
   const to = document.getElementById('toInput').value.trim();
   const dateStr = document.getElementById('searchDate').value;
   
-  if (!from || !to) { showToast("请输入出发和目的地"); return; }
-  if (!validateDate()) return;
+  // 记忆功能
+  if (STATE.settings.rememberInputs) {
+    STATE.settings.lastFrom = from;
+    STATE.settings.lastTo = to;
+    saveStorage();
+  }
 
+  // 1. 基础匹配
   const weekStr = DATES.getWeekStr(dateStr);
-  const airFilter = document.getElementById('airlineFilter').value;
-  const timeFilter = document.getElementById('timeFilter').value;
+  let results = STATE.flights.filter(f => {
+    const matchFrom = from ? f.origin.name.includes(from) : true;
+    const matchTo = to ? f.dest.name.includes(to) : true;
+    const matchDay = f.weekdays.includes(weekStr);
+    return matchFrom && matchTo && matchDay;
+  });
 
-  const results = STATE.flights.filter(f => {
-    // Basic Route
-    const routeMatch = f.origin.name.includes(from) && f.dest.name.includes(to);
-    // Weekday
-    const dayMatch = f.weekdays.includes(weekStr);
-    // Airline Filter
-    const airMatch = airFilter === 'all' || f.airline === airFilter;
-    // Time Filter
-    const timeMatch = checkTimeFilter(f.origin.time, timeFilter);
-    // Time Validity (Current Time check)
-    const isValidTime = checkFlightTimeValidity(dateStr, f.origin.time);
+  // 2. 筛选
+  const timeFilter = document.getElementById('filterTime').value;
+  const airlineFilter = document.getElementById('filterAirline').value;
 
-    return routeMatch && dayMatch && airMatch && timeMatch && isValidTime;
+  results = results.filter(f => {
+    // 航司筛选
+    if (airlineFilter !== 'all' && f.airline !== airlineFilter) return false;
+    
+    // 时间段筛选
+    if (timeFilter !== 'all') {
+      const hour = parseInt(f.origin.time.split(':')[0]);
+      if (timeFilter === 'early' && !(hour >= 0 && hour < 6)) return false;
+      if (timeFilter === 'morning' && !(hour >= 6 && hour < 11)) return false;
+      if (timeFilter === 'noon' && !(hour >= 11 && hour < 13)) return false;
+      if (timeFilter === 'afternoon' && !(hour >= 13 && hour < 18)) return false;
+      if (timeFilter === 'evening' && !(hour >= 18 && hour < 22)) return false;
+      if (timeFilter === 'midnight' && !(hour >= 22)) return false;
+    }
+    return true;
   });
 
   renderResults(results, dateStr);
 }
 
-function checkTimeFilter(timeStr, filter) {
-  const hour = parseInt(timeStr.split(':')[0]);
-  if (filter === 'all') return true;
-  if (filter === 'morning') return hour >= 6 && hour < 12;
-  if (filter === 'noon') return hour >= 12 && hour < 14;
-  if (filter === 'afternoon') return hour >= 14 && hour < 18;
-  if (filter === 'evening') return hour >= 18 && hour <= 23;
-  if (filter === 'midnight') return hour >= 0 && hour < 6;
-  return true;
-}
-
-function checkFlightTimeValidity(dateStr, timeStr) {
-  // If date is today, flight time must be > now
-  if (dateStr === DATES.fmtDate(DATES.today)) {
-    const flightTs = DATES.getTimestamp(dateStr, timeStr);
-    return flightTs > Date.now();
-  }
-  return true;
-}
-
-function validateDate() {
-  const input = document.getElementById('searchDate');
-  const d = new Date(input.value);
-  const today = new Date(DATES.fmtDate(new Date())); // normalize
-  const max = new Date(); max.setDate(max.getDate() + CONFIG.maxDays);
-  
-  if (d < today) {
-    showToast("不能选择早于今天的日期");
-    input.value = DATES.fmtDate(today);
-    return false;
-  }
-  if (d > max) {
-    showToast("预订仅开放未来60天");
-    input.value = DATES.fmtDate(max);
-    return false;
-  }
-  return true;
-}
-
 function renderResults(list, dateStr) {
   const grid = document.getElementById('flightGrid');
-  document.getElementById('resultsHeader').hidden = false;
   grid.innerHTML = '';
 
   if (list.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><p>暂无符合条件的航班</p></div>`;
+    grid.innerHTML = `<div class="empty-state"><span class="material-symbols-rounded">sentiment_content_dissatisfied</span><p>暂无航班，尝试调整筛选条件</p></div>`;
     return;
   }
 
+  // 检查是否是"今天"，如果是今天，已过时间的航班不能选
+  const isToday = dateStr === DATES.fmt(new Date());
+  const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+
   list.forEach(f => {
+    const [depH, depM] = f.origin.time.split(':').map(Number);
+    const flightMins = depH * 60 + depM;
+    const isPast = isToday && flightMins < nowMins;
+
+    // 获取航司 Icon
+    const airlineData = STATE.airlines.find(a => a.name === f.airline);
+    const iconUrl = airlineData ? airlineData.logo : 'https://img.icons8.com/color/48/airplane-take-off.png';
+
     const card = document.createElement('div');
     card.className = 'flight-card';
-    const logo = getAirlineLogo(f.airline);
-    
+    if(isPast) card.style.opacity = '0.5';
+
     card.innerHTML = `
       <div class="fc-header">
-        <div class="airline-badge">
-          <img src="${logo}" class="airline-logo-sm">
-          ${f.airline} · ${f.flightNo}
+        <img src="${iconUrl}" class="airline-logo-sm" alt="logo">
+        <div class="fc-header-text">
+          <span>${f.airline}</span>
+          <span style="font-size:10px">${f.flightNo} · ${f.aircraft}</span>
         </div>
-        <span style="font-size:12px;color:var(--md-sys-color-primary)">${f.aircraft}</span>
+      </div>
+      <div class="fc-body">
+        <div>
+          <div class="fc-time">${f.origin.time}</div>
+          <div class="fc-city">${f.origin.name}</div>
+        </div>
+        <div class="fc-duration">
+          <span>${Math.floor(f.duration/60)}h ${f.duration%60}m</span>
+          <div style="border-top:1px solid #999; width:40px; margin:2px auto;"></div>
+        </div>
+        <div style="text-align:right">
+          <div class="fc-time">${f.dest.time}</div>
+          <div class="fc-city">${f.dest.name}</div>
+        </div>
+      </div>
+      <div class="fc-footer">
+        <span>${f.equipmentId || ''}</span>
+        <span class="price">¥${f.prices.eco || f.prices.bus} 起</span>
+      </div>
+    `;
+
+    card.addEventListener('click', () => {
+      if (isPast) {
+        showToast("该航班已停止检票");
+        return;
+      }
+      openBookingDialog(f, dateStr);
+    });
+    grid.appendChild(card);
+  });
+}
+
+/* =========================================
+   购票与卡包
+   ========================================= */
+
+function openBookingDialog(flight, dateStr) {
+  const dialog = document.getElementById('bookingDialog');
+  
+  // 预览信息
+  document.getElementById('bookingPreview').innerHTML = `
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px">
+      <b>${flight.origin.name}</b> 
+      <span class="material-symbols-rounded">arrow_right_alt</span>
+      <b>${flight.dest.name}</b>
+    </div>
+    <div style="font-size:12px; color:var(--md-sys-color-outline)">
+      ${dateStr} · ${flight.flightNo} · ${flight.airline}
+    </div>
+  `;
+
+  // 舱位渲染
+  const seatContainer = document.getElementById('seatOptions');
+  seatContainer.innerHTML = '';
+  
+  const classes = [
+    { n: '经济舱', p: flight.prices.eco, k: 'eco' },
+    { n: '商务舱', p: flight.prices.bus, k: 'bus' },
+    { n: '头等舱', p: flight.prices.first, k: 'first' }
+  ];
+
+  let selected = null;
+
+  classes.forEach(c => {
+    if (!c.p) return;
+    const btn = document.createElement('div');
+    btn.className = 'flight-card'; // 复用卡片样式但简化
+    btn.style.padding = '12px';
+    btn.style.marginBottom = '8px';
+    btn.innerHTML = `<div style="display:flex;justify-content:space-between"><b>${c.n}</b><span style="color:#ff6d00">¥${c.p}</span></div>`;
+    
+    btn.addEventListener('click', () => {
+      // 选中逻辑
+      Array.from(seatContainer.children).forEach(ch => ch.style.borderColor = 'transparent');
+      btn.style.borderColor = 'var(--md-sys-color-primary)';
+      
+      document.getElementById('totalPrice').textContent = `¥${c.p}`;
+      document.getElementById('confirmBuyBtn').disabled = false;
+      selected = { class: c.n, price: c.p };
+    });
+    seatContainer.appendChild(btn);
+  });
+
+  const confirmBtn = document.getElementById('confirmBuyBtn');
+  confirmBtn.onclick = () => {
+    // 生成订单
+    const ticket = {
+      id: Date.now().toString(36),
+      flight: flight,
+      date: dateStr,
+      seat: selected,
+      ts: new Date(`${dateStr}T${flight.origin.time}`).getTime()
+    };
+    
+    STATE.purchased.push(ticket);
+    saveStorage();
+    scheduleNotificationsForTicket(ticket); // 调度通知
+    
+    showToast("预订成功，已存入卡包");
+    dialog.close();
+    renderWallet();
+    
+    if(STATE.settings.notifications) {
+      sendLocalNotify("购票成功", `您已成功预订 ${dateStr} ${flight.flightNo} 航班`);
+    }
+  };
+
+  document.getElementById('closeBookingBtn').onclick = () => dialog.close();
+  dialog.showModal();
+}
+
+function renderWallet() {
+  const grid = document.getElementById('walletGrid');
+  grid.innerHTML = '';
+  
+  if (STATE.purchased.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><p>暂无行程</p></div>`;
+    return;
+  }
+
+  // 按时间倒序
+  const list = STATE.purchased.sort((a,b) => b.ts - a.ts);
+
+  list.forEach((t, index) => {
+    const f = t.flight;
+    // 状态判定
+    const now = Date.now();
+    const [arrH, arrM] = f.dest.time.split(':').map(Number);
+    // 简易计算到达时间戳 (由于可能跨天，这里做简化，假设在出发当天或次日)
+    let arrTs = new Date(`${t.date}T${f.dest.time}`).getTime();
+    if (arrTs < t.ts) arrTs += 86400000; // 跨天
+
+    const isFlying = now >= t.ts && now <= arrTs;
+    const isDone = now > arrTs;
+
+    const airlineData = STATE.airlines.find(a => a.name === f.airline);
+    const iconUrl = airlineData ? airlineData.logo : '';
+
+    const card = document.createElement('div');
+    card.className = 'flight-card';
+    card.style.borderLeft = isDone ? '4px solid gray' : '4px solid var(--md-sys-color-primary)';
+
+    // 删除按钮
+    const delBtn = document.createElement('button');
+    delBtn.className = 'delete-btn';
+    delBtn.innerHTML = '<span class="material-symbols-rounded">delete</span>';
+    delBtn.onclick = (e) => {
+      e.stopPropagation(); // 防止触发卡片点击
+      if(confirm('确定删除此行程？')) {
+        STATE.purchased.splice(index, 1);
+        saveStorage();
+        renderWallet();
+      }
+    };
+    card.appendChild(delBtn);
+
+    // 动态追踪按钮 (飞行区间内隐藏)
+    // 题目要求：处于飞行时间区间内...隐藏该按钮。
+    // 这里的 trackerUrl 我使用 # 占位
+    const trackerHtml = (!isFlying) 
+      ? `<button class="btn-filled" style="height:32px; font-size:12px; margin-top:12px; width:auto;" 
+          onclick="event.stopPropagation(); window.open('https://haojin.guanmu233.cn/flights_map=?${f.flightNo}')">
+          <span class="material-symbols-rounded" style="font-size:16px">radar</span> 实时动态
+         </button>` 
+      : '';
+
+    card.innerHTML += `
+      <div class="fc-header">
+        <img src="${iconUrl}" class="airline-logo-sm" alt="">
+        <span>${t.date} · ${f.flightNo}</span>
       </div>
       <div class="fc-body">
         <div class="fc-port">
           <div class="fc-time">${f.origin.time}</div>
           <div class="fc-city">${f.origin.name}</div>
         </div>
-        <div class="fc-center">
-          <span>${fmtDuration(f.duration)}</span>
-          <span class="material-symbols-rounded">trending_flat</span>
+        <div class="fc-arrow">
+          <span class="material-symbols-rounded">flight_takeoff</span>
         </div>
-        <div class="fc-port" style="text-align:right">
-          <div class="fc-time">${f.dest.time} <small style="font-size:12px">${f.dest.dayOff?'+1':''}</small></div>
+        <div class="fc-port">
+          <div class="fc-time">${f.dest.time}</div>
           <div class="fc-city">${f.dest.name}</div>
         </div>
       </div>
-      <div class="fc-footer">
-        <span class="fc-equip">${f.equipmentId || '设备未定'}</span>
-        <span class="price-tag">¥${f.prices.eco || f.prices.bus || '--'}</span>
+      <div class="fc-footer" style="display:block">
+         <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+            <span>${t.seat.class}</span>
+            <span>${isFlying ? '<b style="color:#ff6d00">飞行中</b>' : (isDone ? '已结束' : '待出行')}</span>
+         </div>
+         ${trackerHtml}
       </div>
     `;
-    card.addEventListener('click', () => openBooking(f, dateStr));
-    grid.appendChild(card);
-  });
-}
 
-function getAirlineLogo(name) {
-  const found = STATE.airlines.find(a => a.name === name);
-  return found ? found.icon : 'https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png'; // Fallback
-}
-
-/* =========================================
-   5. Booking & Wallet
-   ========================================= */
-
-let currentBooking = null;
-let currentTicketView = null; // For deleting
-
-function openBooking(flight, dateStr) {
-  const d = document.getElementById('bookingDialog');
-  currentBooking = { flight, dateStr, class: null, price: 0 };
-  
-  // Fill Data
-  document.getElementById('modalDep').textContent = getCode(flight.origin.name);
-  document.getElementById('modalArr').textContent = getCode(flight.dest.name);
-  document.getElementById('modalFlightNo').textContent = flight.flightNo;
-  document.getElementById('modalDate').textContent = dateStr;
-  document.getElementById('modalDepTime').textContent = flight.origin.time;
-  document.getElementById('modalArrTime').textContent = flight.dest.time;
-  document.getElementById('modalDepTerm').textContent = flight.origin.term;
-  document.getElementById('modalArrTerm').textContent = flight.dest.term;
-  document.getElementById('modalDuration').textContent = fmtDuration(flight.duration);
-  document.getElementById('modalAirlineName').textContent = flight.airline;
-  document.getElementById('modalAirlineIcon').src = getAirlineLogo(flight.airline);
-
-  // Tracker Logic: Hide if "Currently Flying". 
-  // Wait, requirement 4: "If currently flying, DON'T show button".
-  // Logic: Flying = (now > dep && now < arr). 
-  const depTs = DATES.getTimestamp(dateStr, flight.origin.time);
-  const arrTs = depTs + flight.duration * 60000;
-  const now = Date.now();
-  const isFlying = now >= depTs && now <= arrTs;
-  
-  const trackBox = document.getElementById('trackerContainer');
-  const trackLink = document.getElementById('trackerLink');
-  
-  if (isFlying) {
-    trackBox.hidden = true;
-  } else {
-    trackBox.hidden = false;
-    trackLink.href = `https://haojin.guanmu233.cn/flights_map=?${flight.flightNo}`;
-  }
-
-  // Seats
-  const seatCon = document.getElementById('seatOptions');
-  seatCon.innerHTML = '';
-  const classes = [
-    { k: 'eco', n: '经济舱', p: flight.prices.eco },
-    { k: 'bus', n: '商务舱', p: flight.prices.bus },
-    { k: 'first', n: '头等舱', p: flight.prices.first }
-  ];
-  
-  classes.forEach(c => {
-    if (!c.p) return;
-    const label = document.createElement('label');
-    label.innerHTML = `
-      <input type="radio" name="seat" class="seat-radio">
-      <div class="seat-card">
-        <span>${c.n}</span>
-        <b>¥${c.p}</b>
-      </div>
-    `;
-    label.querySelector('input').addEventListener('change', () => {
-      currentBooking.class = c.n;
-      currentBooking.price = c.p;
-      document.getElementById('totalPrice').textContent = `¥${c.p}`;
-      document.getElementById('confirmBuyBtn').disabled = false;
-    });
-    seatCon.appendChild(label);
-  });
-  
-  document.getElementById('confirmBuyBtn').disabled = true;
-  document.getElementById('totalPrice').textContent = '请选择';
-  d.showModal();
-}
-
-function getCode(cityName) {
-  const ap = STATE.airports.find(a => a.name === cityName);
-  return ap ? ap.code : '---';
-}
-
-function confirmPurchase() {
-  const t = {
-    id: Date.now().toString(36),
-    ...currentBooking.flight,
-    depDate: currentBooking.dateStr,
-    className: currentBooking.class,
-    price: currentBooking.price,
-    purchaseTime: Date.now()
-  };
-  
-  STATE.purchased.push(t);
-  saveStorage();
-  
-  document.getElementById('bookingDialog').close();
-  showToast("出票成功");
-  
-  // Notification (Immediate: Booking success)
-  if(STATE.settings.notifications) {
-    sendLocalNotif('购买成功', `您已预订 ${t.flightNo} 前往 ${t.dest.name}`);
-    scheduleTicketNotifs(t);
-  }
-  
-  renderWallet();
-}
-
-function renderWallet() {
-  const grid = document.getElementById('walletGrid');
-  grid.innerHTML = '';
-  const list = STATE.purchased.sort((a,b) => {
-    // Sort by dep time
-    const tA = DATES.getTimestamp(a.depDate, a.origin.time);
-    const tB = DATES.getTimestamp(b.depDate, b.origin.time);
-    return tA - tB;
-  });
-
-  if(list.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><p>暂无行程</p></div>`;
-    return;
-  }
-
-  list.forEach(t => {
-    const depTs = DATES.getTimestamp(t.depDate, t.origin.time);
-    const isPast = Date.now() > depTs + 24*3600*1000; // 1 day after
-    
-    const card = document.createElement('div');
-    card.className = 'flight-card';
-    if(isPast) card.style.opacity = '0.6';
-    card.style.borderLeftColor = isPast ? '#999' : 'var(--highlight-orange)';
-    
-    card.innerHTML = `
-      <div class="fc-header">
-        <span style="font-weight:700">${t.depDate}</span>
-        <span class="badge" style="color:${isPast?'gray':'green'}">${isPast?'已结束':'待出行'}</span>
-      </div>
-      <div class="fc-body">
-        <div class="fc-port">
-          <div class="fc-time">${t.origin.time}</div>
-          <div class="fc-city">${t.origin.name}</div>
-        </div>
-        <div class="fc-center">
-           <span class="material-symbols-rounded">flight</span>
-        </div>
-        <div class="fc-port" style="text-align:right">
-          <div class="fc-time">${t.dest.time}</div>
-          <div class="fc-city">${t.dest.name}</div>
-        </div>
-      </div>
-      <div class="fc-footer">
-        <span>${t.className}</span>
-        <span style="font-weight:700">${t.flightNo}</span>
-      </div>
-    `;
     card.addEventListener('click', () => showBoardingPass(t));
     grid.appendChild(card);
   });
 }
 
-function showBoardingPass(t) {
-  currentTicketView = t;
+function showBoardingPass(ticket) {
+  const f = ticket.flight;
   const d = document.getElementById('boardingPassDialog');
   
-  document.getElementById('bpDepCode').textContent = getCode(t.origin.name);
-  document.getElementById('bpDepCity').textContent = t.origin.name;
-  document.getElementById('bpArrCode').textContent = getCode(t.dest.name);
-  document.getElementById('bpArrCity').textContent = t.dest.name;
+  // 查找三字码
+  const depCode = STATE.airports.find(a => a.name === f.origin.name)?.code || '---';
+  const arrCode = STATE.airports.find(a => a.name === f.dest.name)?.code || '---';
   
-  document.getElementById('bpFlightNo').textContent = t.flightNo;
-  document.getElementById('bpDate').textContent = t.depDate;
+  const airlineData = STATE.airlines.find(a => a.name === f.airline);
   
-  // Boarding time = Dep time - 30m
-  const depTs = DATES.getTimestamp(t.depDate, t.origin.time);
-  const boardTs = depTs - 30 * 60000;
-  const boardDate = new Date(boardTs);
-  document.getElementById('bpBoardTime').textContent = `${boardDate.getHours().toString().padStart(2,'0')}:${boardDate.getMinutes().toString().padStart(2,'0')}`;
-  document.getElementById('bpClass').textContent = t.className;
+  document.getElementById('bpAirlineIcon').src = airlineData ? airlineData.logo : '';
+  document.getElementById('bpDepCode').textContent = depCode;
+  document.getElementById('bpDepCity').textContent = f.origin.name;
+  document.getElementById('bpArrCode').textContent = arrCode;
+  document.getElementById('bpArrCity').textContent = f.dest.name;
+  document.getElementById('bpFlightNo').textContent = f.flightNo;
+  document.getElementById('bpDate').textContent = ticket.date;
+  document.getElementById('bpClass').textContent = ticket.seat.class;
+  document.getElementById('bpTerm').textContent = f.origin.term || '--';
   
-  // Mock QR: just a black box with some "pixels" via CSS or simple image
-  const qr = document.getElementById('qrPlaceholder');
-  qr.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${t.flightNo}" alt="QR" style="width:100%">`;
+  // 登机时间 = 起飞前30分钟
+  const [h, m] = f.origin.time.split(':').map(Number);
+  const boardingMins = h * 60 + m - 30;
+  const bH = Math.floor(boardingMins/60);
+  const bM = boardingMins % 60;
+  document.getElementById('bpBoardingTime').textContent = `${String(bH).padStart(2,'0')}:${String(bM).padStart(2,'0')}`;
+
+  // 二维码：使用 API 或占位
+  const qrData = `${f.flightNo}|${ticket.date}|${ticket.seat.class}`;
+  document.getElementById('bpQrCode').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
   
   d.showModal();
 }
 
-function deleteCurrentTicket() {
-  if (!currentTicketView) return;
-  if (!confirm('确定要删除这张机票吗？')) return;
-  
-  STATE.purchased = STATE.purchased.filter(x => x.id !== currentTicketView.id);
-  saveStorage();
-  document.getElementById('boardingPassDialog').close();
-  renderWallet();
-  showToast("订单已删除");
-}
-
 /* =========================================
-   6. Notifications
+   设置与通知系统
    ========================================= */
 
-function toggleNotifications(enabled) {
-  STATE.settings.notifications = enabled;
-  saveStorage();
-  
-  if (enabled) {
-    Notification.requestPermission().then(p => {
-      if(p === 'granted') {
-        showToast("通知已开启");
-        rescheduleAllNotifications();
-      } else {
-        document.getElementById('masterNotifySwitch').checked = false;
-        showToast("权限被拒绝");
-      }
-    });
-  } else {
-    clearAllTimers();
-    showToast("通知已关闭");
-  }
-}
+function initSettingsUI() {
+  const masterSw = document.getElementById('notifyMasterSwitch');
+  const memoSw = document.getElementById('memorySwitch');
+  const clearBtn = document.getElementById('clearDataBtn');
 
-function clearAllTimers() {
-  STATE.notificationTimers.forEach(id => clearTimeout(id));
-  STATE.notificationTimers = [];
-}
+  masterSw.checked = STATE.settings.notifications;
+  memoSw.checked = STATE.settings.rememberInputs;
 
-function rescheduleAllNotifications() {
-  clearAllTimers();
-  STATE.purchased.forEach(scheduleTicketNotifs);
-}
+  masterSw.addEventListener('change', (e) => {
+    STATE.settings.notifications = e.target.checked;
+    saveStorage();
+    if(e.target.checked) requestNotifyPermission();
+  });
 
-function scheduleTicketNotifs(t) {
-  const depTs = DATES.getTimestamp(t.depDate, t.origin.time);
-  const now = Date.now();
-  
-  CONFIG.notificationOffsets.forEach(cfg => {
-    const triggerTime = depTs + (cfg.min * 60000);
-    const delay = triggerTime - now;
-    
-    if (delay > 0 && delay < 24 * 60 * 60 * 1000) { // Only if future & within 24h
-      const tid = setTimeout(() => {
-        sendLocalNotif(`航班动态: ${t.flightNo}`, cfg.msg);
-      }, delay);
-      STATE.notificationTimers.push(tid);
+  memoSw.addEventListener('change', (e) => {
+    STATE.settings.rememberInputs = e.target.checked;
+    if(!e.target.checked) {
+      STATE.settings.lastFrom = '';
+      STATE.settings.lastTo = '';
+    }
+    saveStorage();
+  });
+
+  clearBtn.addEventListener('click', () => {
+    if(confirm('确定清除所有数据？此操作不可逆。')) {
+      localStorage.removeItem('sf_data');
+      location.reload();
     }
   });
 }
 
-function sendLocalNotif(title, body) {
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: 'https://img.mcwfmtr.cc/i/2025/07/18/5gkzqx.png' });
+function requestNotifyPermission() {
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+
+function checkNotifications() {
+  if (!STATE.settings.notifications) return;
+  // 页面加载时重新调度所有有效票据的通知
+  STATE.purchased.forEach(scheduleNotificationsForTicket);
+}
+
+function scheduleNotificationsForTicket(t) {
+  if (!STATE.settings.notifications) return;
+  const now = Date.now();
+  
+  // 1. 值机 (120 min before)
+  const checkinTime = t.ts - 120 * 60 * 1000;
+  if (checkinTime > now) {
+    setTimeout(() => sendLocalNotify("值机提醒", `航班 ${t.flight.flightNo} 开放值机，前往 ${t.flight.origin.term}`), checkinTime - now);
+  }
+
+  // 2. 登机 (30 min before)
+  const boardingTime = t.ts - 30 * 60 * 1000;
+  if (boardingTime > now) {
+    setTimeout(() => sendLocalNotify("登机提醒", `航班 ${t.flight.flightNo} 开始登机`), boardingTime - now);
+  }
+
+  // 3. 起飞
+  if (t.ts > now) {
+    setTimeout(() => sendLocalNotify("起飞提醒", `航班 ${t.flight.flightNo} 即将起飞，祝旅途愉快`), t.ts - now);
+  }
+}
+
+function sendLocalNotify(title, body) {
+  if (Notification.permission === 'granted' && STATE.settings.notifications) {
+    new Notification(title, { body, icon: '../data/icon.png' });
+  } else {
+    showToast(`${title}: ${body}`); // 降级为 Toast
   }
 }
 
 /* =========================================
-   7. Storage & Utils
+   工具与路由
    ========================================= */
 
 function loadStorage() {
-  const p = localStorage.getItem('starflight_purchased');
-  if(p) STATE.purchased = JSON.parse(p);
-  
-  const s = localStorage.getItem('starflight_settings');
-  if(s) STATE.settings = Object.assign(STATE.settings, JSON.parse(s));
-}
-
-function saveStorage() {
-  localStorage.setItem('starflight_purchased', JSON.stringify(STATE.purchased));
-  localStorage.setItem('starflight_settings', JSON.stringify(STATE.settings));
-}
-
-function saveInputs() {
-  const data = {
-    from: document.getElementById('fromInput').value,
-    to: document.getElementById('toInput').value
-  };
-  localStorage.setItem('starflight_inputs', JSON.stringify(data));
-}
-
-function restoreInputs() {
-  const d = JSON.parse(localStorage.getItem('starflight_inputs'));
-  if(d) {
-    document.getElementById('fromInput').value = d.from || '';
-    document.getElementById('toInput').value = d.to || '';
-    // Trigger update for codes
-    document.getElementById('fromInput').dispatchEvent(new Event('input'));
-    document.getElementById('toInput').dispatchEvent(new Event('input'));
+  const s = localStorage.getItem('sf_data');
+  if (s) {
+    const data = JSON.parse(s);
+    STATE.purchased = data.purchased || [];
+    STATE.settings = data.settings || STATE.settings;
   }
 }
 
-function clearAllData() {
-  if(!confirm("确定清空所有数据？")) return;
-  localStorage.removeItem('starflight_purchased');
-  localStorage.removeItem('starflight_settings');
-  localStorage.removeItem('starflight_inputs');
-  location.reload();
+function saveStorage() {
+  localStorage.setItem('sf_data', JSON.stringify({
+    purchased: STATE.purchased,
+    settings: STATE.settings
+  }));
 }
+
+// 标签切换
+window.switchTab = function(tab) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${tab}`).classList.add('active');
+  
+  // URL Hash 更新
+  window.location.hash = tab;
+  
+  if (tab === 'wallet') renderWallet();
+};
+
+function handleRouteHash() {
+  const hash = window.location.hash.replace('#', '');
+  if (['search', 'wallet', 'settings'].includes(hash)) {
+    switchTab(hash);
+  } else if (hash.startsWith('ticket/')) {
+    // 简单模拟直接进入特定票据 (实际需更复杂逻辑)
+    switchTab('wallet');
+  }
+}
+
+window.handleBack = function() {
+  // 如果在子试图，返回搜索；如果在搜索，提示退出? 这里简单处理为返回 Search
+  switchTab('search');
+};
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -679,5 +692,5 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Boot
+// 启动
 initApp();
