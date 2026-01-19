@@ -5,45 +5,69 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>航线统计中心</title>
 
+<!-- 图表 CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+/* ===== CSS，支持苹果与小屏 ===== */
 :root {
-  --bg:#f7f8fa; --card:#fff; --text:#222; --border:#ddd;
+  --bg: #f5f7fa;
+  --card: #ffffff;
+  --text: #222;
+  --border: #ddd;
 }
 body {
-  margin:0; font-family:-apple-system,Roboto; background:var(--bg); color:var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
 }
 header {
-  background:#007aff; color:#fff; padding:12px; font-size:20px; text-align:center;
+  background: #097aff;
+  padding: 12px;
+  font-size: 20px;
+  font-weight:600;
+  color: white;
+  text-align:center;
 }
 .container {
-  padding:10px;
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(350px,1fr));
-  gap:12px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(330px,1fr));
+  gap: 14px;
 }
 .card {
-  background:var(--card); border:1px solid var(--border); border-radius:8px;
-  box-shadow:0 2px 5px rgba(0,0,0,.07); padding:12px;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 10px;
+  border:1px solid var(--border);
+  box-shadow: 0 4px 8px rgba(0,0,0,.06);
 }
-canvas { width:100%; height:250px; }
-h3 { margin:4px 0 8px; font-size:18px; font-weight:600; }
-
+h3 { margin: 6px 0 10px; font-size: 18px; }
+canvas { width:100%; height:260px !important; }
 table { width:100%; border-collapse:collapse; font-size:14px; }
-td,th { padding:4px; border-bottom:1px solid #eee; }
-.rank { text-align:center; font-weight:bold; width:32px; }
+td,th { border-bottom:1px solid #e6e6e6; padding:4px; }
+.rank { text-align:center; width:28px; font-weight:bold; }
 
-.red{color:#c0392b;}  .org{color:#e67e22;}
-.ylw{color:#f1c40f;} .blu{color:#2980b9;}
-.grn{color:#27ae60;}
+.level-red{color:#e74c3c;font-weight:bold;}
+.level-org{color:#e67e22;font-weight:bold;}
+.level-ylw{color:#f1c40f;font-weight:bold;}
+.level-blu{color:#3498db;font-weight:bold;}
+.level-grn{color:#27ae60;font-weight:bold;}
+
+@media(max-width:480px){
+  h3{font-size:16px;}
+  table{font-size:12px;}
+  canvas{height:200px !important;}
+}
 </style>
 </head>
-
 <body>
+
 <header>航线统计中心</header>
 
 <div class="container">
+
   <div class="card">
     <h3>机场航线数量排行榜</h3>
     <canvas id="airportChart"></canvas>
@@ -51,133 +75,139 @@ td,th { padding:4px; border-bottom:1px solid #eee; }
   </div>
 
   <div class="card">
-    <h3>航空公司航线数量排行榜</h3>
+    <h3>航空公司开行数量</h3>
     <canvas id="airlineChart"></canvas>
     <table id="airlineTable"></table>
   </div>
 
   <div class="card">
-    <h3>机场枢纽指数（含加分后门）</h3>
+    <h3>机场枢纽指数分）</h3>
     <table id="hubTable"></table>
   </div>
 
   <div class="card">
-    <h3>航司运营可持续指数</h3>
+    <h3>运营可持续指数</h3>
     <canvas id="sustainChart"></canvas>
     <table id="sustainTable"></table>
   </div>
+
 </div>
 
 <script>
-// ===== 自定义加分后门，可随意调整 =====
+/* ======== 手动加分后门 ======== */
 const HUB_BONUS = {
-  "BKE": 10,  
-  "KLM": 0,   
-  "AHF": 5    
+  "BKE": 0,
+  "KLM": 10,
+  "AHF": 0
 };
 
-// ===== 读取文件 =====
+/* ======== 载入数据 ======== */
 Promise.all([
   fetch("./data/airports.json").then(r=>r.json()),
   fetch("./data/flight_data.txt").then(r=>r.text())
-]).then(([airports, flights])=>processData(airports, flights));
+]).then(init);
 
-function processData(airports, raw){
-  // 建立机场对象
-  const airport = {};
-  airports.forEach(a=>airport[a.name]={...a, flights:0, hub:0});
+function init([airports, flightRaw]) {
+  const airportMap = {};
+  airports.forEach(a=>{
+    airportMap[a.name] = {...a, flights:0, hubScore:0};
+  });
 
-  const airlineCnt = {};
-  const airportCnt = {};
+  const airlineCount = {};
+  const airportCount = {};
 
-  // ===== 解析航班文本 =====
-  raw.split("《航班结束》").forEach(seg=>{
-    if(!seg.includes("【")) return;
+  /* === 航班解析 === */
+  for(const seg of flightRaw.split("《航班结束》")){
+    if(!seg.includes("【")) continue;
 
     const airline = seg.match(/『(.*?)』/)?.[1] ?? "未知航空";
     const from = seg.match(/《(.*?)出发》/)?.[1];
     const to   = seg.match(/《(.*?)到达》/)?.[1];
-    if(!from||!to) return;
 
-    airlineCnt[airline]=(airlineCnt[airline]||0)+1;
-    [from,to].forEach(a=>{
-      airportCnt[a]=(airportCnt[a]||0)+1;
-      if(airport[a]) airport[a].flights++;
+    if(!from || !to) continue;
+
+    airlineCount[airline] = (airlineCount[airline]||0)+1;
+    [from,to].forEach(p=>{
+      airportCount[p] = (airportCount[p]||0)+1;
+      if(airportMap[p]) airportMap[p].flights++;
     });
-  });
+  }
 
-  // ===== 机场枢纽指数：航线数×等级系数+后门加分 =====
-  Object.keys(airport).forEach(k=>{
-    const a = airport[k];
-    let factor = a.level.startsWith("4")?1.3:1;
-    a.hub = Math.round(a.flights*factor + (HUB_BONUS[a.code]||0));
-  });
+  /* === 枢纽指数：航线 * 权重 + 后门加分 === */
+  for(const a of Object.values(airportMap)){
+    const weight = a.level.startsWith("4") ? 1.25 : 1.0;
+    const bonus = HUB_BONUS[a.code]||0;
+    a.hubScore = Math.round(a.flights * weight + bonus);
+  }
 
-  // ===== 航司可持续指数：越大越稳定 =====
-  const sustain = {};
-  Object.keys(airlineCnt).forEach(name=>{
-    const n = airlineCnt[name];
-    let color="grn";
-    if(n<2) color="red";
-    else if(n<4) color="org";
-    else if(n<6) color="ylw";
-    else if(n<8) color="blu";
-    sustain[name] = {score:n,color};
-  });
+  /* === 航空公司可持续指数 === */
+  let sustain = {};
+  for(const k in airlineCount){
+    const f = airlineCount[k];
+    let colorClass = "level-grn";
+    if(f<2) colorClass="level-red";
+    else if(f<4) colorClass="level-org";
+    else if(f<6) colorClass="level-ylw";
+    else if(f<9) colorClass="level-blu";
+    sustain[k] = {score:f, colorClass};
+  }
 
-  // ======= 渲染图表 & 表格 ========
-  drawBar("airportChart", airportCnt);
-  drawBar("airlineChart", airlineCnt);
-  drawPie("sustainChart", sustain);
+  /* === 图表渲染 === */
+  renderBar("airportChart", airportCount);
+  renderBar("airlineChart", airlineCount);
+  renderPie("sustainChart", airlineCount);
 
-  renderTableCnt("#airportTable", airportCnt);
-  renderTableCnt("#airlineTable", airlineCnt);
-  renderHub("#hubTable", airport);
-  renderSustain("#sustainTable", sustain);
+  /* === 表格 === */
+  fillRank("#airportTable", airportCount);
+  fillRank("#airlineTable", airlineCount);
+  fillHub("#hubTable", airportMap);
+  fillSustain("#sustainTable", sustain);
 }
 
-// ===== chart helpers =====
-function objKeysSorted(obj){return Object.keys(obj).sort((a,b)=>obj[b]-obj[a])}
-
-function drawBar(id, obj){
-  const k=objKeysSorted(obj);
+/* ======== 工具函数 ======== */
+function renderBar(id, obj){
   new Chart(document.getElementById(id),{
     type:"bar",
-    data:{ labels:k, datasets:[{label:"航线数量", data:k.map(x=>obj[x])}]},
+    data:{
+      labels:Object.keys(obj),
+      datasets:[{ label:"航线数", data:Object.values(obj) }]
+    },
     options:{responsive:true,maintainAspectRatio:false}
   });
 }
-function drawPie(id, sustain){
-  const k=Object.keys(sustain);
+function renderPie(id, obj){
   new Chart(document.getElementById(id),{
     type:"pie",
     data:{
-      labels:k,
-      datasets:[{data:k.map(x=>sustain[x].score)}]
-    }
+      labels:Object.keys(obj),
+      datasets:[{ data:Object.values(obj) }]
+    },
+    options:{responsive:true,maintainAspectRatio:false}
   });
 }
-
-// ===== tables =====
-function renderTableCnt(sel,obj){
-  const list = objKeysSorted(obj);
-  let h=`<tr><th>#</th><th>名称</th><th>数量</th></tr>`;
-  list.forEach((n,i)=>h+=`<tr><td class='rank'>${i+1}</td><td>${n}</td><td>${obj[n]}</td></tr>`);
-  document.querySelector(sel).innerHTML=h;
+function fillRank(sel, obj){
+  const sorted = Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  let html = `<tr><th>#</th><th>名称</th><th>航班数</th></tr>`;
+  sorted.forEach(([k,v],i)=>{
+    html += `<tr><td class='rank'>${i+1}</td><td>${k}</td><td>${v}</td></tr>`;
+  });
+  document.querySelector(sel).innerHTML = html;
 }
-function renderHub(sel,air){
-  const list = Object.values(air).sort((a,b)=>b.hub-a.hub);
-  let h=`<tr><th>#</th><th>机场</th><th>代码</th><th>航班数</th><th>枢纽指数</th></tr>`;
-  list.forEach((a,i)=>h+=`<tr><td class='rank'>${i+1}</td><td>${a.name}</td><td>${a.code}</td><td>${a.flights}</td><td>${a.hub}</td></tr>`);
-  document.querySelector(sel).innerHTML=h;
+function fillHub(sel,map){
+  const arr = Object.values(map).sort((a,b)=>b.hubScore-a.hubScore);
+  let html = `<tr><th>#</th><th>机场</th><th>代码</th><th>航线</th><th>得分</th></tr>`;
+  arr.forEach((a,i)=>{
+    html+=`<tr><td class='rank'>${i+1}</td><td>${a.name}</td><td>${a.code}</td><td>${a.flights}</td><td>${a.hubScore}</td></tr>`;
+  });
+  document.querySelector(sel).innerHTML = html;
 }
-function renderSustain(sel,sus){
-  const keys=Object.keys(sus).sort((a,b)=>sus[b].score-sus[a].score);
-  let h=`<tr><th>#</th><th>航空公司</th><th>指数</th></tr>`;
-  keys.forEach((k,i)=>h+=
-    `<tr><td class='rank'>${i+1}</td><td>${k}</td><td class='${sus[k].color}'>${sus[k].score}</td></tr>`
-  );
-  document.querySelector(sel).innerHTML=h;
+function fillSustain(sel,obj){
+  const arr = Object.entries(obj).sort((a,b)=>b[1].score-a[1].score);
+  let html = `<tr><th>#</th><th>航空公司</th><th>指数</th></tr>`;
+  arr.forEach(([k,v],i)=>{
+    html+=`<tr><td class='rank'>${i+1}</td><td>${k}</td><td class='${v.colorClass}'>${v.score}</td></tr>`;
+  });
+  document.querySelector(sel).innerHTML = html;
 }
 </script>
 </body>
