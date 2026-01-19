@@ -122,7 +122,7 @@ function init([airports, flightRaw]) {
 
     const airline = seg.match(/『(.*?)』/)?.[1] ?? "未知航空";
     const from = seg.match(/《(.*?)出发》/)?.[1];
-    const to   = seg.match(/《(.*?)到达》/)?.[1];
+    const to   = seg.match(/@《(.*?)到达》/)?.[1];
 
     if(!from || !to) continue;
 
