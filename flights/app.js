@@ -110,7 +110,7 @@ function parseFlightData(text) {
       const airline = (entry.match(/『(.*?)』/) || [])[1];
       
       const depMatch = entry.match(/《(.*?)出发》{(.*?)}.*?@(.*?)@/);
-      const arrMatch = entry.match(/《(.*?)到达》{(.*?)}.*?@(.*?)@/);
+      const arrMatch = entry.match(/@《(.*?)到达》{(.*?)}.*?@(.*?)@/);
       const priceMatch = entry.match(/§(.*?)元§/);
       
       if (flightNo && depMatch && arrMatch) {
