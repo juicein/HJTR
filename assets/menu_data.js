@@ -2,12 +2,12 @@
 window.QUICK_ACTIONS = [
     { id: 1, title: "航班信息", icon: "flight_takeoff", link: "/flights" },
     { id: 2, title: "航班动态", icon: "connecting_airports", link: "/flights_map" },
-  //  { id: 3, title: "机场大屏", icon: "monitor", link: "#" },
+    { id: 3, title: "公共交通", icon: "bus", link: "/Bus" },
   //  { id: 4, title: "行李查询", icon: "luggage", link: "#" },
   //  { id: 5, title: "中转服务", icon: "connecting_airports", link: "#" },
   //  { id: 6, title: "贵宾厅", icon: "diamond", link: "#" },
   //  { id: 7, title: "餐饮购物", icon: "restaurant", link: "#" },
-  //  { id: 8, title: "交通指南", icon: "directions_bus", link: "#" }
+  //  { id: 8, title: "交通指南", icon: "directions_bus", link: "#" }monitor
   ];
   
   // 2. 侧边栏-导航 (Navigation Drawer)
