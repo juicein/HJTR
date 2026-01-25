@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北联交通枢纽</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+</head>
+<body>
+
+    <header class="top-app-bar">
+        <button class="icon-button" id="back-btn" style="display: none;">
+            <span class="material-symbols-rounded">arrow_back</span>
+        </button>
+        <h1 class="title" id="page-title">线路列表</h1>
+        <div class="actions">
+            <button class="icon-button" id="plan-btn">
+                <span class="material-symbols-rounded">directions</span>
+            </button>
+            <button class="icon-button" id="filter-btn">
+                <span class="material-symbols-rounded">tune</span>
+            </button>
+        </div>
+    </header>
+
+    <main id="main-container">
+        <div id="view-home" class="view active">
+            <div id="line-list" class="list-container">
+                </div>
+        </div>
+
+        <div id="view-detail" class="view">
+            <div class="detail-card">
+                <div class="detail-header" id="detail-header-bg">
+                    <span class="transport-icon" id="detail-icon"></span>
+                    <h2 id="detail-name"></h2>
+                    <span class="badge" id="detail-region"></span>
+                </div>
+                <div class="detail-body">
+                    <div class="info-row">
+                        <span class="material-symbols-rounded">schedule</span>
+                        <span id="detail-time"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="material-symbols-rounded">payments</span>
+                        <span id="detail-price"></span>
+                    </div>
+                    <div class="info-row">
+                        <span class="material-symbols-rounded">domain</span>
+                        <span id="detail-company"></span>
+                    </div>
+                    <hr>
+                    <h3>站点信息</h3>
+                    <ul class="station-timeline" id="detail-stations"></ul>
+                </div>
+                <div class="fab-container">
+                    <button class="fab extended" id="ride-btn">
+                        <span class="material-symbols-rounded">directions_bus</span>
+                        开始乘车
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-planner" class="view">
+            <div class="planner-inputs">
+                <div class="input-group">
+                    <span class="material-symbols-rounded">my_location</span>
+                    <input type="text" id="start-input" placeholder="输入起点" autocomplete="off">
+                    <ul class="suggestions" id="start-suggestions"></ul>
+                </div>
+                <div class="input-group">
+                    <span class="material-symbols-rounded">location_on</span>
+                    <input type="text" id="end-input" placeholder="输入终点" autocomplete="off">
+                    <ul class="suggestions" id="end-suggestions"></ul>
+                </div>
+            </div>
+
+            <div class="filter-chips">
+                <button class="chip active" data-mode="transfer">换乘最少</button>
+                <button class="chip" data-mode="bus">公交优先</button>
+                <button class="chip" data-mode="subway">地铁优先</button>
+            </div>
+
+            <button class="filled-btn" id="search-route-btn">查询路线</button>
+
+            <div id="route-results" class="list-container"></div>
+        </div>
+
+        <dialog id="settings-dialog">
+            <form method="dialog">
+                <h3>筛选设置</h3>
+                <p>地区</p>
+                <select id="region-filter" class="dropdown">
+                    <option value="all">全部地区</option>
+                </select>
+                <p>交通工具</p>
+                <div class="checkbox-group">
+                    <label><input type="checkbox" checked value="bus"> 公交</label>
+                    <label><input type="checkbox" checked value="subway"> 地铁</label>
+                </div>
+                <div class="dialog-actions">
+                    <button class="text-btn" value="cancel">取消</button>
+                    <button class="text-btn" id="confirm-filter">应用</button>
+                </div>
+            </form>
+        </dialog>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
