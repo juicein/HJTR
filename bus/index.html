@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>北联交通 - Bus Query</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+</head>
+<body>
+
+    <header class="top-bar">
+        <button class="icon-btn" id="backBtn" style="display: none;">
+            <span class="material-symbols-rounded">arrow_back</span>
+        </button>
+        <div class="title-area">
+            <h1 id="pageTitle">交通</h1>
+        </div>
+        <div class="actions">
+            <button class="icon-btn" id="regionFilterBtn">
+                <span class="material-symbols-rounded">location_on</span>
+            </button>
+        </div>
+    </header>
+
+    <main id="app">
+        <div id="homeView" class="view active">
+            <div class="search-bar-container">
+                <div class="search-bar" onclick="showPlanningView()">
+                    <span class="material-symbols-rounded">search</span>
+                    <span>查找线路、站点...</span>
+                </div>
+            </div>
+            
+            <div class="filter-chips">
+                <button class="chip active" data-type="all">全部</button>
+                <button class="chip" data-type="bus">公交</button>
+                <button class="chip" data-type="subway">地铁</button>
+            </div>
+
+            <div id="routeList" class="route-list">
+                </div>
+        </div>
+
+        <div id="detailView" class="view">
+            <div id="detailHeader" class="detail-header-card">
+                </div>
+            
+            <div class="station-container">
+                <div class="direction-toggle">
+                    <button class="small-btn">切换方向</button>
+                </div>
+                <div id="stationList" class="station-timeline">
+                    </div>
+            </div>
+            
+            <div class="fab-container">
+                <button class="fab extended">
+                    <span class="material-symbols-rounded">directions_bus</span>
+                    乘车
+                </button>
+            </div>
+        </div>
+
+        <div id="planningView" class="view">
+            <div class="planning-inputs">
+                <div class="input-group">
+                    <span class="dot start-dot"></span>
+                    <input type="text" id="startInput" placeholder="输入起点" list="station-suggestions">
+                </div>
+                <div class="divider-vertical"></div>
+                <div class="input-group">
+                    <span class="dot end-dot"></span>
+                    <input type="text" id="endInput" placeholder="输入终点" list="station-suggestions">
+                </div>
+                <datalist id="station-suggestions"></datalist>
+                <button class="swap-btn" onclick="swapStations()">
+                    <span class="material-symbols-rounded">swap_vert</span>
+                </button>
+            </div>
+
+            <div class="plan-filters">
+                <button class="filter-tab active" onclick="planRoute('min_transfer')">换乘少</button>
+                <button class="filter-tab" onclick="planRoute('bus_priority')">公交优先</button>
+                <button class="filter-tab" onclick="planRoute('rail_priority')">铁路优先</button>
+            </div>
+
+            <div id="planResults" class="plan-results-list">
+                </div>
+        </div>
+    </main>
+
+    <dialog id="regionDialog">
+        <h3>选择地区</h3>
+        <div id="regionList" class="dialog-list"></div>
+        <button class="text-btn" onclick="document.getElementById('regionDialog').close()">取消</button>
+    </dialog>
+
+    <script src="script.js"></script>
+</body>
+</html>
