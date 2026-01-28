@@ -22,10 +22,10 @@ async function init() {
     try {
         // 并行加载数据
         const [txtRes, aliasRes, regionRes, companyRes] = await Promise.all([
-            fetch('/data/bus_data.txt'),
-            fetch('../data/aliases.json').catch(()=>({json:()=>({})})), // 容错
-            fetch('../data/regions.json').catch(()=>({json:()=>({})})),
-            fetch('../data/companies.json').catch(()=>({json:()=>({})}))
+            fetch('../data/bus_data.txt'),
+           // fetch('../data/aliases.json').catch(()=>({json:()=>({})})), // 容错
+           // fetch('../data/regions.json').catch(()=>({json:()=>({})})),
+           // fetch('../data/companies.json').catch(()=>({json:()=>({})}))
         ]);
 
         const text = await txtRes.text();
