@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交通导览</title>
+    <title>北联交通查询</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
 </head>
 <body>
 
-    <header class="top-app-bar">
-        <button class="icon-button" id="backBtn" style="display: none;">
+    <header class="top-bar">
+        <button class="icon-btn" id="backBtn" style="display: none;">
             <span class="material-symbols-rounded">arrow_back</span>
         </button>
-        <h1 class="title" id="pageTitle">交通</h1>
+        <h1 class="page-title">交通</h1>
         <div class="actions">
-            <button class="icon-button" id="regionFilterBtn">
-                <span class="material-symbols-rounded">location_on</span>
+            <button class="icon-btn" id="regionFilterBtn">
+                <span class="material-symbols-rounded">map</span>
             </button>
-            <button class="icon-button" id="searchBtn">
+            <button class="icon-btn" id="searchBtn">
                 <span class="material-symbols-rounded">search</span>
             </button>
         </div>
     </header>
+
+    <div id="regionMenu" class="dropdown-menu hidden">
+        </div>
 
     <main id="app">
         <div id="view-home" class="view active">
@@ -31,70 +34,51 @@
                 <button class="chip" data-type="bus">公交</button>
                 <button class="chip" data-type="subway">地铁</button>
             </div>
-            <div id="route-list" class="card-list">
-                </div>
+            <div id="line-list" class="card-list">
+                <div class="loading">正在加载线路数据...</div>
+            </div>
         </div>
 
         <div id="view-detail" class="view">
-            <div class="route-header-card surface-container-high">
-                <div class="header-row">
-                    <h2 id="detail-route-name">线路名</h2>
-                    <span id="detail-route-company" class="company-tag">公司</span>
+            <div id="detail-header" class="detail-header">
                 </div>
-                <div class="info-row">
-                    <span class="material-symbols-rounded">schedule</span>
-                    <span id="detail-time">运营时间</span>
-                </div>
-                <div class="info-row">
-                    <span class="material-symbols-rounded">payments</span>
-                    <span id="detail-price">票价</span>
-                </div>
-                <button class="fab-extended" id="rideBtn">
-                    <span class="material-symbols-rounded">qr_code_scanner</span>
-                    乘车
+            <div class="station-timeline-container">
+                <ul id="station-list" class="station-timeline">
+                    </ul>
+            </div>
+            <div class="fab-container">
+                <button class="fab extended">
+                    <span class="material-symbols-rounded">directions_bus</span>
+                    <span>乘车</span>
                 </button>
             </div>
-
-            <div class="station-timeline" id="detail-stations">
-                </div>
         </div>
 
         <div id="view-planner" class="view">
-            <div class="planner-input-card">
+            <div class="planner-inputs">
                 <div class="input-group">
-                    <span class="dot start"></span>
-                    <input type="text" id="plan-start" placeholder="输入起点" autocomplete="off">
+                    <span class="material-symbols-rounded dot start">trip_origin</span>
+                    <input type="text" id="startInput" placeholder="输入起点">
+                    <ul class="suggestions" id="startSuggest"></ul>
                 </div>
-                <div class="divider-vertical"></div>
                 <div class="input-group">
-                    <span class="dot end"></span>
-                    <input type="text" id="plan-end" placeholder="输入终点" autocomplete="off">
+                    <span class="material-symbols-rounded dot end">location_on</span>
+                    <input type="text" id="endInput" placeholder="输入终点">
+                    <ul class="suggestions" id="endSuggest"></ul>
                 </div>
-                <button class="swap-btn" id="swapStationsBtn">
-                    <span class="material-symbols-rounded">swap_vert</span>
-                </button>
+                <button id="swapBtn" class="icon-btn small"><span class="material-symbols-rounded">swap_vert</span></button>
             </div>
 
-            <ul id="suggestion-list" class="suggestion-box" style="display:none;"></ul>
-
-            <div class="filter-chips small">
-                <button class="chip active" data-strategy="fastest">推荐</button>
-                <button class="chip" data-strategy="min_transfer">少换乘</button>
-                <button class="chip" data-strategy="rail_first">铁路优先</button>
+            <div class="planner-filters">
+                <button class="filter-btn active" data-strategy="fastest">推荐/最快</button>
+                <button class="filter-btn" data-strategy="min_transfer">少换乘</button>
+                <button class="filter-btn" data-strategy="rail_first">铁路优先</button>
             </div>
 
-            <div id="plan-results" class="card-list">
+            <div id="route-results" class="route-results">
                 </div>
         </div>
     </main>
-
-    <div id="region-modal" class="modal">
-        <div class="modal-content">
-            <h3>选择地区</h3>
-            <div id="region-list" class="grid-list"></div>
-            <button class="text-button" id="closeRegionModal">取消</button>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>
