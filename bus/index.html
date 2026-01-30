@@ -2,32 +2,115 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>公交线路</title>
-  <link rel="stylesheet" href="./styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>出行助手</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
-<header class="top-bar">
-  <button class="icon-btn">←</button>
-  <h1>交通</h1>
-  <button class="icon-btn" id="regionBtn">地区</button>
-</header>
 
-<section class="filters">
-  <select id="typeFilter">
-    <option value="all">全部类型</option>
-    <option value="bus">公交</option>
-    <option value="metro">地铁</option>
-  </select>
+  <header class="top-app-bar">
+    <button class="icon-btn" id="nav-back" style="display: none;">
+      <span class="material-symbols-rounded">arrow_back</span>
+    </button>
+    <div class="title-section">
+      <h1 id="page-title">公交 / 地铁</h1>
+    </div>
+    <div class="actions">
+      <button class="icon-btn" id="filter-area-btn">
+        <span class="material-symbols-rounded">location_on</span>
+      </button>
+      <button class="icon-btn filled-tonal" id="nav-planner">
+        <span class="material-symbols-rounded">directions</span>
+      </button>
+    </div>
+  </header>
 
-  <select id="regionFilter">
-    <option value="all">全部地区</option>
-  </select>
-</section>
+  <div class="menu-backdrop" id="area-menu-backdrop"></div>
+  <div class="menu-surface" id="area-menu">
+    </div>
 
-<main id="routeList"></main>
+  <main>
+    <div id="view-home" class="view active">
+      <div class="search-bar-container">
+        <div class="search-bar">
+          <span class="material-symbols-rounded">search</span>
+          <input type="text" id="line-search" placeholder="搜索线路 (如 203, 8号线)..." />
+        </div>
+      </div>
+      
+      <div class="filter-chips" id="transport-filters">
+        <button class="chip active" data-type="all">全部</button>
+        <button class="chip" data-type="metro">
+          <span class="material-symbols-rounded">subway</span> 地铁
+        </button>
+        <button class="chip" data-type="bus">
+          <span class="material-symbols-rounded">directions_bus</span> 公交
+        </button>
+      </div>
 
-<script src="./script.js"></script>
+      <div class="list-container" id="line-list">
+        </div>
+    </div>
+
+    <div id="view-detail" class="view">
+      <div class="detail-header-card" id="detail-header">
+        </div>
+
+      <div class="direction-toggle">
+        <button class="toggle-btn active" id="btn-dir-up">
+          <span class="label">开往 <span id="dest-up">---</span></span>
+        </button>
+        <button class="toggle-btn" id="btn-dir-down">
+          <span class="label">开往 <span id="dest-down">---</span></span>
+        </button>
+      </div>
+
+      <div class="station-timeline" id="station-list">
+        </div>
+      
+      <div class="fab-container">
+        <button class="fab extended" id="btn-ride">
+          <span class="material-symbols-rounded">qr_code_scanner</span>
+          <span>乘车</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="view-planner" class="view">
+      <div class="planner-card">
+        <div class="input-group">
+          <span class="dot start"></span>
+          <input type="text" id="plan-start" placeholder="输入起点" autocomplete="off">
+        </div>
+        <div class="divider-vertical"></div>
+        <div class="input-group">
+          <span class="dot end"></span>
+          <input type="text" id="plan-end" placeholder="输入终点" autocomplete="off">
+        </div>
+        <button class="swap-btn" id="btn-swap-stations">
+          <span class="material-symbols-rounded">swap_vert</span>
+        </button>
+      </div>
+      <div id="suggestion-box" class="suggestion-box hidden"></div>
+
+      <div class="filter-chips small" id="planner-filters">
+        <button class="chip active" data-rule="fastest">综合最优</button>
+        <button class="chip" data-rule="min_transfer">少换乘</button>
+        <button class="chip" data-rule="bus_only">仅公交</button>
+      </div>
+
+      <div class="results-container" id="planner-results">
+        <div class="empty-state">请输入起点和终点查询方案</div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="script.js"></script>
 </body>
 </html>
