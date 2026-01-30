@@ -2,196 +2,32 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>公交线路</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Material Symbols -->
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
-
-  <style>
-    :root {
-      --md-sys-color-primary: #6750a4;
-      --md-sys-color-surface: #fef7ff;
-      --md-sys-color-surface-container: #f3edf7;
-      --md-sys-color-on-surface: #1c1b1f;
-      --md-sys-color-outline: #cac4d0;
-      --radius-xl: 24px;
-      --radius-l: 16px;
-    }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont;
-      background: var(--md-sys-color-surface);
-      color: var(--md-sys-color-on-surface);
-    }
-
-    header {
-      padding: 20px;
-      font-size: 22px;
-      font-weight: 600;
-    }
-
-    .list {
-      padding: 12px;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-    }
-
-    .card {
-      background: var(--md-sys-color-surface-container);
-      border-radius: var(--radius-xl);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,.06);
-    }
-
-    .line-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .badge {
-      min-width: 56px;
-      height: 56px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 700;
-      font-size: 16px;
-    }
-
-    .title {
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .subtitle {
-      font-size: 13px;
-      opacity: .7;
-    }
-
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .chip {
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: white;
-      font-size: 12px;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      border: 1px solid var(--md-sys-color-outline);
-    }
-
-    .stations {
-      border-top: 1px dashed var(--md-sys-color-outline);
-      padding-top: 8px;
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .station.up::before {
-      content: "↑ ";
-      color: #1e88e5;
-    }
-
-    .station.down::before {
-      content: "↓ ";
-      color: #e53935;
-    }
-  </style>
+  <link rel="stylesheet" href="./styles.css">
 </head>
 
 <body>
+<header class="top-bar">
+  <button class="icon-btn">←</button>
+  <h1>交通</h1>
+  <button class="icon-btn" id="regionBtn">地区</button>
+</header>
 
-<header>公交 / 地铁线路</header>
-<div class="list" id="list"></div>
+<section class="filters">
+  <select id="typeFilter">
+    <option value="all">全部类型</option>
+    <option value="bus">公交</option>
+    <option value="metro">地铁</option>
+  </select>
 
-<script>
-async function loadData() {
-  const res = await fetch("../data/bus_data.txt");
-  const text = await res.text();
-  const lines = text.trim().split(/\n+/);
-  lines.forEach(line => renderLine(parseLine(line)));
-}
+  <select id="regionFilter">
+    <option value="all">全部地区</option>
+  </select>
+</section>
 
-function parseLine(raw) {
-  return {
-    name: raw.match(/【(.*?)】/)?.[1] || "",
-    company: raw.match(/\{(.*?)\}/)?.[1] || "",
-    fare: raw.match(/《(.*?)》/)?.[1] || "",
-    city: raw.match(/『(.*?)』/)?.[1] || "",
-    start: raw.match(/§(.*?)§/)?.[1] || "",
-    end: raw.match(/@(.*?)@/)?.[1] || "",
-    isMetro: raw.includes("θ地铁θ"),
-    color: raw.match(/∮([0-9A-Fa-f]{6,8})∮/)?.[1] || null,
-    stations: extractStations(raw)
-  };
-}
+<main id="routeList"></main>
 
-function extractStations(raw) {
-  const main = raw.replace(/^【.*?】/, "").split("-{")[0];
-  return main.split("-").filter(Boolean).map(s => {
-    let dir = "both";
-    if (s.includes("↑")) dir = "up";
-    if (s.includes("↓")) dir = "down";
-    return {
-      name: s.replace(/[↑↓]/g, ""),
-      dir
-    };
-  });
-}
-
-function renderLine(data) {
-  const card = document.createElement("div");
-  card.className = "card";
-
-  const badgeColor = data.color ? "#" + data.color.slice(0,6) : "var(--md-sys-color-primary)";
-  const typeText = data.isMetro ? "地铁" : "公交";
-
-  card.innerHTML = `
-    <div class="line-header">
-      <div class="badge" style="background:${badgeColor}">
-        ${data.name}
-      </div>
-      <div>
-        <div class="title">${data.name}</div>
-        <div class="subtitle">${data.city} · ${data.start} – ${data.end}</div>
-      </div>
-    </div>
-
-    <div class="chips">
-      <div class="chip">
-        <span class="material-symbols-rounded">directions_bus</span>
-        ${typeText}
-      </div>
-      ${data.fare ? `<div class="chip">${data.fare}</div>` : ""}
-      ${data.company ? `<div class="chip">${data.company}</div>` : ""}
-    </div>
-
-    <div class="stations">
-      ${data.stations.map(s =>
-        `<div class="station ${s.dir}">${s.name}</div>`
-      ).join("")}
-    </div>
-  `;
-
-  document.getElementById("list").appendChild(card);
-}
-
-loadData();
-</script>
-
+<script src="./script.js"></script>
 </body>
 </html>
