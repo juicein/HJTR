@@ -9,20 +9,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="styles.css">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 </head>
 <body>
 
   <header class="top-app-bar">
-    <div class="start-section">
-      <button class="icon-btn" id="nav-back" title="返回门户">
-        <span class="material-symbols-rounded">arrow_back</span>
-      </button>
-      <h1 id="page-title">公交 / 地铁</h1>
+    <button class="icon-btn" id="nav-back">
+      <span class="material-symbols-rounded">arrow_back</span>
+    </button>
+    <div class="title-section">
+      <span class="app-name">公交 / 地铁</span>
     </div>
-    
-    <div class="end-section">
-      <button class="icon-btn" id="filter-area-btn">
+    <div class="actions">
+      <button class="text-icon-btn" id="filter-area-btn">
         <span class="material-symbols-rounded">location_on</span>
+        <span id="current-area-label">全部</span>
       </button>
       <button class="icon-btn filled-tonal" id="nav-planner">
         <span class="material-symbols-rounded">directions</span>
@@ -32,11 +33,11 @@
 
   <div class="menu-backdrop" id="area-menu-backdrop"></div>
   <div class="menu-surface" id="area-menu">
-    <div class="menu-header">
-      <span class="material-symbols-rounded search-icon">search</span>
-      <input type="text" id="area-search-input" placeholder="搜索地区..." autocomplete="off">
+    <div class="menu-search-container">
+      <span class="material-symbols-rounded">search</span>
+      <input type="text" id="area-search-input" placeholder="搜索地区...">
     </div>
-    <div class="menu-list-content" id="area-menu-list">
+    <div class="menu-scroll-content" id="area-menu-list">
       </div>
   </div>
 
@@ -81,36 +82,37 @@
 
       <div class="station-timeline" id="station-list">
         </div>
-      
-      <div class="fab-container">
-        <button class="fab extended" onclick="showToast('请在站点列表选择站点进行规划')">
-          <span class="material-symbols-rounded">qr_code_scanner</span>
-          <span>扫码乘车</span>
-        </button>
-      </div>
     </div>
 
     <div id="view-planner" class="view">
       <div class="planner-card">
         <div class="input-group">
           <span class="dot start"></span>
-          <input type="text" id="plan-start" placeholder="输入起点" list="station-datalist">
+          <input type="text" id="plan-start" placeholder="输入起点" list="stations-datalist" autocomplete="off">
         </div>
         <div class="divider-vertical"></div>
         <div class="input-group">
           <span class="dot end"></span>
-          <input type="text" id="plan-end" placeholder="输入终点" list="station-datalist">
+          <input type="text" id="plan-end" placeholder="输入终点" list="stations-datalist" autocomplete="off">
         </div>
         <button class="swap-btn" id="btn-swap-stations">
           <span class="material-symbols-rounded">swap_vert</span>
         </button>
       </div>
+      
+      <datalist id="stations-datalist">
+        </datalist>
 
-      <datalist id="station-datalist"></datalist>
+      <div class="planner-actions">
+         <button class="search-btn-full" id="btn-start-search">
+            <span class="material-symbols-rounded">search</span> 查询方案
+         </button>
+      </div>
 
       <div class="filter-chips small" id="planner-filters">
         <button class="chip active" data-rule="fastest">综合最优</button>
         <button class="chip" data-rule="min_transfer">少换乘</button>
+        <button class="chip" data-rule="rail_priority">轨道优先</button>
         <button class="chip" data-rule="bus_only">仅公交</button>
       </div>
 
@@ -120,18 +122,30 @@
     </div>
   </main>
 
-  <div class="modal-backdrop" id="modal-backdrop"></div>
-  <div class="bottom-sheet" id="route-modal">
-    <div class="sheet-handle-bar">
-      <div class="sheet-handle"></div>
-    </div>
-    <div class="sheet-header">
-      <h2>出行方案</h2>
-      <button class="icon-btn" id="modal-close"><span class="material-symbols-rounded">close</span></button>
-    </div>
-    <div class="sheet-content" id="modal-content-body">
+  <dialog id="route-modal" class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>出行方案</h3>
+        <button class="icon-btn" id="close-modal">
+          <span class="material-symbols-rounded">close</span>
+        </button>
       </div>
-  </div>
+      
+      <div id="route-capture-area" class="route-capture-area">
+         <div id="modal-route-summary" class="modal-route-summary"></div>
+         <div id="modal-route-steps" class="modal-timeline"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="action-btn secondary" id="btn-share-img">
+           <span class="material-symbols-rounded">share</span> 分享图片
+        </button>
+        <button class="action-btn primary" id="btn-notify-route">
+           <span class="material-symbols-rounded">notifications_active</span> 提醒换乘
+        </button>
+      </div>
+    </div>
+  </dialog>
 
   <div id="toast" class="toast"></div>
 
