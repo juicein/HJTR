@@ -21,7 +21,6 @@
       </button>
       <h1 id="page-title">公交 / 地铁</h1>
     </div>
-    
     <div class="end-section">
       <button class="icon-btn" id="filter-area-btn" title="切换地区">
         <span class="material-symbols-rounded">location_on</span>
@@ -53,10 +52,10 @@
       <div class="filter-chips" id="transport-filters">
         <button class="chip active" data-type="all">全部</button>
         <button class="chip" data-type="metro">
-          <span class="material-symbols-rounded">subway</span> 地铁
+          <span class="material-symbols-rounded">subway</span> 地铁/轨道
         </button>
         <button class="chip" data-type="bus">
-          <span class="material-symbols-rounded">directions_bus</span> 公交
+          <span class="material-symbols-rounded">directions_bus</span> 公交/BRT
         </button>
         <button class="chip" data-type="rail">
           <span class="material-symbols-rounded">train</span> 铁路
@@ -112,7 +111,8 @@
       <datalist id="station-datalist"></datalist>
 
       <div class="filter-chips small" id="planner-filters">
-        <button class="chip" data-rule="fastest">用时较少</button>
+        <button class="chip active" data-rule="all">所有方案</button>
+        <button class="chip" data-rule="fastest">用时少</button>
         <button class="chip" data-rule="rail_priority">轨道优先</button>
         <button class="chip" data-rule="min_transfer">少换乘</button>
         <button class="chip" data-rule="bus_only">仅公交</button>
@@ -136,9 +136,7 @@
       <h2 id="modal-title">出行方案</h2>
       <button class="icon-btn" id="modal-close"><span class="material-symbols-rounded">close</span></button>
     </div>
-    <div id="capture-target" style="background: var(--md-sys-color-surface);">
-        <div class="sheet-content" id="modal-content-body">
-        </div>
+    <div class="sheet-content" id="modal-content-body">
     </div>
   </div>
 
