@@ -6,10 +6,10 @@ const appState = {
   currentView: 'home',
   selectedCity: localStorage.getItem('bus_selected_city') || 'all',
   selectedType: localStorage.getItem('bus_selected_type') || 'all', 
-  planner: { start: '', end: '', rule: 'fastest' }
+  planner: { start: '', end: '', rule: 'all' }
 };
 
-/* --- 1. Data Loading & Parsing --- */
+/* --- 1. Data Loading & Initialization --- */
 async function init() {
   try {
     const [txtRes, areaRes, compRes, aliasRes] = await Promise.all([
@@ -31,9 +31,9 @@ async function init() {
     setupUI();
     populateStationDatalist();
     applyFilters();
-
-    // 4. URL 路由解析
-    handleDeepLinks();
+    
+    // 3. URL Routing Logic
+    handleUrlRouting();
 
   } catch (e) {
     console.error("Initialization failed:", e);
@@ -41,33 +41,44 @@ async function init() {
   }
 }
 
-// 4. URL 深度链接处理
-function handleDeepLinks() {
-  const params = new URLSearchParams(window.location.search);
-  
-  // Case 1: Search (?q=LineName)
-  // 支持 URL: index.html?q=203路
-  if (params.has('q')) {
-    const query = params.get('q');
-    document.getElementById('line-search').value = query;
-    renderHome();
-    
-    // 如果完全匹配，直接打开详情
-    const exactLine = appState.lines.find(l => l.name === query);
-    if (exactLine) openDetail(exactLine);
-  }
+// URL 路由处理
+function handleUrlRouting() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const path = window.location.pathname;
 
-  // Case 2: Planning (?start=A&end=B)
-  // 支持 URL: index.html?start=大桥&end=梅田
-  // 提示中要求的格式是 planning?=... 我们这里兼容标准 query params
-  if (params.has('start') && params.has('end')) {
-    document.getElementById('plan-start').value = params.get('start');
-    document.getElementById('plan-end').value = params.get('end');
-    switchView('planner');
-    findRoute();
+  // 匹配 /bus/planning?=startStation
+  if (path.includes('/planning') || urlParams.has('planning')) {
+    // 兼容 ?planning=站点名 或 /planning?start=站点名
+    const startStation = urlParams.get('start') || urlParams.get('planning');
+    if (startStation) {
+      document.getElementById('plan-start').value = decodeURIComponent(startStation);
+      switchView('planner');
+      // 如果同时有 end 参数，自动搜索
+      if (urlParams.has('end')) {
+        document.getElementById('plan-end').value = decodeURIComponent(urlParams.get('end'));
+        findRoute();
+      }
+    }
+  } 
+  // 匹配 /bus/search?=LineName
+  else if (path.includes('/search') || urlParams.has('search')) {
+    const query = urlParams.get('q') || urlParams.get('search');
+    if (query) {
+      const decodedQuery = decodeURIComponent(query);
+      document.getElementById('line-search').value = decodedQuery;
+      
+      // 检查是否精确匹配某条线路，如果是直接打开详情
+      const exactMatch = appState.lines.find(l => l.name === decodedQuery);
+      if (exactMatch) {
+        openDetail(exactMatch);
+      } else {
+        renderHome();
+      }
+    }
   }
 }
 
+// 8. 解析逻辑更新：支持单轨、胶轮、BRT
 function parseLines(rawText) {
   const lines = rawText.trim().split(/\n+/);
   appState.lines = lines.map((line, index) => {
@@ -77,9 +88,25 @@ function parseLines(rawText) {
     const city = line.match(/『(.*?)』/)?.[1] || "其他";
     const startTime = line.match(/§(.*?)§/)?.[1] || "";
     const endTime = line.match(/@(.*?)@/)?.[1] || "";
-    const isMetro = line.includes("θ地铁θ");
-    const isRail = line.includes("θ铁路θ") || name.includes("城际") || name.includes("高铁"); 
     const color = line.match(/∮([0-9A-Fa-f]{6,8})∮/)?.[1];
+
+    // 类型判断
+    const isMonorail = line.includes("θ单轨θ");
+    const isRubber = line.includes("θ胶轮θ");
+    const isMetroBasic = line.includes("θ地铁θ");
+    const isRail = line.includes("θ铁路θ") || name.includes("城际") || name.includes("高铁"); 
+    const isBRT = line.includes("θBRTθ");
+    
+    // 归类: 单轨/胶轮 -> Metro, BRT -> Bus
+    const isMetro = isMetroBasic || isMonorail || isRubber;
+    
+    // 子类型用于图标显示
+    let subType = 'bus'; // default
+    if (isRail) subType = 'rail';
+    else if (isMonorail) subType = 'monorail';
+    else if (isRubber) subType = 'rubber';
+    else if (isMetro) subType = 'metro';
+    else if (isBRT) subType = 'brt';
 
     const stationPart = line.replace(/^【.*?】/, "").split("-{")[0];
     const rawStations = stationPart.split("-").filter(s => s && s.trim());
@@ -101,20 +128,60 @@ function parseLines(rawText) {
 
     return {
       id: index,
-      name, company, fare, city, startTime, endTime, isMetro, isRail, color,
-      stationsUp, stationsDown,
-      type: isMetro ? 'metro' : (isRail ? 'rail' : 'bus') 
+      name, company, fare, city, startTime, endTime, 
+      isMetro, isRail, isMonorail, isRubber, isBRT,
+      color, stationsUp, stationsDown,
+      type: isMetro ? 'metro' : (isRail ? 'rail' : 'bus'),
+      subType // 'metro', 'monorail', 'rubber', 'rail', 'brt', 'bus'
     };
   });
 }
 
+function getIconForSubType(subType) {
+  switch (subType) {
+    case 'monorail': return 'monorail'; // Material Symbol "monorail"
+    case 'rubber': return 'subway'; // 胶轮通常也是地铁样式
+    case 'metro': return 'subway';
+    case 'rail': return 'train';
+    case 'brt': return 'directions_bus_filled'; // BRT用实心
+    default: return 'directions_bus';
+  }
+}
+
+// 2. 运营时间判断逻辑
+function isLineOperating(line) {
+  if (!line.startTime || !line.endTime) return true; // 无数据视为运营
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const parseTime = (tStr) => {
+    const [h, m] = tStr.split(/[:：]/).map(Number);
+    return h * 60 + m;
+  };
+
+  const start = parseTime(line.startTime);
+  let end = parseTime(line.endTime);
+
+  // 处理跨夜 (例如 23:00 - 01:00)
+  if (end < start) end += 24 * 60; 
+  
+  // 处理当前时间跨夜 (比如现在是 00:30，运营到 01:00)
+  let checkTime = currentMinutes;
+  if (checkTime < start && (checkTime + 24 * 60) <= end) {
+      checkTime += 24 * 60;
+  }
+
+  return checkTime >= start && checkTime <= end;
+}
+
+/* ... (populateStationDatalist, getCanonicalStationId, getTransferType 保持不变) ... */
 function populateStationDatalist() {
   const allStations = new Set();
   appState.lines.forEach(l => {
     l.stationsUp.forEach(s => allStations.add(s));
     l.stationsDown.forEach(s => allStations.add(s));
   });
-  
   const datalist = document.getElementById('station-datalist');
   datalist.innerHTML = '';
   [...allStations].sort().forEach(s => {
@@ -124,7 +191,6 @@ function populateStationDatalist() {
   });
 }
 
-/* --- Logic: Aliasing & Graph --- */
 function getCanonicalStationId(name) {
   let n = name.trim();
   for (const group of appState.aliases.manual) {
@@ -147,19 +213,35 @@ function getTransferType(rawNameA, rawNameB) {
   return 'walking';
 }
 
+/* --- Routing Logic Updates --- */
+
 function buildGraph(rule, startCity) {
   const graph = {}; 
   appState.lines.forEach(line => {
     if (startCity && line.city !== startCity) return;
     if (rule === 'bus_only' && (line.isMetro || line.isRail)) return;
     
-    addLineEdges(graph, line, line.stationsUp, 'up', rule);
-    addLineEdges(graph, line, line.stationsDown, 'down', rule);
+    // 权重计算 (基础权重为时间，单位：分钟)
+    // 假设：地铁/单轨 2.5分/站, 铁路 5分/站, 公交 3.5分/站
+    let timeWeight = 3.5; 
+    if (line.isMetro) timeWeight = 2.5; 
+    if (line.isRail) timeWeight = 5.0; // 站间距大
+    if (line.isBRT) timeWeight = 3.0;
+
+    // 针对 "轨道优先" 的策略调整：减少轨道的感知成本
+    let algoWeight = timeWeight;
+    if (rule === 'rail_priority') {
+      if (line.isMetro || line.isRail) algoWeight *= 0.5; // 倾向选择
+      else algoWeight *= 1.5; // 惩罚公交
+    }
+
+    addLineEdges(graph, line, line.stationsUp, 'up', algoWeight, timeWeight);
+    addLineEdges(graph, line, line.stationsDown, 'down', algoWeight, timeWeight);
   });
   return graph;
 }
 
-function addLineEdges(graph, line, stations, dir, rule) {
+function addLineEdges(graph, line, stations, dir, algoWeight, realTimeWeight) {
   for (let i = 0; i < stations.length - 1; i++) {
     const fromRaw = stations[i];
     const toRaw = stations[i+1];
@@ -168,25 +250,15 @@ function addLineEdges(graph, line, stations, dir, rule) {
     
     if (!graph[fromId]) graph[fromId] = [];
     
-    let weight = 1; 
-    if (line.isMetro) weight = 0.8;
-    if (line.isRail) weight = 0.6; 
-
-    // 1. 规则优化：用时少(fastest) 纯粹按时间/权重计算
-    // 轨道优先：惩罚非轨道
-    if (rule === 'rail_priority') {
-      if (line.isMetro || line.isRail) weight = 0.4;
-      else weight = 1.5; 
-    }
-
     graph[fromId].push({
       toNode: toId,
-      toRawName: toRaw, 
+      toRawName: toRaw,
       fromRawName: fromRaw,
       lineName: line.name,
       lineId: line.id,
       direction: dir,
-      rawWeight: weight,
+      weight: algoWeight,       // 用于 Dijkstra 排序
+      timeCost: realTimeWeight, // 用于显示真实时间
       type: line.type,
       fullLine: line 
     });
@@ -196,19 +268,12 @@ function addLineEdges(graph, line, stations, dir, rule) {
 function findRoute() {
   const startInput = document.getElementById('plan-start').value;
   const endInput = document.getElementById('plan-end').value;
-  
-  if (!startInput || !endInput) {
-    showToast("请输入起点和终点");
-    return;
-  }
+  if (!startInput || !endInput) { showToast("请输入起点和终点"); return; }
 
   const startId = getCanonicalStationId(startInput);
   const endId = getCanonicalStationId(endInput);
 
-  if (startId === endId) {
-    showToast("起点终点看起来是同一个地方");
-    return;
-  }
+  if (startId === endId) { showToast("起点终点看起来是同一个地方"); return; }
 
   const startLine = appState.lines.find(l => 
     l.stationsUp.some(s => getCanonicalStationId(s) === startId) || 
@@ -217,76 +282,96 @@ function findRoute() {
   const regionLock = startLine ? startLine.city : null; 
   
   const activeChip = document.getElementById('planner-filters').querySelector('.active');
-  const rule = activeChip ? activeChip.dataset.rule : 'fastest'; // Default to fastest
+  const rule = activeChip ? activeChip.dataset.rule : 'all';
   
   const graph = buildGraph(rule, regionLock);
 
-  const queue = [{ node: startId, cost: 0, path: [] }];
+  const queue = [{ node: startId, score: 0, realTime: 0, path: [] }];
   const visited = {}; 
   const results = [];
 
   let loops = 0;
-  while (queue.length > 0 && loops < 5000) {
+  while (queue.length > 0 && loops < 6000) {
     loops++;
-    queue.sort((a, b) => a.cost - b.cost);
+    queue.sort((a, b) => a.score - b.score);
     const current = queue.shift();
 
-    if (current.cost > (visited[current.node] || Infinity)) continue;
-    visited[current.node] = current.cost;
+    if (current.score > (visited[current.node] || Infinity)) continue;
+    visited[current.node] = current.score;
 
     if (current.node === endId) {
       results.push(current);
-      if (results.length >= 8) break; // Fetch a few more to filter
+      if (results.length >= 10) break; // 获取更多结果以便排序
       continue;
     }
 
     const neighbors = graph[current.node] || [];
     neighbors.forEach(edge => {
-      let stepCost = edge.rawWeight;
+      let stepScore = edge.weight;
+      let stepTime = edge.timeCost;
       let isTransfer = false;
       let transferType = 'none';
       
       const lastStep = current.path[current.path.length - 1];
-      
       if (lastStep) {
         if (lastStep.lineId !== edge.lineId) {
           isTransfer = true;
           transferType = getTransferType(lastStep.toRawName, edge.fromRawName);
           
+          let transferPenalty = 0;
+          let transferTime = 0;
+
           if (transferType === 'walking') {
-            stepCost += 25; 
+            transferTime = 10;
+            transferPenalty = 20; 
           } else {
-            stepCost += 15; 
+            transferTime = 5; 
+            transferPenalty = 10;
           }
+          
+          if (rule === 'min_transfer') transferPenalty += 100; // 重罚换乘
+
+          stepScore += transferPenalty;
+          stepTime += transferTime;
         }
       }
       
-      // 1. 少换乘规则：大幅增加换乘成本
-      if (rule === 'min_transfer' && isTransfer) stepCost += 200; 
-
-      const newCost = current.cost + stepCost;
+      const newScore = current.score + stepScore;
+      const newTime = current.realTime + stepTime;
       
       const newPath = [...current.path, { 
         ...edge, 
         transferType: isTransfer ? transferType : 'none'
       }];
 
-      if (newCost < (visited[edge.toNode] || Infinity)) {
+      if (newScore < (visited[edge.toNode] || Infinity)) {
          queue.push({ 
            node: edge.toNode, 
-           cost: newCost, 
+           score: newScore,
+           realTime: newTime,
            path: newPath 
          });
       }
     });
   }
 
-  const formattedResults = results.map(res => compressPath(res.path));
-  renderPlannerResults(formattedResults);
+  const formattedResults = results.map(res => compressPath(res.path, res.realTime));
+  
+  // 排序逻辑
+  if (rule === 'fastest') {
+    formattedResults.sort((a, b) => a.totalTime - b.totalTime);
+  } else if (rule === 'min_transfer') {
+    formattedResults.sort((a, b) => a.transfers - b.transfers || a.totalTime - b.totalTime);
+  } else {
+    // All Plans: 综合排序 (score) 已在 Dijkstra 中大致完成，这里按时间微调
+    formattedResults.sort((a, b) => a.totalTime - b.totalTime);
+  }
+
+  renderPlannerResults(formattedResults.slice(0, 5)); // 显示前5个
 }
 
-function compressPath(rawPath) {
-  if (rawPath.length === 0) return [];
+function compressPath(rawPath, totalTime) {
+  if (rawPath.length === 0) return { segments: [], totalTime: 0, transfers: 0 };
 
   const segments = [];
   let currentSeg = null;
@@ -297,7 +382,8 @@ function compressPath(rawPath) {
         lineName: step.lineName,
         lineId: step.lineId,
         type: step.type,
-        startStation: step.fromRawName,
+        subType: step.fullLine.subType, // 传递子类型
+        startStation: step.fromRawName, 
         endStation: step.toRawName,
         stopCount: 1,
         direction: step.direction,
@@ -313,6 +399,7 @@ function compressPath(rawPath) {
         lineName: step.lineName,
         lineId: step.lineId,
         type: step.type,
+        subType: step.fullLine.subType,
         startStation: step.fromRawName,
         endStation: step.toRawName,
         stopCount: 1,
@@ -323,102 +410,69 @@ function compressPath(rawPath) {
     }
   });
   if (currentSeg) segments.push(currentSeg);
-  return segments;
+  
+  return { 
+    segments, 
+    totalTime: Math.ceil(totalTime),
+    transfers: segments.length - 1
+  };
 }
 
-/* --- 3. UI Rendering --- */
+/* --- UI Rendering Updates --- */
 
-function setupUI() {
-  document.getElementById('nav-back').onclick = () => {
-    if (appState.currentView === 'home') {
-      window.history.back(); 
-    } else {
-      switchView('home');
-    }
-  };
+function renderPlannerResults(planList) {
+  const container = document.getElementById('planner-results');
+  container.innerHTML = '';
   
-  document.getElementById('nav-to-planner').onclick = () => switchView('planner');
-  
-  document.querySelectorAll('#transport-filters .chip').forEach(btn => {
-    btn.onclick = (e) => {
-      document.querySelectorAll('#transport-filters .chip').forEach(c => c.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      appState.selectedType = e.currentTarget.dataset.type;
-      localStorage.setItem('bus_selected_type', appState.selectedType);
-      renderHome();
-    };
-  });
-
-  const areaBtn = document.getElementById('filter-area-btn');
-  const backdrop = document.getElementById('area-menu-backdrop');
-  areaBtn.onclick = () => {
-     renderAreaMenu();
-     document.getElementById('area-menu').classList.toggle('open');
-     backdrop.classList.toggle('open');
-     setTimeout(() => document.getElementById('area-search-input').focus(), 100);
-  };
-  backdrop.onclick = () => {
-    document.getElementById('area-menu').classList.remove('open');
-    backdrop.classList.remove('open');
-  };
-
-  document.getElementById('line-search').addEventListener('input', renderHome);
-  document.getElementById('btn-dir-up').onclick = () => renderStations('up');
-  document.getElementById('btn-dir-down').onclick = () => renderStations('down');
-
-  // Planner Filter Logic
-  document.querySelectorAll('#planner-filters .chip').forEach(btn => {
-    btn.onclick = (e) => {
-      // 移除其他，激活当前
-      const chips = document.querySelectorAll('#planner-filters .chip');
-      chips.forEach(c => c.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      
-      if(document.getElementById('plan-start').value && document.getElementById('plan-end').value) {
-          findRoute();
-      }
-    };
-  });
-  
-  document.getElementById('btn-swap-stations').onclick = () => {
-    const s = document.getElementById('plan-start');
-    const e = document.getElementById('plan-end');
-    [s.value, e.value] = [e.value, s.value];
-  };
-
-  document.getElementById('btn-start-plan').onclick = findRoute;
-  document.getElementById('modal-close').onclick = closeRouteModal;
-  document.getElementById('modal-backdrop').onclick = closeRouteModal;
-}
-
-function switchView(viewName) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(`view-${viewName}`).classList.add('active');
-  
-  const title = document.getElementById('page-title');
-  const plannerBtn = document.getElementById('nav-to-planner');
-  
-  appState.currentView = viewName;
-  
-  if (viewName === 'home') {
-    title.innerText = '公交 / 地铁';
-    plannerBtn.style.display = 'flex';
-  } else if (viewName === 'detail') {
-    title.innerText = '线路详情';
-    plannerBtn.style.display = 'none';
-  } else {
-    title.innerText = '出行规划';
-    plannerBtn.style.display = 'none';
+  if (planList.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      <span class="material-symbols-rounded" style="font-size:48px; opacity:0.3">alt_route</span>
+      <p>未找到合适方案</p>
+    </div>`;
+    return;
   }
-}
 
-function applyFilters() {
-  const typeChip = document.querySelector(`#transport-filters .chip[data-type="${appState.selectedType}"]`);
-  if(typeChip) {
-    document.querySelectorAll('#transport-filters .chip').forEach(c => c.classList.remove('active'));
-    typeChip.classList.add('active');
-  }
-  renderHome();
+  planList.forEach((plan, index) => {
+    const segments = plan.segments;
+    const card = document.createElement('div');
+    card.className = 'plan-result-card';
+    
+    const totalStops = segments.reduce((sum, seg) => sum + seg.stopCount, 0);
+    
+    // 2. 检查运营状态
+    let isAllOperating = true;
+    segments.forEach(seg => {
+      if (!isLineOperating(seg.meta)) isAllOperating = false;
+    });
+
+    const routeSummary = segments.map((seg, i) => `
+      <div class="route-step-pill">
+        <span class="step-icon material-symbols-rounded">
+          ${getIconForSubType(seg.subType)}
+        </span>
+        <span class="step-name">${seg.lineName}</span>
+      </div>
+      ${i < segments.length - 1 ? '<span class="material-symbols-rounded step-arrow">arrow_forward</span>' : ''}
+    `).join('');
+
+    card.innerHTML = `
+      <div class="plan-header">
+        <div class="plan-time-big">${plan.totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>
+        <div class="plan-meta">
+          ${totalStops}站 · 换乘 ${plan.transfers} 次
+          ${!isAllOperating ? '<span class="out-of-service">不在运营时段</span>' : ''}
+        </div>
+      </div>
+      <div class="plan-route-visual">
+        ${routeSummary}
+      </div>
+      <div class="plan-desc">
+        从 ${segments[0].startStation} 出发
+      </div>
+    `;
+    card.onclick = () => openRouteModal(segments, plan.totalTime);
+    container.appendChild(card);
+  });
 }
 
 function renderHome() {
@@ -442,9 +496,8 @@ function renderHome() {
     card.className = 'card';
     const color = line.color ? `#${line.color.slice(0,6)}` : 'var(--md-sys-color-primary)';
     
-    let icon = 'directions_bus';
-    if(line.isMetro) icon = 'subway';
-    if(line.isRail) icon = 'train';
+    // 8. 不同的子类型图标
+    const icon = getIconForSubType(line.subType);
     
     card.innerHTML = `
       <div class="line-row-main">
@@ -467,50 +520,22 @@ function renderHome() {
   });
 }
 
-function renderAreaMenu() {
-  const menuList = document.getElementById('area-menu-list');
-  const searchInput = document.getElementById('area-search-input');
-  
-  const renderItems = (filterText) => {
-    menuList.innerHTML = `<div class="menu-item ${appState.selectedCity === 'all' ? 'selected' : ''}" onclick="selectCity('all')">全部地区</div>`;
-    const cities = [...new Set(appState.lines.map(l => l.city))];
-    const filteredCities = cities.filter(c => c.includes(filterText));
-
-    filteredCities.forEach(c => {
-      const logo = appState.logos.area[c] || '';
-      const isSelected = appState.selectedCity === c;
-      menuList.innerHTML += `
-        <div class="menu-item ${isSelected ? 'selected' : ''}" onclick="selectCity('${c}')">
-          ${logo ? `<img src="${logo}">` : ''}
-          <span>${c}</span>
-          ${isSelected ? '<span class="material-symbols-rounded check">check</span>' : ''}
-        </div>
-      `;
-    });
-  };
-  renderItems('');
-  searchInput.oninput = (e) => renderItems(e.target.value.trim());
-}
-
-function selectCity(city) {
-  appState.selectedCity = city;
-  localStorage.setItem('bus_selected_city', city);
-  document.getElementById('area-menu').classList.remove('open');
-  document.getElementById('area-menu-backdrop').classList.remove('open');
-  renderHome();
-}
-
-let currentLine = null;
-
 function openDetail(line) {
   currentLine = line;
   switchView('detail');
   
   const header = document.getElementById('detail-header');
-  const compLogo = appState.logos.company[line.company] || '';
+  const compLogo = appState.logos.company[line.company];
   const badgeColor = line.color ? `#${line.color.slice(0,6)}` : 'var(--md-sys-color-primary)';
 
-  // 9. 公司名称和Logo并排显示
+  // 9. 公司名称+Logo 显示
+  const companyBadge = `
+    <div class="company-badge-container">
+      ${compLogo ? `<img src="${compLogo}" class="company-logo-detail" alt="${line.company}">` : ''}
+      <span class="company-text">${line.company}</span>
+    </div>
+  `;
+
   header.innerHTML = `
     <div class="dh-top">
       <div class="line-icon-badge large" style="background:${badgeColor}">
@@ -519,12 +544,9 @@ function openDetail(line) {
       <div style="flex:1">
         <div class="dh-title-row">
           <div class="dh-name">${line.name}</div>
+          ${companyBadge}
         </div>
-        <div class="company-badge-row">
-           ${compLogo ? `<img src="${compLogo}" class="company-logo-detail" alt="logo">` : ''}
-           <span class="company-name-text">${line.company}</span>
-        </div>
-        <div class="dh-sub" style="margin-top:4px; opacity:0.7">${line.city}</div>
+        <div class="dh-sub" style="margin-top:4px">${line.city}</div>
       </div>
     </div>
     <div class="dh-info-grid">
@@ -538,136 +560,7 @@ function openDetail(line) {
   renderStations('up');
 }
 
-function renderStations(dir) {
-  const list = document.getElementById('station-list');
-  list.innerHTML = '';
-  document.getElementById('btn-dir-up').classList.toggle('active', dir === 'up');
-  document.getElementById('btn-dir-down').classList.toggle('active', dir === 'down');
-
-  const stations = dir === 'up' ? currentLine.stationsUp : currentLine.stationsDown;
-
-  stations.forEach((s, idx) => {
-    const div = document.createElement('div');
-    div.className = 'station-item';
-    div.innerHTML = `
-      <div class="station-name">${s}</div>
-      ${idx === 0 ? '<div class="station-badge start">起</div>' : ''}
-      ${idx === stations.length - 1 ? '<div class="station-badge end">终</div>' : ''}
-    `;
-    div.onclick = () => {
-       const startIn = document.getElementById('plan-start');
-       const endIn = document.getElementById('plan-end');
-       if(!startIn.value) {
-         startIn.value = s;
-         showToast(`已设为起点: ${s}`);
-         switchView('planner');
-       } else {
-         endIn.value = s;
-         showToast(`已设为终点: ${s}`);
-         switchView('planner');
-       }
-    };
-    list.appendChild(div);
-  });
-}
-
-// 3. 检查运营时间逻辑
-function checkOperatingTime(segments) {
-  // 简单逻辑：只要其中一条线路当前不在运营，整体显示不在运营
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  for (let seg of segments) {
-     const startStr = seg.meta.startTime;
-     const endStr = seg.meta.endTime;
-     
-     if (!startStr || !endStr) continue; // 无数据假设全天
-
-     const [sH, sM] = startStr.split(':').map(Number);
-     const [eH, eM] = endStr.split(':').map(Number);
-     
-     const sMin = sH * 60 + sM;
-     const eMin = eH * 60 + eM;
-
-     // 跨午夜处理简单版 (如果结束时间小于开始时间，说明跨天，如 06:00 - 01:00)
-     if (eMin < sMin) {
-        // 比如 23:00 (1380) 到 01:00 (60)。当前是 00:30 (30) -> OK
-        if (currentMinutes < sMin && currentMinutes > eMin) {
-           return false;
-        }
-     } else {
-        // 常规 06:00 - 22:00
-        if (currentMinutes < sMin || currentMinutes > eMin) {
-           return false;
-        }
-     }
-  }
-  return true;
-}
-
-function renderPlannerResults(segmentsList) {
-  const container = document.getElementById('planner-results');
-  container.innerHTML = '';
-  
-  if (segmentsList.length === 0) {
-    container.innerHTML = `<div class="empty-state">
-      <span class="material-symbols-rounded" style="font-size:48px; opacity:0.3">alt_route</span>
-      <p>未找到合适方案，请尝试更换条件</p>
-    </div>`;
-    return;
-  }
-
-  segmentsList.forEach((segments, index) => {
-    const card = document.createElement('div');
-    card.className = 'plan-result-card';
-    
-    const totalStops = segments.reduce((sum, seg) => sum + seg.stopCount, 0);
-    const transfers = segments.length - 1;
-    let totalTime = 0;
-    
-    segments.forEach((seg, i) => {
-      const perStop = seg.type === 'metro' ? 2.5 : (seg.type === 'rail' ? 5 : 3.5);
-      totalTime += Math.ceil(seg.stopCount * perStop);
-      if (i > 0) {
-         if (seg.transferType === 'walking') totalTime += 10; 
-         else totalTime += 5; 
-      }
-    });
-
-    const routeSummary = segments.map((seg, i) => `
-      <div class="route-step-pill">
-        <span class="step-icon material-symbols-rounded">
-          ${seg.type==='metro'?'subway':(seg.type==='rail'?'train':'directions_bus')}
-        </span>
-        <span class="step-name">${seg.lineName}</span>
-      </div>
-      ${i < segments.length - 1 ? '<span class="material-symbols-rounded step-arrow">arrow_forward</span>' : ''}
-    `).join('');
-
-    // 3. 判断运营状态
-    const isInService = checkOperatingTime(segments);
-    
-    // 如果不在运营，显示红色提示；否则显示常规信息
-    const metaHtml = !isInService 
-       ? `<div class="plan-warning"><span class="material-symbols-rounded" style="font-size:16px">block</span>${totalStops}站 · 换乘${transfers}次 · 不在运营时段</div>`
-       : `<div class="plan-meta">${totalStops}站 · 换乘 ${transfers} 次</div>`;
-
-    card.innerHTML = `
-      <div class="plan-header">
-        <div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>
-        ${metaHtml}
-      </div>
-      <div class="plan-route-visual">
-        ${routeSummary}
-      </div>
-      <div class="plan-desc">
-        从 ${segments[0].startStation} 出发
-      </div>
-    `;
-    card.onclick = () => openRouteModal(segments, totalTime);
-    container.appendChild(card);
-  });
-}
+/* --- Features: Real Sharing & Notification --- */
 
 function openRouteModal(segments, time) {
   const backdrop = document.getElementById('modal-backdrop');
@@ -684,13 +577,14 @@ function openRouteModal(segments, time) {
   segments.forEach((seg, idx) => {
     const isLast = idx === segments.length - 1;
     const color = seg.meta.color ? `#${seg.meta.color.slice(0,6)}` : '#006495';
+    const icon = getIconForSubType(seg.subType);
     
     html += `
       <div class="step-card">
         <div class="step-left-line"></div>
         <div class="step-icon-box" style="background:${color}">
              <span class="material-symbols-rounded" style="color:white; font-size:16px;">
-               ${seg.type==='metro'?'subway':(seg.type==='rail'?'train':'directions_bus')}
+               ${icon}
              </span>
         </div>
         
@@ -730,94 +624,253 @@ function openRouteModal(segments, time) {
     }
   });
 
-  // 7. 真实功能绑定：html2canvas & Notification
-  // 由于 html2canvas 需要截图，我们传入 segments 用于 Notification 构建
+  // 真实的分享和通知按钮
   html += `
     <div class="modal-actions" data-html2canvas-ignore>
       <button class="action-btn tonal" id="btn-share-img">
         <span class="material-symbols-rounded">share</span> 分享图片
       </button>
-      <button class="action-btn primary" id="btn-sub-push">
-        <span class="material-symbols-rounded">notifications_active</span> 发送行程
+      <button class="action-btn primary" id="btn-notify-push">
+        <span class="material-symbols-rounded">notifications_active</span> 发送提醒
       </button>
     </div>
   `;
 
   content.innerHTML = html;
-  
-  // 绑定事件 (为了能传递 segments 数据)
-  document.getElementById('btn-share-img').onclick = () => shareRouteImage();
-  document.getElementById('btn-sub-push').onclick = () => subscribePush(segments);
-
   backdrop.classList.add('visible');
   modal.classList.add('visible');
+
+  // 绑定事件 (使用 addEventListener 防止覆盖)
+  document.getElementById('btn-share-img').onclick = () => shareRealImage();
+  document.getElementById('btn-notify-push').onclick = () => sendRealNotification(segments);
 }
 
-function closeRouteModal() {
-  document.getElementById('modal-backdrop').classList.remove('visible');
-  document.getElementById('route-modal').classList.remove('visible');
-}
-
-/* --- 7. Features: Real Share & Real Notify --- */
-
-// 真实图片生成
-function shareRouteImage() {
-  const target = document.getElementById('capture-target'); // 包含 header 和 content 的容器
-  if(!target) return;
+// 4. 真实图片分享 (html2canvas)
+async function shareRealImage() {
+  const element = document.getElementById('route-modal');
+  if (!element) return;
 
   showToast("正在生成图片，请稍候...");
   
-  html2canvas(target, {
-    backgroundColor: getComputedStyle(document.body).getPropertyValue('--md-sys-color-surface'),
-    scale: 2 // 高清
-  }).then(canvas => {
-    // 自动下载
+  try {
+    // 临时调整样式以确保截取完整 (白色背景)
+    const originalBg = element.style.background;
+    element.style.background = "#fdfcff"; 
+    
+    const canvas = await html2canvas(element, {
+      scale: 2, // 高清
+      backgroundColor: "#fdfcff",
+      useCORS: true,
+      ignoreElements: (node) => node.hasAttribute('data-html2canvas-ignore') // 忽略按钮区
+    });
+
+    element.style.background = originalBg;
+
+    // 转换并下载
     const link = document.createElement('a');
     link.download = `route_plan_${Date.now()}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
     showToast("图片已生成并下载");
-  }).catch(err => {
+    
+  } catch (err) {
     console.error(err);
-    showToast("图片生成失败");
-  });
+    showToast("生成图片失败");
+  }
 }
 
-// 真实通知推送
-function subscribePush(segments) {
+// 5. 真实通知推送 (Notification API)
+function sendRealNotification(segments) {
   if (!('Notification' in window)) {
-    showToast("您的浏览器不支持通知功能");
+    showToast("当前浏览器不支持通知");
     return;
   }
 
-  // 构建通知内容字符串
-  // 格式：从xx出发，123路-》大桥站-〉888路-〉北揽站-》地铁2号线。到达xx目的地
-  let msg = `从 ${segments[0].startStation} 出发，`;
+  // 构建详细字符串
+  // 例子：乘坐的线路：从xx出发，123路-》大桥站-〉888路-〉北揽站-》地铁2号线。到达xx目的地
+  const start = segments[0].startStation;
+  const end = segments[segments.length - 1].endStation;
   
+  let routeStr = `从 ${start} 出发，`;
   segments.forEach((seg, i) => {
-    msg += `${seg.lineName}`;
+    routeStr += `${seg.lineName}`;
     if (i < segments.length - 1) {
-      msg += ` -> ${seg.endStation} (换乘) -> `;
+      routeStr += ` -> ${seg.endStation} (换乘) -> `;
     }
   });
-  
-  msg += `。到达 ${segments[segments.length-1].endStation}。`;
+  routeStr += ` -> 到达 ${end}`;
 
+  // 请求权限
   Notification.requestPermission().then(permission => {
     if (permission === 'granted') {
-      try {
-        new Notification('行程方案', {
-          body: msg,
-          icon: '../data/logos_company.json' // 尝试使用默认图标，实际环境可能需要绝对路径
-        });
-        showToast("已发送至通知栏");
-      } catch (e) {
-        // Android Chrome 有时需要 Service Worker 才能发通知，这里做降级提示
-        alert("通知内容：\n" + msg); 
-      }
+      new Notification('行程规划提醒', {
+        body: routeStr,
+        icon: '../data/logos_company.json', // 这是一个占位符，实际可以指向具体的app icon
+        vibrate: [200, 100, 200]
+      });
+      showToast("提醒已发送至通知栏");
     } else {
-      showToast("请允许通知权限以接收行程");
+      showToast("请允许通知权限");
     }
+  });
+}
+
+/* ... (setupUI, renderStations, closeRouteModal, showToast 等其他辅助函数保持不变，需确保 setupUI 中的绑定逻辑正确) ... */
+
+function setupUI() {
+  // Navigation
+  document.getElementById('nav-back').onclick = () => {
+    if (appState.currentView === 'home') window.history.back();
+    else switchView('home');
+  };
+  document.getElementById('nav-to-planner').onclick = () => switchView('planner');
+
+  // Filters
+  document.querySelectorAll('#transport-filters .chip').forEach(btn => {
+    btn.onclick = (e) => {
+      document.querySelectorAll('#transport-filters .chip').forEach(c => c.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      appState.selectedType = e.currentTarget.dataset.type;
+      localStorage.setItem('bus_selected_type', appState.selectedType);
+      renderHome();
+    };
+  });
+
+  // Area Menu
+  const areaBtn = document.getElementById('filter-area-btn');
+  areaBtn.onclick = () => {
+     renderAreaMenu();
+     document.getElementById('area-menu').classList.toggle('open');
+     document.getElementById('area-menu-backdrop').classList.toggle('open');
+     setTimeout(() => document.getElementById('area-search-input').focus(), 100);
+  };
+  document.getElementById('area-menu-backdrop').onclick = () => {
+    document.getElementById('area-menu').classList.remove('open');
+    document.getElementById('area-menu-backdrop').classList.remove('open');
+  };
+
+  // Search Input
+  document.getElementById('line-search').addEventListener('input', renderHome);
+
+  // Detail Toggle
+  document.getElementById('btn-dir-up').onclick = () => renderStations('up');
+  document.getElementById('btn-dir-down').onclick = () => renderStations('down');
+
+  // Planner Filter Logic
+  document.querySelectorAll('#planner-filters .chip').forEach(btn => {
+    btn.onclick = (e) => {
+      document.querySelectorAll('#planner-filters .chip').forEach(c => c.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      // 如果已经有起终点，立即刷新
+      if(document.getElementById('plan-start').value && document.getElementById('plan-end').value) {
+          findRoute();
+      }
+    };
+  });
+  
+  document.getElementById('btn-swap-stations').onclick = () => {
+    const s = document.getElementById('plan-start');
+    const e = document.getElementById('plan-end');
+    [s.value, e.value] = [e.value, s.value];
+  };
+
+  document.getElementById('btn-start-plan').onclick = findRoute;
+
+  // Modal Close
+  const close = () => {
+    document.getElementById('modal-backdrop').classList.remove('visible');
+    document.getElementById('route-modal').classList.remove('visible');
+  };
+  document.getElementById('modal-close').onclick = close;
+  document.getElementById('modal-backdrop').onclick = close;
+}
+
+// 辅助函数：视图切换
+function switchView(viewName) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(`view-${viewName}`).classList.add('active');
+  appState.currentView = viewName;
+  
+  const title = document.getElementById('page-title');
+  const plannerBtn = document.getElementById('nav-to-planner');
+  
+  if (viewName === 'home') {
+    title.innerText = '公交 / 地铁';
+    plannerBtn.style.display = 'flex';
+  } else if (viewName === 'detail') {
+    title.innerText = '线路详情';
+    plannerBtn.style.display = 'none';
+  } else {
+    title.innerText = '出行规划';
+    plannerBtn.style.display = 'none';
+  }
+}
+
+// Area Menu 渲染
+function renderAreaMenu() {
+  const menuList = document.getElementById('area-menu-list');
+  const searchInput = document.getElementById('area-search-input');
+  
+  const renderItems = (filterText) => {
+    menuList.innerHTML = `<div class="menu-item ${appState.selectedCity === 'all' ? 'selected' : ''}" onclick="selectCity('all')">全部地区</div>`;
+    const cities = [...new Set(appState.lines.map(l => l.city))];
+    const filteredCities = cities.filter(c => c.includes(filterText));
+
+    filteredCities.forEach(c => {
+      const logo = appState.logos.area[c] || '';
+      const isSelected = appState.selectedCity === c;
+      menuList.innerHTML += `
+        <div class="menu-item ${isSelected ? 'selected' : ''}" onclick="selectCity('${c}')">
+          ${logo ? `<img src="${logo}">` : ''}
+          <span>${c}</span>
+          ${isSelected ? '<span class="material-symbols-rounded check">check</span>' : ''}
+        </div>
+      `;
+    });
+  };
+  renderItems('');
+  searchInput.oninput = (e) => renderItems(e.target.value.trim());
+}
+
+function selectCity(city) {
+  appState.selectedCity = city;
+  localStorage.setItem('bus_selected_city', city);
+  document.getElementById('area-menu').classList.remove('open');
+  document.getElementById('area-menu-backdrop').classList.remove('open');
+  renderHome();
+}
+
+function renderStations(dir) {
+  const list = document.getElementById('station-list');
+  list.innerHTML = '';
+  document.getElementById('btn-dir-up').classList.toggle('active', dir === 'up');
+  document.getElementById('btn-dir-down').classList.toggle('active', dir === 'down');
+
+  const stations = dir === 'up' ? currentLine.stationsUp : currentLine.stationsDown;
+
+  stations.forEach((s, idx) => {
+    const div = document.createElement('div');
+    div.className = 'station-item';
+    div.innerHTML = `
+      <div class="station-name">${s}</div>
+      ${idx === 0 ? '<div class="station-badge start">起</div>' : ''}
+      ${idx === stations.length - 1 ? '<div class="station-badge end">终</div>' : ''}
+    `;
+    div.onclick = () => {
+       const startIn = document.getElementById('plan-start');
+       const endIn = document.getElementById('plan-end');
+       // 如果是从详情页点进来的，先跳去规划页
+       if(!startIn.value) {
+         startIn.value = s;
+         showToast(`已设为起点: ${s}`);
+         switchView('planner');
+       } else {
+         endIn.value = s;
+         showToast(`已设为终点: ${s}`);
+         switchView('planner');
+       }
+    };
+    list.appendChild(div);
   });
 }
 
@@ -828,5 +881,5 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// Start
+// 启动
 init();
