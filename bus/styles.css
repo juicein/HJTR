@@ -27,7 +27,6 @@
     --md-sys-color-on-primary: #00324e;
     --md-sys-color-primary-container: #004b70;
     --md-sys-color-on-primary-container: #cbe6ff;
-    --md-sys-color-error: #ffb4ab;
   }
 }
 
@@ -38,7 +37,7 @@ body {
   height: 100vh; display: flex; flex-direction: column; overflow: hidden;
 }
 
-/* --- Top Bar --- */
+/* Top Bar */
 .top-app-bar {
   padding: 8px 16px; height: 64px; display: flex; align-items: center; justify-content: space-between;
   background: var(--md-sys-color-surface); position: sticky; top: 0; z-index: 100;
@@ -46,6 +45,7 @@ body {
 .start-section { display: flex; align-items: center; gap: 12px; flex: 1; overflow: hidden; }
 .end-section { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 #page-title { margin: 0; font-size: 22px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .icon-btn {
   background: none; border: none; width: 40px; height: 40px; border-radius: 50%;
   color: var(--md-sys-color-on-surface); display: flex; align-items: center; justify-content: center; cursor: pointer;
@@ -53,13 +53,13 @@ body {
 .icon-btn:hover { background: rgba(0,0,0,0.05); }
 .icon-btn.filled-tonal { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 
-/* --- Layout --- */
+/* Layout */
 main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .view { display: none; }
 .view.active { display: block; animation: fadeUp 0.3s cubic-bezier(0.2, 0, 0, 1); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-/* --- Cards --- */
+/* Cards */
 .card {
   background: var(--md-sys-color-surface-container); border-radius: var(--radius-l);
   padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; cursor: pointer;
@@ -67,30 +67,28 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .line-row-main { display: flex; align-items: center; gap: 16px; }
 .line-icon-badge {
   width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: bold; flex-shrink: 0; font-size: 16px;
+  color: #fff; font-weight: bold; flex-shrink: 0; font-size: 16px; position: relative;
 }
+/* 8. 特殊交通图标微调 */
+.line-icon-badge .sub-icon { font-size: 24px; }
 .line-text-group { flex: 1; min-width: 0; }
 .line-header-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 .line-name { font-size: 18px; font-weight: 600; }
 .area-icon { width: 18px; height: 18px; opacity: 0.8; }
 .line-subtitle { font-size: 13px; opacity: 0.7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* --- Detail View --- */
+/* Detail View */
 .detail-header-card {
   background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
   border-radius: var(--radius-xl); padding: 24px; margin: 16px 0;
 }
 .dh-top { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .line-icon-badge.large { width: 64px; height: 64px; font-size: 24px; border-radius: 18px; }
-.dh-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.dh-name { font-size: 24px; font-weight: 700; }
-
-/* 9. 修改：Logo 和 公司名称并排显示 */
-.company-badge-row {
-  display: flex; align-items: center; gap: 8px; margin-top: 4px;
-}
+.dh-title-row { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.dh-name { font-size: 24px; font-weight: 700; display:flex; align-items:center; gap: 8px; }
+/* 9. 公司名称样式优化 */
+.company-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; opacity: 0.8; font-size: 14px; }
 .company-logo-detail { height: 20px; width: auto; object-fit: contain; }
-.company-name-text { font-size: 14px; font-weight: 500; opacity: 0.9; }
 
 .dh-info-grid { display: flex; gap: 12px 16px; flex-wrap: wrap; font-size: 14px; opacity: 0.9; }
 .info-item { display: flex; align-items: center; gap: 6px; }
@@ -114,11 +112,13 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
   border-bottom: 1px solid var(--md-sys-color-surface-container-high); cursor: pointer;
 }
 .station-name { flex: 1; font-size: 16px; }
-.station-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 8px; flex-shrink: 0; }
+.station-badge {
+  font-size: 11px; padding: 2px 6px; border-radius: 4px; color: white; margin-left: 8px; flex-shrink: 0;
+}
 .station-badge.start { background: #4CAF50; }
 .station-badge.end { background: #f44336; }
 
-/* --- Planner --- */
+/* Planner */
 .planner-card {
   background: var(--md-sys-color-surface-container);
   border-radius: var(--radius-xl); padding: 16px; margin: 16px 0; position: relative;
@@ -154,11 +154,9 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .plan-result-card:active { transform: scale(0.98); }
 .plan-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
 .plan-time-big { font-size: 24px; font-weight: 700; color: var(--md-sys-color-primary); }
+/* 运营时间警告样式 */
+.out-of-service { color: var(--md-sys-color-error); font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
 .plan-meta { font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
-
-/* 3. 运营时间警告样式 */
-.plan-warning { font-size: 13px; color: var(--md-sys-color-error); font-weight: 500; display: flex; align-items: center; gap: 4px; }
-
 .plan-route-visual { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
 .route-step-pill {
   display: flex; align-items: center; gap: 4px; background: var(--md-sys-color-surface-container-high);
@@ -166,7 +164,7 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 }
 .step-arrow { font-size: 14px; opacity: 0.5; }
 
-/* --- Modal --- */
+/* Modal (Bottom Sheet) */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300;
   opacity: 0; pointer-events: none; transition: opacity 0.3s;
@@ -184,9 +182,9 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .sheet-header {
   padding: 0 24px 8px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
 }
-.sheet-content { padding: 16px 24px 32px; overflow-y: auto; }
+.sheet-content { padding: 16px 24px 16px; overflow-y: auto; background: var(--md-sys-color-surface); /* For screenshot */ }
 
-/* Timeline in Modal */
+/* Modal Content */
 .modal-summary { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; }
 .ms-time { font-size: 32px; font-weight: bold; color: var(--md-sys-color-primary); }
 .step-card { display: flex; position: relative; gap: 16px; min-height: 80px; }
@@ -204,7 +202,6 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .step-dir { font-size: 12px; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container); padding: 2px 6px; border-radius: 4px; }
 .step-detail-row { font-size: 15px; margin-bottom: 6px; display:flex; align-items:center; gap:8px;}
 .step-sub-info { font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
-
 .transfer-gap {
   display: flex; align-items: center; gap: 8px; padding: 4px 0 12px 48px;
   color: var(--md-sys-color-on-surface-variant); font-size: 13px; font-weight: 500;
@@ -214,9 +211,11 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
   border-radius: 12px; display: flex; align-items: center; gap: 4px; font-size: 12px; 
 }
 
-.modal-actions {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px; padding-top: 16px;
-  border-top: 1px solid var(--md-sys-color-outline);
+/* Modal Footer Actions */
+.modal-footer {
+  padding: 16px 24px 32px; border-top: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface);
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
 }
 .action-btn {
   border: none; padding: 12px; border-radius: var(--radius-full);
@@ -226,6 +225,7 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .action-btn.tonal { background: var(--md-sys-color-surface-container-high); color: var(--md-sys-color-on-surface); }
 .action-btn.primary { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 
+/* Chips & Common */
 .filter-chips { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
 .chip {
   padding: 8px 16px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline);
@@ -246,19 +246,13 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
   background: var(--md-sys-color-surface-container-high); border-radius: var(--radius-full);
   height: 50px; display: flex; align-items: center; padding: 0 16px; gap: 12px;
 }
-
-.menu-backdrop {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 190;
-  display: none; opacity: 0; transition: opacity 0.2s;
-}
+.menu-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 190; display: none; opacity: 0; transition: opacity 0.2s; }
 .menu-backdrop.open { display: block; opacity: 1; }
 .menu-surface {
   position: absolute; top: 70px; right: 16px;
   background: var(--md-sys-color-surface-container-high);
-  border-radius: var(--radius-l);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  display: none; z-index: 200; width: 240px;
-  overflow: hidden; flex-direction: column;
+  border-radius: var(--radius-l); box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  display: none; z-index: 200; width: 240px; overflow: hidden; flex-direction: column;
 }
 .menu-surface.open { display: flex; }
 .menu-header { padding: 12px; border-bottom: 1px solid var(--md-sys-color-outline); display: flex; align-items: center; gap: 8px; }
