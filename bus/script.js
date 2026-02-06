@@ -3,83 +3,89 @@ const appState = {
   lines: [],
   logos: { area: {}, company: {} },
   aliases: { manual: [], suffixGroups: [] },
+  directLines: { manual: [], auto: [] }, // 10. 直通线路数据
   currentView: 'home',
   selectedCity: localStorage.getItem('bus_selected_city') || 'all',
   selectedType: localStorage.getItem('bus_selected_type') || 'all', 
-  planner: { start: '', end: '', rule: 'all' } // Default rule changed
+  planner: { start: '', end: '', rule: 'all' }
 };
 
 /* --- 1. Data Loading & Parsing --- */
 async function init() {
   try {
-    const [txtRes, areaRes, compRes, aliasRes] = await Promise.all([
+    const [txtRes, areaRes, compRes, aliasRes, directRes] = await Promise.all([
       fetch('../data/bus_data.txt'),
       fetch('../data/logos_area.json'),
       fetch('../data/logos_company.json'),
-      fetch('../data/station_alias.json')
+      fetch('../data/station_alias.json'),
+      fetch('../data/direct_line.json') // 10. 加载直通数据
     ]);
 
     const txt = await txtRes.text();
     appState.logos.area = await areaRes.json();
     appState.logos.company = await compRes.json();
     const aliasData = await aliasRes.json();
+    const directData = await directRes.json();
     
     appState.aliases.manual = aliasData.manual_equivalents || [];
     appState.aliases.suffixGroups = aliasData.suffix_groups || [];
+    appState.directLines.manual = directData.manual_equivalents || [];
+    appState.directLines.auto = directData.auto_equivalents || [];
 
     parseLines(txt);
     setupUI();
     populateStationDatalist();
-    applyFilters();
     
-    // 4. URL Routing Handler
-    handleRouting();
+    // 3. URL Routing Logic
+    handleUrlParams();
     
+    // 如果没有跳转到 Planner，则加载 Home
+    if (appState.currentView === 'home') {
+      applyFilters();
+    }
+
   } catch (e) {
     console.error("Initialization failed:", e);
     showToast("数据加载失败");
   }
 }
 
-// 4. URL Routing Logic
-function handleRouting() {
-  const params = new URLSearchParams(window.location.search);
-  
-  // URL Pattern: index.html?view=search&q=LineName
-  // Or prompt requested: /bus/search?=LineName (handled via fallback key)
-  
-  // Case 1: Search / Detail
-  // Compatible with ?q=... or standard search box
-  const searchQuery = params.get('q') || params.get('search') || "";
-  if (searchQuery) {
-    document.getElementById('line-search').value = searchQuery;
-    // Attempt exact match redirect
-    const exactMatch = appState.lines.find(l => l.name === searchQuery);
-    if (exactMatch) {
-      openDetail(exactMatch);
-    } else {
+// 3. URL Processing
+function handleUrlParams() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const rawQuery = window.location.search;
+
+  // Case 1: /bus/planning?=站点 (Old/Specific style from prompt)
+  // or ?planning=站点 or ?start=站点&end=站点
+  if (rawQuery.includes('planning') || urlParams.has('planning') || urlParams.has('start')) {
+    let startStation = urlParams.get('start') || urlParams.get('planning');
+    // Handle "?=站点" oddity if specifically needed, usually browser parses key="" value="站点"
+    if (!startStation && rawQuery.includes('?=')) {
+        startStation = decodeURIComponent(rawQuery.split('=')[1]);
+    }
+    
+    if (startStation) {
+      document.getElementById('plan-start').value = startStation;
+      const endStation = urlParams.get('end');
+      if (endStation) document.getElementById('plan-end').value = endStation;
+      switchView('planner');
+      if (startStation && endStation) findRoute();
+    }
+  } 
+  // Case 2: /bus/search?=线路
+  else if (rawQuery.includes('search') || urlParams.has('q')) {
+    let query = urlParams.get('q') || urlParams.get('search');
+    if (!query && rawQuery.includes('?=')) {
+       query = decodeURIComponent(rawQuery.split('=')[1]);
+    }
+    if (query) {
+      document.getElementById('line-search').value = query;
+      switchView('home');
       renderHome();
     }
-    return;
-  }
-
-  // Case 2: Planner
-  // Compatible with ?view=planner&start=... or prompt's /bus/planning?=StartStation
-  // Note: Standard query param is ?start=X. 
-  // If the prompt implies `planning?=Station`, that acts like a key with empty value?
-  // We will support ?start=StationName
-  const startStation = params.get('start');
-  const endStation = params.get('end');
-  
-  if (startStation || window.location.href.includes('planning')) {
-    // Handling weird query if needed, but assuming ?start=...
-    if(startStation) document.getElementById('plan-start').value = startStation;
-    if(endStation) document.getElementById('plan-end').value = endStation;
-    switchView('planner');
   }
 }
 
-/* 8. Enhanced Parsing for Special Transport Types */
 function parseLines(rawText) {
   const lines = rawText.trim().split(/\n+/);
   appState.lines = lines.map((line, index) => {
@@ -87,30 +93,19 @@ function parseLines(rawText) {
     const company = line.match(/\{(.*?)\}/)?.[1] || "";
     const fare = line.match(/《(.*?)》/)?.[1] || "";
     const city = line.match(/『(.*?)』/)?.[1] || "其他";
-    const startTime = line.match(/§(.*?)§/)?.[1] || "";
-    const endTime = line.match(/@(.*?)@/)?.[1] || "";
-    
-    // Detect Types
-    const isMonorail = line.includes("θ单轨θ");
-    const isRubber = line.includes("θ胶轮θ");
-    const isMetroRaw = line.includes("θ地铁θ");
-    const isBRT = line.includes("θBRTθ");
-    const isRailRaw = line.includes("θ铁路θ") || name.includes("城际") || name.includes("高铁");
+    const startTimeStr = line.match(/§(.*?)§/)?.[1] || "";
+    const endTimeStr = line.match(/@(.*?)@/)?.[1] || "";
     const color = line.match(/∮([0-9A-Fa-f]{6,8})∮/)?.[1];
 
-    // Classification Logic
-    // Monorail/Rubber -> Metro category but special subtype
-    // BRT -> Bus category but special subtype
-    const isMetro = isMetroRaw || isMonorail || isRubber; 
-    const isRail = isRailRaw; 
-    
-    // Icon determination
-    let iconType = 'directions_bus'; // default
-    if (isRail) iconType = 'train';
-    else if (isMonorail) iconType = 'tram'; // Monorail visual
-    else if (isRubber) iconType = 'commute'; // Rubber visual
-    else if (isMetroRaw) iconType = 'subway';
-    else if (isBRT) iconType = 'directions_bus'; // BRT uses bus icon but maybe distinct color
+    // 8. Type Classification
+    let type = 'bus';
+    let subType = 'regular_bus'; // For icons
+
+    if (line.includes("θ地铁θ")) { type = 'metro'; subType = 'metro'; }
+    else if (line.includes("θ单轨θ")) { type = 'metro'; subType = 'monorail'; }
+    else if (line.includes("θ胶轮θ")) { type = 'metro'; subType = 'rubber'; } // 胶轮系统归类为 Metro 逻辑，但显示不同
+    else if (line.includes("θ铁路θ") || name.includes("城际") || name.includes("高铁")) { type = 'rail'; subType = 'rail'; }
+    else if (line.includes("θBRTθ")) { type = 'bus'; subType = 'brt'; }
 
     const stationPart = line.replace(/^【.*?】/, "").split("-{")[0];
     const rawStations = stationPart.split("-").filter(s => s && s.trim());
@@ -132,15 +127,36 @@ function parseLines(rawText) {
 
     return {
       id: index,
-      name, company, fare, city, startTime, endTime, 
-      isMetro, isRail, color,
-      specialType: isMonorail ? 'monorail' : (isRubber ? 'rubber' : (isBRT ? 'brt' : null)),
-      iconType,
+      name, company, fare, city, 
+      startTimeStr, endTimeStr,
+      isMetro: type === 'metro',
+      isRail: type === 'rail',
+      color,
       stationsUp, stationsDown,
-      // For filters:
-      type: isMetro ? 'metro' : (isRail ? 'rail' : 'bus') 
+      type, subType
     };
   });
+}
+
+// 2. 运营时间判断
+function checkIsOperating(line) {
+    if (!line.startTimeStr || !line.endTimeStr) return true; // 无数据默认运营
+    
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    
+    const parseTime = (tStr) => {
+        const [h, m] = tStr.split(/[:：]/).map(Number);
+        return h * 60 + (m || 0);
+    };
+
+    const startMins = parseTime(line.startTimeStr);
+    let endMins = parseTime(line.endTimeStr);
+    if (endMins < startMins) endMins += 24 * 60; // 跨天
+
+    // 简单判断：如果当前时间在区间内，或者当前时间+24小时在区间内（针对凌晨查看）
+    return (currentMins >= startMins && currentMins <= endMins) || 
+           ((currentMins + 1440) >= startMins && (currentMins + 1440) <= endMins);
 }
 
 function populateStationDatalist() {
@@ -149,7 +165,6 @@ function populateStationDatalist() {
     l.stationsUp.forEach(s => allStations.add(s));
     l.stationsDown.forEach(s => allStations.add(s));
   });
-  
   const datalist = document.getElementById('station-datalist');
   datalist.innerHTML = '';
   [...allStations].sort().forEach(s => {
@@ -159,6 +174,7 @@ function populateStationDatalist() {
   });
 }
 
+// Aliasing Logic (Same as before)
 function getCanonicalStationId(name) {
   let n = name.trim();
   for (const group of appState.aliases.manual) {
@@ -176,18 +192,44 @@ function getCanonicalStationId(name) {
   return baseName;
 }
 
-function getTransferType(rawNameA, rawNameB) {
-  if (rawNameA === rawNameB) return 'same_station';
+// 10. 判断是否直通线路
+function isDirectConnected(lineA, lineB) {
+  const checkGroups = (groups) => {
+    return groups.some(group => {
+      // 简单模糊匹配：如果 lineA 包含 group[0] 且 lineB 包含 group[1] (或反之)
+      // 对于 manual，需要精确匹配 Line Name
+      const aName = lineA.name;
+      const bName = lineB.name;
+      return (group.includes(aName) && group.includes(bName));
+    });
+  };
+  
+  // Check Manual
+  if (checkGroups(appState.directLines.manual)) return true;
+  
+  // Check Auto (e.g. 1号线主线 vs 1号线支线)
+  // 这里的逻辑稍微复杂，简化为：如果前缀相同，且后缀在 auto 组里
+  // 暂且简化处理：如果名字高度相似
+  return false; 
+}
+
+function getTransferType(prevEdge, currEdge) {
+  // 10. 优先检查直通
+  if (prevEdge.fullLine && currEdge.fullLine) {
+     if (isDirectConnected(prevEdge.fullLine, currEdge.fullLine)) {
+         return 'direct';
+     }
+  }
+  
+  if (prevEdge.toRawName === currEdge.fromRawName) return 'same_station'; 
   return 'walking';
 }
 
-/* --- Logic: Route Finding --- */
 function buildGraph(rule, startCity) {
   const graph = {}; 
 
   appState.lines.forEach(line => {
-    // Filter out based on rule
-    if (startCity && line.city !== startCity) return; // Basic city lock
+    if (startCity && line.city !== startCity) return;
     if (rule === 'bus_only' && (line.isMetro || line.isRail)) return;
     
     addLineEdges(graph, line, line.stationsUp, 'up', rule);
@@ -205,106 +247,109 @@ function addLineEdges(graph, line, stations, dir, rule) {
     
     if (!graph[fromId]) graph[fromId] = [];
     
-    // Weight Calculation
-    let weight = 1; // Base cost (Time proxy)
-    
-    // Base speed assumptions
-    if (line.isMetro) weight = 0.6; // Faster
-    if (line.isRail) weight = 0.4; // Fastest
-    if (line.specialType === 'brt') weight = 0.8; // Faster than normal bus
+    // Base Weights (Time in minutes approx)
+    let weight = 3.5; // Bus default
+    if (line.type === 'metro') weight = 2.5;
+    if (line.type === 'rail') weight = 5; // Rail longer distance per stop but faster, avg 5
+    if (line.subType === 'brt') weight = 3.0;
 
-    // Rule Adjustments
+    // Adjust by Rule
     if (rule === 'rail_priority') {
-      if (line.isMetro || line.isRail) weight = 0.3; // Prefer strongly
-      else weight = 2.0; // Penalize bus
+      if (line.isMetro || line.isRail) weight = weight * 0.5; // Favor Rail
+      else weight = weight * 2.0; // Penalize Bus
     }
-    
-    // "Fastest" is default behavior of Dijkstra with time weights
-    // "Min Transfer" handled in Dijkstra step
+    // Fastest rule relies on accurate base weights (already set)
 
     graph[fromId].push({
       toNode: toId,
-      toRawName: toRaw,
+      toRawName: toRaw, 
       fromRawName: fromRaw,
       lineName: line.name,
       lineId: line.id,
       direction: dir,
       rawWeight: weight,
       type: line.type,
+      subType: line.subType, // 8. Pass subtype
       fullLine: line 
     });
   }
 }
 
-function checkOperatingTime(startTime, endTime) {
-  if (!startTime || !endTime) return true; // No info, assume running
-  
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  const parseTime = (t) => {
-    const [h, m] = t.split(':').map(Number);
-    return h * 60 + m;
-  };
-
-  const start = parseTime(startTime);
-  const end = parseTime(endTime);
-
-  // Handle midnight crossing (e.g., 06:00 to 01:00)
-  if (end < start) {
-    return currentMinutes >= start || currentMinutes <= end;
-  }
-  return currentMinutes >= start && currentMinutes <= end;
-}
-
-function findRoute() {
+async function findRoute() {
   const startInput = document.getElementById('plan-start').value;
   const endInput = document.getElementById('plan-end').value;
-  
-  if (!startInput || !endInput) {
-    showToast("请输入起点和终点");
-    return;
-  }
+  if (!startInput || !endInput) { showToast("请输入起点和终点"); return; }
 
   const startId = getCanonicalStationId(startInput);
   const endId = getCanonicalStationId(endInput);
+  if (startId === endId) { showToast("起点终点相同"); return; }
 
-  if (startId === endId) {
-    showToast("起点终点看起来是同一个地方");
-    return;
+  const activeChip = document.getElementById('planner-filters').querySelector('.active');
+  let selectedRule = activeChip ? activeChip.dataset.rule : 'all';
+
+  document.getElementById('planner-results').innerHTML = '<div class="empty-state"><p>正在规划...</p></div>';
+
+  // 1. "All Plans" Logic: Run multiple strategies and merge
+  let strategies = [];
+  if (selectedRule === 'all') {
+      strategies = ['fastest', 'min_transfer', 'rail_priority', 'bus_only'];
+  } else {
+      strategies = [selectedRule];
   }
 
-  // Determine starting city lock
+  // City lock check
   const startLine = appState.lines.find(l => 
     l.stationsUp.some(s => getCanonicalStationId(s) === startId) || 
     l.stationsDown.some(s => getCanonicalStationId(s) === startId)
   );
-  const regionLock = startLine ? startLine.city : null; 
-  
-  const activeChip = document.getElementById('planner-filters').querySelector('.active');
-  const rule = activeChip ? activeChip.dataset.rule : 'all';
-  
-  const graph = buildGraph(rule, regionLock);
+  const regionLock = startLine ? startLine.city : null;
 
-  // Dijkstra
-  const queue = [{ node: startId, cost: 0, path: [] }];
+  let allResults = [];
+
+  // Run Dijkstra for each strategy
+  for (const rule of strategies) {
+      const graph = buildGraph(rule, regionLock);
+      const results = runDijkstra(graph, startId, endId, rule);
+      allResults = [...allResults, ...results];
+  }
+
+  // Deduplicate results based on Line Sequence
+  const uniqueResults = [];
+  const signatures = new Set();
+  
+  allResults.sort((a,b) => a.cost - b.cost); // Sort by cost (time) initially
+
+  allResults.forEach(res => {
+      const sig = res.path.map(p => p.lineId).join('-');
+      if (!signatures.has(sig)) {
+          signatures.add(sig);
+          uniqueResults.push(res);
+      }
+  });
+
+  // Limit to top 5
+  const formattedResults = uniqueResults.slice(0, 8).map(res => compressPath(res.path));
+  renderPlannerResults(formattedResults);
+}
+
+function runDijkstra(graph, startId, endId, rule) {
+  const queue = [{ node: startId, cost: 0, path: [], transfers: 0 }];
   const visited = {}; 
-  const results = [];
-  const maxResults = rule === 'all' ? 10 : 5;
+  const foundPaths = [];
 
   let loops = 0;
-  while (queue.length > 0 && loops < 6000) {
+  while (queue.length > 0 && loops < 4000) {
     loops++;
     queue.sort((a, b) => a.cost - b.cost);
     const current = queue.shift();
 
-    if (current.cost > (visited[current.node] || Infinity)) continue;
-    // Allow slight re-visit for different paths if listing 'all'
+    // Relaxed visited check to allow different paths arriving at same node
+    if (visited[current.node] && visited[current.node] < current.cost - 15) continue; 
     visited[current.node] = current.cost;
 
     if (current.node === endId) {
-      results.push(current);
-      if (results.length >= maxResults) break; 
+      foundPaths.push(current);
+      if (foundPaths.length >= 3) break; // Get top 3 per rule
       continue;
     }
 
@@ -319,30 +364,47 @@ function findRoute() {
       if (lastStep) {
         if (lastStep.lineId !== edge.lineId) {
           isTransfer = true;
-          transferType = getTransferType(lastStep.toRawName, edge.fromRawName);
+          // Calculate Transfer Logic
+          transferType = getTransferType(lastStep, edge);
           
-          if (transferType === 'walking') {
-            stepCost += 20; // High penalty for walking transfer
-          } else {
-            stepCost += 10; // Moderate penalty for same-station transfer
+          // 10. Bus <-> Metro 强制出站 (Walking)
+          const isBusA = lastStep.type === 'bus';
+          const isMetroA = lastStep.type === 'metro' || lastStep.type === 'rail';
+          const isBusB = edge.type === 'bus';
+          const isMetroB = edge.type === 'metro' || edge.type === 'rail';
+
+          if ((isBusA && isMetroB) || (isMetroA && isBusB)) {
+              transferType = 'walking';
           }
           
-          if (rule === 'min_transfer') stepCost += 100; // Huge penalty
+          // Cost Penalties
+          if (transferType === 'direct') {
+              stepCost += 1; // Very low penalty
+          } else if (transferType === 'walking') {
+              stepCost += 20; // High penalty
+          } else {
+              stepCost += 10; // Same station transfer
+          }
+          
+          if (rule === 'min_transfer') stepCost += 1000; // Huge penalty for transfer
         }
       }
       
       const newCost = current.cost + stepCost;
-      const newPath = [...current.path, { ...edge, transferType: isTransfer ? transferType : 'none' }];
+      const newPath = [...current.path, { 
+        ...edge, 
+        transferType: isTransfer ? transferType : 'none'
+      }];
 
-      // Looser visited check for 'all' to allow variations
-      if (newCost < (visited[edge.toNode] || Infinity) + (rule==='all'?5:0)) {
-         queue.push({ node: edge.toNode, cost: newCost, path: newPath });
-      }
+      queue.push({ 
+          node: edge.toNode, 
+          cost: newCost, 
+          path: newPath,
+          transfers: isTransfer ? current.transfers + 1 : current.transfers
+      });
     });
   }
-
-  const formattedResults = results.map(res => compressPath(res.path));
-  renderPlannerResults(formattedResults);
+  return foundPaths;
 }
 
 function compressPath(rawPath) {
@@ -357,13 +419,13 @@ function compressPath(rawPath) {
         lineName: step.lineName,
         lineId: step.lineId,
         type: step.type,
-        iconType: step.fullLine.iconType, // Pass icon
+        subType: step.subType,
         startStation: step.fromRawName,
         endStation: step.toRawName,
         stopCount: 1,
         direction: step.direction,
         meta: step.fullLine,
-        transferType: step.transferType
+        transferType: 'none'
       };
     } else if (step.lineId === currentSeg.lineId && step.direction === currentSeg.direction) {
       currentSeg.endStation = step.toRawName;
@@ -374,13 +436,13 @@ function compressPath(rawPath) {
         lineName: step.lineName,
         lineId: step.lineId,
         type: step.type,
-        iconType: step.fullLine.iconType,
+        subType: step.subType,
         startStation: step.fromRawName,
         endStation: step.toRawName,
         stopCount: 1,
         direction: step.direction,
         meta: step.fullLine,
-        transferType: step.transferType
+        transferType: step.transferType 
       };
     }
   });
@@ -395,9 +457,9 @@ function setupUI() {
     if (appState.currentView === 'home') window.history.back();
     else switchView('home');
   };
-  
   document.getElementById('nav-to-planner').onclick = () => switchView('planner');
   
+  // Transport Type Filters (Home)
   document.querySelectorAll('#transport-filters .chip').forEach(btn => {
     btn.onclick = (e) => {
       document.querySelectorAll('#transport-filters .chip').forEach(c => c.classList.remove('active'));
@@ -408,6 +470,18 @@ function setupUI() {
     };
   });
 
+  // Planner Rules Filters (New)
+  document.querySelectorAll('#planner-filters .chip').forEach(btn => {
+    btn.onclick = (e) => {
+      document.querySelectorAll('#planner-filters .chip').forEach(c => c.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      if(document.getElementById('plan-start').value && document.getElementById('plan-end').value) {
+          findRoute();
+      }
+    };
+  });
+  
+  // Area Menu
   const areaBtn = document.getElementById('filter-area-btn');
   const backdrop = document.getElementById('area-menu-backdrop');
   areaBtn.onclick = () => {
@@ -424,16 +498,6 @@ function setupUI() {
   document.getElementById('line-search').addEventListener('input', renderHome);
   document.getElementById('btn-dir-up').onclick = () => renderStations('up');
   document.getElementById('btn-dir-down').onclick = () => renderStations('down');
-
-  document.querySelectorAll('#planner-filters .chip').forEach(btn => {
-    btn.onclick = (e) => {
-      document.querySelectorAll('#planner-filters .chip').forEach(c => c.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      if(document.getElementById('plan-start').value && document.getElementById('plan-end').value) {
-          findRoute();
-      }
-    };
-  });
   
   document.getElementById('btn-swap-stations').onclick = () => {
     const s = document.getElementById('plan-start');
@@ -449,10 +513,8 @@ function setupUI() {
 function switchView(viewName) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById(`view-${viewName}`).classList.add('active');
-  
   const title = document.getElementById('page-title');
   const plannerBtn = document.getElementById('nav-to-planner');
-  
   appState.currentView = viewName;
   
   if (viewName === 'home') {
@@ -467,13 +529,13 @@ function switchView(viewName) {
   }
 }
 
-function applyFilters() {
-  const typeChip = document.querySelector(`#transport-filters .chip[data-type="${appState.selectedType}"]`);
-  if(typeChip) {
-    document.querySelectorAll('#transport-filters .chip').forEach(c => c.classList.remove('active'));
-    typeChip.classList.add('active');
-  }
-  renderHome();
+function getIconForSubType(subType) {
+    if (subType === 'metro') return 'subway';
+    if (subType === 'monorail') return 'tram'; // Monorail icon
+    if (subType === 'rubber') return 'tram'; 
+    if (subType === 'rail') return 'train';
+    if (subType === 'brt') return 'directions_bus'; // Use bus but will style differently
+    return 'directions_bus';
 }
 
 function renderHome() {
@@ -495,14 +557,17 @@ function renderHome() {
     const card = document.createElement('div');
     card.className = 'card';
     const color = line.color ? `#${line.color.slice(0,6)}` : 'var(--md-sys-color-primary)';
+    const icon = getIconForSubType(line.subType);
     
-    // 8. Icon Handling
-    const icon = line.iconType || 'directions_bus';
+    // 8. BRT Badge Style
+    const badgeStyle = line.subType === 'brt' ? 
+        `background:${color}; border: 2px solid #FFC107;` : 
+        `background:${color}`;
 
     card.innerHTML = `
       <div class="line-row-main">
-        <div class="line-icon-badge" style="background:${color}">
-          <span class="material-symbols-rounded sub-icon">${icon}</span>
+        <div class="line-icon-badge" style="${badgeStyle}">
+          <span class="material-symbols-rounded">${icon}</span>
         </div>
         <div class="line-text-group">
           <div class="line-header-row">
@@ -520,6 +585,7 @@ function renderHome() {
   });
 }
 
+// ... renderAreaMenu, selectCity ... (No logic changes)
 function renderAreaMenu() {
   const menuList = document.getElementById('area-menu-list');
   const searchInput = document.getElementById('area-search-input');
@@ -553,9 +619,6 @@ function selectCity(city) {
   renderHome();
 }
 
-/* --- Render Detail --- */
-let currentLine = null;
-
 function openDetail(line) {
   currentLine = line;
   switchView('detail');
@@ -563,27 +626,27 @@ function openDetail(line) {
   const header = document.getElementById('detail-header');
   const compLogo = appState.logos.company[line.company] || '';
   const badgeColor = line.color ? `#${line.color.slice(0,6)}` : 'var(--md-sys-color-primary)';
-
-  // 9. Company Name Display
+  
+  // 9. 公司名称和Logo同时显示
   header.innerHTML = `
     <div class="dh-top">
       <div class="line-icon-badge large" style="background:${badgeColor}">
-         <span class="material-symbols-rounded sub-icon">${line.iconType}</span>
+        ${line.name}
       </div>
       <div style="flex:1">
         <div class="dh-title-row">
           <div class="dh-name">${line.name}</div>
-          <div class="company-row">
-             ${compLogo ? `<img src="${compLogo}" class="company-logo-detail">` : ''}
-             <span>${line.company}</span>
-          </div>
+          ${compLogo ? `<img src="${compLogo}" class="company-logo-detail" alt="${line.company}">` : ''}
         </div>
-        <div class="dh-sub" style="margin-top:4px">${line.city}</div>
+        <div class="dh-sub" style="margin-top:4px; display:flex; align-items:center; gap:6px;">
+             <span class="company-text" style="font-size:12px; border:1px solid currentColor; padding:1px 4px; border-radius:4px;">${line.company}</span>
+             <span>${line.city}</span>
+        </div>
       </div>
     </div>
     <div class="dh-info-grid">
        ${line.fare ? `<div class="info-item"><span class="material-symbols-rounded">payments</span>${line.fare}</div>` : ''}
-       <div class="info-item"><span class="material-symbols-rounded">schedule</span>${line.startTime} - ${line.endTime}</div>
+       <div class="info-item"><span class="material-symbols-rounded">schedule</span>${line.startTimeStr} - ${line.endTimeStr}</div>
     </div>
   `;
 
@@ -593,36 +656,37 @@ function openDetail(line) {
 }
 
 function renderStations(dir) {
-  const list = document.getElementById('station-list');
-  list.innerHTML = '';
-  document.getElementById('btn-dir-up').classList.toggle('active', dir === 'up');
-  document.getElementById('btn-dir-down').classList.toggle('active', dir === 'down');
-
-  const stations = dir === 'up' ? currentLine.stationsUp : currentLine.stationsDown;
-
-  stations.forEach((s, idx) => {
-    const div = document.createElement('div');
-    div.className = 'station-item';
-    div.innerHTML = `
-      <div class="station-name">${s}</div>
-      ${idx === 0 ? '<div class="station-badge start">起</div>' : ''}
-      ${idx === stations.length - 1 ? '<div class="station-badge end">终</div>' : ''}
-    `;
-    div.onclick = () => {
-       const startIn = document.getElementById('plan-start');
-       const endIn = document.getElementById('plan-end');
-       if(!startIn.value) {
-         startIn.value = s;
-         showToast(`已设为起点: ${s}`);
-         switchView('planner');
-       } else {
-         endIn.value = s;
-         showToast(`已设为终点: ${s}`);
-         switchView('planner');
-       }
-    };
-    list.appendChild(div);
-  });
+    const list = document.getElementById('station-list');
+    list.innerHTML = '';
+    document.getElementById('btn-dir-up').classList.toggle('active', dir === 'up');
+    document.getElementById('btn-dir-down').classList.toggle('active', dir === 'down');
+  
+    const stations = dir === 'up' ? currentLine.stationsUp : currentLine.stationsDown;
+  
+    stations.forEach((s, idx) => {
+      const div = document.createElement('div');
+      div.className = 'station-item';
+      div.innerHTML = `
+        <div class="station-name">${s}</div>
+        ${idx === 0 ? '<div class="station-badge start">起</div>' : ''}
+        ${idx === stations.length - 1 ? '<div class="station-badge end">终</div>' : ''}
+      `;
+      div.onclick = () => {
+         const startIn = document.getElementById('plan-start');
+         const endIn = document.getElementById('plan-end');
+         if(!startIn.value) {
+           startIn.value = s;
+           showToast(`已设为起点: ${s}`);
+           switchView('planner');
+         } else {
+           endIn.value = s;
+           showToast(`已设为终点: ${s}`);
+           switchView('planner');
+           findRoute(); // Auto start
+         }
+      };
+      list.appendChild(div);
+    });
 }
 
 /* --- Planner Results --- */
@@ -643,42 +707,47 @@ function renderPlannerResults(segmentsList) {
     card.className = 'plan-result-card';
     
     const totalStops = segments.reduce((sum, seg) => sum + seg.stopCount, 0);
-    const transfers = segments.length - 1;
+    // 直通不算换乘
+    const transfers = segments.filter((s, i) => i > 0 && s.transferType !== 'direct').length;
     let totalTime = 0;
     
-    // Operating Time Check
-    let isServiceActive = true;
+    // 2. 运营时间检查
+    let allOperating = true;
 
     segments.forEach((seg, i) => {
+      // 检查每段是否在运营
+      if (!checkIsOperating(seg.meta)) allOperating = false;
+
       const perStop = seg.type === 'metro' ? 2.5 : (seg.type === 'rail' ? 5 : 3.5);
       totalTime += Math.ceil(seg.stopCount * perStop);
-      if (i > 0) {
-         if (seg.transferType === 'walking') totalTime += 10;
-         else totalTime += 5;
-      }
       
-      // Check service hours
-      const inService = checkOperatingTime(seg.meta.startTime, seg.meta.endTime);
-      if (!inService) isServiceActive = false;
+      // Transfer time
+      if (i > 0) {
+         if (seg.transferType === 'walking') totalTime += 10; 
+         else if (seg.transferType === 'direct') totalTime += 1;
+         else totalTime += 5; 
+      }
     });
 
     const routeSummary = segments.map((seg, i) => `
       <div class="route-step-pill">
-        <span class="step-icon material-symbols-rounded">${seg.iconType}</span>
+        <span class="step-icon material-symbols-rounded">
+          ${getIconForSubType(seg.subType)}
+        </span>
         <span class="step-name">${seg.lineName}</span>
       </div>
       ${i < segments.length - 1 ? '<span class="material-symbols-rounded step-arrow">arrow_forward</span>' : ''}
     `).join('');
-    
-    // Logic: If not active, hide time or show warning
-    const timeDisplay = isServiceActive 
-        ? `<div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>` 
-        : `<div class="out-of-service"><span class="material-symbols-rounded">schedule_off</span> 不在运营时段</div>`;
+
+    // 2. 运营时间提示状态
+    const statusHtml = !allOperating 
+        ? `<span style="color:#B3261E; font-weight:bold; margin-left:8px;">· 不在运营时段</span>` 
+        : ``;
 
     card.innerHTML = `
       <div class="plan-header">
-        ${timeDisplay}
-        <div class="plan-meta">${totalStops}站 · 换乘 ${transfers} 次</div>
+        <div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>
+        <div class="plan-meta">${totalStops}站 · 换乘 ${transfers} 次 ${statusHtml}</div>
       </div>
       <div class="plan-route-visual">
         ${routeSummary}
@@ -687,24 +756,20 @@ function renderPlannerResults(segmentsList) {
         从 ${segments[0].startStation} 出发
       </div>
     `;
-    card.onclick = () => openRouteModal(segments, totalTime, isServiceActive);
+    card.onclick = () => openRouteModal(segments, totalTime);
     container.appendChild(card);
   });
 }
 
-/* --- Route Detail Modal --- */
-let currentSegments = []; // Store for sharing
-
-function openRouteModal(segments, time, isActive) {
-  currentSegments = segments;
+/* --- 7. Route Detail Modal --- */
+function openRouteModal(segments, time) {
   const backdrop = document.getElementById('modal-backdrop');
   const modal = document.getElementById('route-modal');
   const content = document.getElementById('modal-content-body');
-  const footer = document.getElementById('modal-footer-actions');
   
   let html = `
     <div class="modal-summary">
-       ${isActive ? `<div class="ms-time">${time}分钟</div>` : `<div class="out-of-service" style="font-size:24px">不在运营时段</div>`}
+       <div class="ms-time">${time}分钟</div>
        <div class="ms-meta">共 ${segments.reduce((a,b)=>a+b.stopCount,0)} 站</div>
     </div>
   `;
@@ -717,7 +782,9 @@ function openRouteModal(segments, time, isActive) {
       <div class="step-card">
         <div class="step-left-line"></div>
         <div class="step-icon-box" style="background:${color}">
-             <span class="material-symbols-rounded" style="color:white; font-size:16px;">${seg.iconType}</span>
+             <span class="material-symbols-rounded" style="color:white; font-size:16px;">
+               ${getIconForSubType(seg.subType)}
+             </span>
         </div>
         
         <div class="step-content">
@@ -734,6 +801,7 @@ function openRouteModal(segments, time, isActive) {
           
           <div class="step-sub-info">
             ${seg.stopCount} 站 · ${seg.meta.fare || '按段收费'}
+            ${!checkIsOperating(seg.meta) ? '<span style="color:#B3261E; margin-left:6px;">(不在运营时段)</span>' : ''}
           </div>
         </div>
       </div>
@@ -742,32 +810,46 @@ function openRouteModal(segments, time, isActive) {
     if (!isLast) {
       const nextSeg = segments[idx+1];
       const isWalk = nextSeg.transferType === 'walking';
+      const isDirect = nextSeg.transferType === 'direct';
       
+      // 10. 直通运行特别提示
+      let transferMsg = '站内换乘';
+      let transferIcon = 'transfer_within_a_station';
+      
+      if (isDirect) {
+          transferMsg = `乘坐前往 ${nextSeg.meta.stationsUp[nextSeg.meta.stationsUp.length-1]} 方向的列车，需要留意站台来车`;
+          transferIcon = 'alt_route';
+      } else if (isWalk) {
+          transferMsg = '同名/出站换乘 (需步行)';
+          transferIcon = 'directions_walk';
+      }
+
       html += `
         <div class="transfer-gap">
-           <div class="walk-badge">
+           <div class="walk-badge" style="${isDirect ? 'background:#E8DEF8; color:#1D192B;' : ''}">
              <span class="material-symbols-rounded" style="font-size:14px">
-               ${isWalk ? 'directions_walk' : 'transfer_within_a_station'}
+               ${transferIcon}
              </span>
-             <span>${isWalk ? '同名/出站换乘 (需步行)' : '站内换乘'}</span>
+             <span>${transferMsg}</span>
            </div>
         </div>
       `;
     }
   });
 
-  content.innerHTML = html;
-  
-  // Real Actions
-  footer.innerHTML = `
-      <button class="action-btn tonal" onclick="shareRouteImageReal()">
+  // Action Buttons (Not part of screenshot usually, but here handled by selector)
+  html += `
+    <div class="modal-actions" data-html2canvas-ignore>
+      <button class="action-btn tonal" onclick="shareRouteImage()">
         <span class="material-symbols-rounded">share</span> 分享图片
       </button>
-      <button class="action-btn primary" onclick="subscribePushReal()">
+      <button class="action-btn primary" onclick='subscribePush(${JSON.stringify(segments).replace(/'/g, "&apos;")})'>
         <span class="material-symbols-rounded">notifications_active</span> 开启提醒
       </button>
+    </div>
   `;
 
+  content.innerHTML = html;
   backdrop.classList.add('visible');
   modal.classList.add('visible');
 }
@@ -777,52 +859,50 @@ function closeRouteModal() {
   document.getElementById('route-modal').classList.remove('visible');
 }
 
-/* --- Real Features --- */
-
-// 1. Share Real Image
-function shareRouteImageReal() {
-  const element = document.getElementById('modal-content-body');
-  showToast("正在生成图片，请稍候...");
+// 4. Real Image Share
+function shareRouteImage() {
+  const content = document.getElementById('modal-content-body');
+  showToast("正在生成图片...");
   
-  html2canvas(element, {
-    backgroundColor: getComputedStyle(document.body).getPropertyValue('--md-sys-color-surface'),
-    scale: 2 // High Res
+  html2canvas(content, {
+      scale: 2, // High resolution
+      backgroundColor: getComputedStyle(document.body).getPropertyValue('--md-sys-color-surface'),
+      ignoreElements: (element) => element.hasAttribute('data-html2canvas-ignore')
   }).then(canvas => {
-    // Convert to link and trigger download
-    const link = document.createElement('a');
-    link.download = `route-plan-${Date.now()}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    showToast("图片已生成并下载");
+      // Create a fake link to download
+      const link = document.createElement('a');
+      link.download = '出行方案.png';
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      showToast("图片已生成并开始下载");
   }).catch(err => {
-    console.error(err);
-    showToast("生成图片失败");
+      console.error(err);
+      showToast("图片生成失败");
   });
 }
 
-// 2. Real Notifications
-function subscribePushReal() {
+// 7. Notification Logic
+function subscribePush(segments) {
   if (!('Notification' in window)) {
     showToast("浏览器不支持通知");
     return;
   }
   
+  // Construct detailed body
+  let bodyText = `从 ${segments[0].startStation} 出发`;
+  segments.forEach((seg, i) => {
+      if (i > 0) bodyText += ` -> ${seg.lineName}`;
+      else bodyText += ` -> 乘坐 ${seg.lineName}`;
+  });
+  bodyText += ` -> 抵达 ${segments[segments.length-1].endStation}`;
+
   Notification.requestPermission().then(permission => {
     if (permission === 'granted') {
-      // Build String: Line X -> Station -> Line Y
-      let routeStr = `从 ${currentSegments[0].startStation} 出发，`;
-      currentSegments.forEach((seg, idx) => {
-        routeStr += `乘坐 ${seg.lineName} 到 ${seg.endStation}`;
-        if(idx < currentSegments.length - 1) routeStr += "，换乘 ";
+      new Notification('行程提醒已开启', {
+        body: bodyText,
+        icon: '../data/logos_company.json' // Ideally use a real path
       });
-      routeStr += "。";
-      
-      new Notification('行程规划提醒已开启', {
-        body: routeStr,
-        icon: '../data/logos_company.json', // Placeholder icon path
-        requireInteraction: true // Keep it visible
-      });
-      showToast("提醒已发送至通知栏");
+      showToast("提醒设置成功，请查看通知栏");
     } else {
       showToast("请在浏览器设置中允许通知权限");
     }
