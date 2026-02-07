@@ -78,25 +78,18 @@
       </div>
 
       <div class="station-timeline" id="station-list"></div>
-      
-      <div class="fab-container">
-        <button class="fab extended" onclick="showToast('请在上方列表选择站点进行规划')">
-          <span class="material-symbols-rounded">qr_code_scanner</span>
-          <span>扫码乘车</span>
-        </button>
-      </div>
     </div>
 
     <div id="view-planner" class="view">
       <div class="planner-card">
         <div class="input-group">
           <span class="dot start"></span>
-          <input type="text" id="plan-start" placeholder="输入起点" list="station-datalist">
+          <input type="text" id="plan-start" placeholder="输入起点" list="station-datalist" autocomplete="off">
         </div>
         <div class="divider-vertical"></div>
         <div class="input-group">
           <span class="dot end"></span>
-          <input type="text" id="plan-end" placeholder="输入终点" list="station-datalist">
+          <input type="text" id="plan-end" placeholder="输入终点" list="station-datalist" autocomplete="off">
         </div>
         <button class="swap-btn" id="btn-swap-stations">
           <span class="material-symbols-rounded">swap_vert</span>
@@ -111,8 +104,8 @@
       <datalist id="station-datalist"></datalist>
 
       <div class="filter-chips small" id="planner-filters">
-        <button class="chip active" data-rule="all">所有方案</button>
-        <button class="chip" data-rule="fastest">用时少</button>
+        <button class="chip active" data-rule="all">综合推荐</button>
+        <button class="chip" data-rule="fastest">用时较少</button>
         <button class="chip" data-rule="min_transfer">少换乘</button>
         <button class="chip" data-rule="rail_priority">轨道优先</button>
         <button class="chip" data-rule="bus_only">仅公交</button>
