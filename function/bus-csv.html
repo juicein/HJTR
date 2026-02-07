@@ -90,7 +90,7 @@ let rawLines = [];
 let parsed = [];
 
 /* ===== 读取 bus_data.txt ===== */
-fetch('data/bus_data.txt')
+fetch('../data/bus_data.txt')
 .then(r=>r.text())
 .then(t=>{
   rawLines = t.split(/\n+/).filter(l=>l.trim());
