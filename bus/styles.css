@@ -280,19 +280,30 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 
 
 
-
-/* ...原有CSS... */
-
-/* 新增样式 */
-
-.walk-badge.special {
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
-    border: 1px solid var(--md-sys-color-primary);
+/* 状态警告颜色 */
+.out-of-service { 
+  color: var(--md-sys-color-error); 
+  font-weight: 600; 
+  display: inline-flex; 
+  align-items: center; 
+  gap: 4px;
 }
 
-/* 规划卡片中的非运营时段样式 (嵌入在文本中) */
-.plan-meta .out-of-service {
-    color: var(--md-sys-color-error);
-    font-weight: 700;
+/* 直通车特殊徽章样式 */
+.walk-badge.direct {
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border: 1px solid var(--md-sys-color-primary);
 }
+
+
+
+
+
+
+
+
+
+
+
+
