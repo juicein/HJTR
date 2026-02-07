@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>公交 / 地铁 数据转换器</title>
+<title>公交 / 轨道 数据转换器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -62,7 +62,7 @@ textarea{
 </head>
 
 <body>
-<header>🚌 公交 / 地铁 数据转换器</header>
+<header>🚌 公交 / 轨道 数据转换器</header>
 
 <div class="card">
   <b>① 选择地区</b>
@@ -89,86 +89,105 @@ textarea{
 let rawLines = [];
 let parsed = [];
 
-/* ===== 读取 bus_data.txt ===== */
-fetch('../data/bus_data.txt')
-.then(r=>r.text())
-.then(t=>{
-  rawLines = t.split(/\n+/).filter(l=>l.trim());
+/* ===== 自动读取 bus_data.txt ===== */
+fetch('data/bus_data.txt')
+.then(r => r.text())
+.then(t => {
+  rawLines = t.split(/\n+/).filter(l => l.trim());
   parseData();
 });
 
-/* ===== 解析 ===== */
+/* ===== 解析原始数据 ===== */
 function parseData(){
-  parsed=[];
-  const areas=new Set();
+  parsed = [];
+  const areas = new Set();
 
-  rawLines.forEach(l=>{
-    const line = l.match(/【(.+?)】/)?.[1]||'';
+  rawLines.forEach(l => {
+
+    const line = l.match(/【(.+?)】/)?.[1] || '';
     const stations = l.split('】')[1].split('-{')[0];
-    const company = l.match(/\{(.+?)\}/)?.[1]||'';
-    const price = l.match(/《(.+?)》/)?.[1]||'';
-    const area = l.match(/『(.+?)』/)?.[1]||'未知';
-    const start = l.match(/§(.+?)§/)?.[1]||'';
-    const end = l.match(/@(.+?)@/)?.[1]||'';
-    const color = l.match(/∮(.+?)∮/)?.[1]||'';
+    const company = l.match(/\{(.+?)\}/)?.[1] || '';
+    const price = l.match(/《(.+?)》/)?.[1] || '';
+    const area = l.match(/『(.+?)』/)?.[1] || '未知';
+    const start = l.match(/§(.+?)§/)?.[1] || '';
+    const end = l.match(/@(.+?)@/)?.[1] || '';
+    const color = l.match(/∮(.+?)∮/)?.[1] || '';
 
-    let type='公交';
-    if(l.includes('θ地铁θ')) type='地铁';
-    else if(l.includes('θ单轨θ')) type='单轨';
+    /* ✅ 线路类型：完全按 θ内容θ 原样读取 */
+    let type = '公交';
+    const typeMatch = l.match(/θ(.+?)θ/);
+    if(typeMatch) type = typeMatch[1];
 
     areas.add(area);
 
-    parsed.push({line,stations,company,price,area,type,start,end,color});
+    parsed.push({
+      line, stations, company, price,
+      area, type, start, end, color
+    });
   });
 
-  const sel=document.getElementById('areaSelect');
-  sel.innerHTML=[...areas].map(a=>`<option>${a}</option>`).join('');
+  const sel = document.getElementById('areaSelect');
+  sel.innerHTML = [...areas].map(a => `<option>${a}</option>`).join('');
 }
 
 /* ===== 导出 CSV ===== */
 function exportCSV(){
-  const area=areaSelect.value;
-  let csv='line,stations,company,price,area,type,start_time,end_time,color\n';
-  parsed.filter(p=>p.area===area).forEach(p=>{
-    csv+=`"${p.line}","${p.stations}","${p.company}","${p.price}","${p.area}","${p.type}","${p.start}","${p.end}","${p.color}"\n`;
+  const area = areaSelect.value;
+  let csv = 'line,stations,company,price,area,type,start_time,end_time,color\n';
+
+  parsed.filter(p => p.area === area).forEach(p => {
+    csv += `"${p.line}","${p.stations}","${p.company}","${p.price}","${p.area}","${p.type}","${p.start}","${p.end}","${p.color}"\n`;
   });
-  download(csv,'bus_'+area+'.csv','text/csv');
+
+  download(csv, 'bus_' + area + '.csv', 'text/csv');
 }
 
-/* ===== 导入 CSV → 原格式 ===== */
+/* ===== CSV → 原始格式 ===== */
 function importCSV(file){
-  const r=new FileReader();
-  r.onload=()=>{
-    const rows=r.result.split('\n').slice(1);
-    let out='';
-    rows.forEach(row=>{
-      if(!row.trim())return;
-      const c=row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g).map(s=>s.replace(/^"|"$/g,''));
-      let txt=`【${c[0]}】${c[1]}-{${c[2]}}《${c[3]}》『${c[4]}』`;
-      if(c[5]!=='公交') txt+=`θ${c[5]}θ`;
-      txt+=`§${c[6]}§@${c[7]}@`;
-      if(c[8]) txt+=`∮${c[8]}∮`;
-      out+=txt+'\n';
+  const r = new FileReader();
+  r.onload = () => {
+    const rows = r.result.split('\n').slice(1);
+    let out = '';
+
+    rows.forEach(row => {
+      if(!row.trim()) return;
+
+      const c = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+                   .map(s => s.replace(/^"|"$/g,''));
+
+      let txt = `【${c[0]}】${c[1]}-{${c[2]}}《${c[3]}》『${c[4]}』`;
+
+      /* ✅ 只要不是“公交”，就写回 θ类型θ */
+      if(c[5] && c[5] !== '公交'){
+        txt += `θ${c[5]}θ`;
+      }
+
+      txt += `§${c[6]}§@${c[7]}@`;
+
+      if(c[8]) txt += `∮${c[8]}∮`;
+
+      out += txt + '\n';
     });
-    output.value=out;
+
+    output.value = out;
   };
-  r.readAsText(file,'utf-8');
+  r.readAsText(file, 'utf-8');
 }
 
-/* ===== 工具 ===== */
+/* ===== 工具函数 ===== */
 function copyText(){
   navigator.clipboard.writeText(output.value);
 }
 function shareText(){
-  navigator.share?.({text:output.value});
+  navigator.share?.({ text: output.value });
 }
 function downloadTXT(){
-  download(output.value,'bus_converted.txt','text/plain');
+  download(output.value, 'bus_converted.txt', 'text/plain');
 }
-function download(data,name,type){
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([data],{type}));
-  a.download=name;
+function download(data, name, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], {type}));
+  a.download = name;
   a.click();
 }
 </script>
