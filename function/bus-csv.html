@@ -65,7 +65,7 @@ textarea{
 </head>
 
 <body>
-<header>🚌 公交 / 轨道 数据双向转换器</header>
+<header> 数据转换器</header>
 
 <div class="card">
   <b>① 选择地区</b>
@@ -96,7 +96,7 @@ let rawLines = [];
 let parsed = [];
 
 /* ===== 读取 bus_data.txt ===== */
-fetch('data/bus_data.txt')
+fetch('../data/bus_data.txt')
 .then(r => r.text())
 .then(t => {
   rawLines = t.split(/\n+/).filter(l => l.trim());
