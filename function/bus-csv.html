@@ -2,11 +2,14 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>公交 / 轨道 数据转换器</title>
+<title>公交 / 轨道 数据双向转换器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- SheetJS（Excel 解析与导出） -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+
 <style>
-/* ===== Material 3 Expressive（纯 CSS）===== */
+/* ===== Material 3 Expressive ===== */
 :root{
   --md-primary:#6750A4;
   --md-surface:#FFFBFE;
@@ -15,7 +18,7 @@
 }
 body{
   margin:0;
-  font-family: system-ui,-apple-system;
+  font-family:system-ui,-apple-system;
   background:var(--md-surface);
   color:#1C1B1F;
 }
@@ -31,7 +34,7 @@ header{
   background:#fff;
   box-shadow:0 1px 6px rgba(0,0,0,.1);
 }
-select,button,textarea,input{
+select,button,input,textarea{
   width:100%;
   margin-top:10px;
   padding:12px;
@@ -49,7 +52,7 @@ button.secondary{
   color:#21005D;
 }
 textarea{
-  height:180px;
+  height:200px;
   font-family:monospace;
 }
 .row{
@@ -62,17 +65,20 @@ textarea{
 </head>
 
 <body>
-<header>🚌 公交 / 轨道 数据转换器</header>
+<header>🚌 公交 / 轨道 数据双向转换器</header>
 
 <div class="card">
   <b>① 选择地区</b>
   <select id="areaSelect"></select>
-  <button onclick="exportCSV()">导出该地区 CSV</button>
+  <div class="row">
+    <button onclick="exportCSV()">导出 CSV</button>
+    <button onclick="exportExcel()">导出 Excel</button>
+  </div>
 </div>
 
 <div class="card">
-  <b>② 导入修改后的 CSV</b>
-  <input type="file" accept=".csv" onchange="importCSV(this.files[0])">
+  <b>② 导入 CSV / Excel</b>
+  <input type="file" accept=".csv,.xlsx" onchange="importFile(this.files[0])">
 </div>
 
 <div class="card">
@@ -89,7 +95,7 @@ textarea{
 let rawLines = [];
 let parsed = [];
 
-/* ===== 自动读取 bus_data.txt ===== */
+/* ===== 读取 bus_data.txt ===== */
 fetch('data/bus_data.txt')
 .then(r => r.text())
 .then(t => {
@@ -97,13 +103,12 @@ fetch('data/bus_data.txt')
   parseData();
 });
 
-/* ===== 解析原始数据 ===== */
+/* ===== 解析原始格式 ===== */
 function parseData(){
   parsed = [];
   const areas = new Set();
 
   rawLines.forEach(l => {
-
     const line = l.match(/【(.+?)】/)?.[1] || '';
     const stations = l.split('】')[1].split('-{')[0];
     const company = l.match(/\{(.+?)\}/)?.[1] || '';
@@ -113,7 +118,6 @@ function parseData(){
     const end = l.match(/@(.+?)@/)?.[1] || '';
     const color = l.match(/∮(.+?)∮/)?.[1] || '';
 
-    /* ✅ 线路类型：完全按 θ内容θ 原样读取 */
     let type = '公交';
     const typeMatch = l.match(/θ(.+?)θ/);
     if(typeMatch) type = typeMatch[1];
@@ -126,55 +130,106 @@ function parseData(){
     });
   });
 
-  const sel = document.getElementById('areaSelect');
-  sel.innerHTML = [...areas].map(a => `<option>${a}</option>`).join('');
+  areaSelect.innerHTML =
+    [...areas].map(a => `<option>${a}</option>`).join('');
 }
 
 /* ===== 导出 CSV ===== */
 function exportCSV(){
   const area = areaSelect.value;
-  let csv = 'line,stations,company,price,area,type,start_time,end_time,color\n';
+  let csv =
+    'line,stations,company,price,area,type,start_time,end_time,color\n';
 
   parsed.filter(p => p.area === area).forEach(p => {
     csv += `"${p.line}","${p.stations}","${p.company}","${p.price}","${p.area}","${p.type}","${p.start}","${p.end}","${p.color}"\n`;
   });
 
-  download(csv, 'bus_' + area + '.csv', 'text/csv');
+  download(csv, `bus_${area}.csv`, 'text/csv');
+}
+
+/* ===== 导出 Excel ===== */
+function exportExcel(){
+  const area = areaSelect.value;
+
+  const rows = [
+    ['line','stations','company','price','area','type','start_time','end_time','color']
+  ];
+
+  parsed.filter(p => p.area === area).forEach(p => {
+    rows.push([
+      p.line, p.stations, p.company, p.price,
+      p.area, p.type, p.start, p.end, p.color
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'data');
+
+  XLSX.writeFile(wb, `bus_${area}.xlsx`);
+}
+
+/* ===== 导入分流 ===== */
+function importFile(file){
+  if(file.name.endsWith('.csv')){
+    importCSV(file);
+  }else if(file.name.endsWith('.xlsx')){
+    importExcel(file);
+  }else{
+    alert('不支持的文件格式');
+  }
 }
 
 /* ===== CSV → 原始格式 ===== */
 function importCSV(file){
   const r = new FileReader();
   r.onload = () => {
-    const rows = r.result.split('\n').slice(1);
-    let out = '';
-
-    rows.forEach(row => {
-      if(!row.trim()) return;
-
-      const c = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
-                   .map(s => s.replace(/^"|"$/g,''));
-
-      let txt = `【${c[0]}】${c[1]}-{${c[2]}}《${c[3]}》『${c[4]}』`;
-
-      /* ✅ 只要不是“公交”，就写回 θ类型θ */
-      if(c[5] && c[5] !== '公交'){
-        txt += `θ${c[5]}θ`;
-      }
-
-      txt += `§${c[6]}§@${c[7]}@`;
-
-      if(c[8]) txt += `∮${c[8]}∮`;
-
-      out += txt + '\n';
-    });
-
-    output.value = out;
+    convertRows(
+      r.result.split('\n').slice(1)
+      .map(row => row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+      ?.map(s => s.replace(/^"|"$/g,'')))
+    );
   };
   r.readAsText(file, 'utf-8');
 }
 
-/* ===== 工具函数 ===== */
+/* ===== Excel → 原始格式 ===== */
+function importExcel(file){
+  const r = new FileReader();
+  r.onload = e => {
+    const wb = XLSX.read(
+      new Uint8Array(e.target.result),
+      { type:'array' }
+    );
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header:1 }).slice(1);
+    convertRows(rows);
+  };
+  r.readAsArrayBuffer(file);
+}
+
+/* ===== 行数据 → 原始格式 ===== */
+function convertRows(rows){
+  let out = '';
+  rows.forEach(c => {
+    if(!c || !c.length) return;
+
+    let txt = `【${c[0]}】${c[1]}-{${c[2]}}《${c[3]||''}》『${c[4]}』`;
+
+    if(c[5] && c[5] !== '公交'){
+      txt += `θ${c[5]}θ`;
+    }
+
+    txt += `§${c[6]||''}§@${c[7]||''}@`;
+
+    if(c[8]) txt += `∮${c[8]}∮`;
+
+    out += txt + '\n';
+  });
+  output.value = out;
+}
+
+/* ===== 工具 ===== */
 function copyText(){
   navigator.clipboard.writeText(output.value);
 }
@@ -182,12 +237,12 @@ function shareText(){
   navigator.share?.({ text: output.value });
 }
 function downloadTXT(){
-  download(output.value, 'bus_converted.txt', 'text/plain');
+  download(output.value,'bus_converted.txt','text/plain');
 }
-function download(data, name, type){
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([data], {type}));
-  a.download = name;
+function download(data,name,type){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([data],{type}));
+  a.download=name;
   a.click();
 }
 </script>
