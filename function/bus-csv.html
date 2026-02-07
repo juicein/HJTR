@@ -3,43 +3,31 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Bus Data Tool</title>
+<title>Bus Data Manager</title>
 
-<!-- Material 3 -->
+<!-- Material 3 (Material Web) -->
 <script type="module" src="https://unpkg.com/@material/web/all.js"></script>
 
 <style>
   body {
     margin: 0;
-    font-family: system-ui, -apple-system;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont;
     background: #fef7ff;
-    color: #1d1b20;
+    color: #1c1b1f;
   }
   header {
     padding: 24px;
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 600;
   }
   main {
     padding: 16px;
-    max-width: 900px;
-    margin: auto;
+    display: grid;
+    gap: 16px;
   }
   md-elevated-card {
     padding: 16px;
-    margin-bottom: 16px;
     border-radius: 28px;
-  }
-  textarea {
-    width: 100%;
-    height: 160px;
-    font-family: monospace;
-    font-size: 13px;
-    padding: 12px;
-    border-radius: 16px;
-    border: none;
-    resize: vertical;
-    background: #f3edf7;
   }
   .row {
     display: flex;
@@ -47,162 +35,156 @@
     flex-wrap: wrap;
     align-items: center;
   }
-  .list {
-    font-size: 14px;
-    line-height: 1.6;
-    white-space: pre-wrap;
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    border-radius: 16px;
+    padding: 12px;
+    border: none;
+    background: #f3edf7;
+    font-family: monospace;
   }
 </style>
 </head>
 
 <body>
-
-<header>🚌 公交 / 地铁 数据格式转换工具</header>
+<header>🚌 Bus Data Manager</header>
 
 <main>
 
-<!-- 原始数据输入 -->
-<md-elevated-card>
-  <h3>原始数据库格式</h3>
-  <textarea id="rawInput" placeholder="粘贴 bus_data.txt 内容"></textarea>
-  <div class="row" style="margin-top:12px">
-    <md-filled-button onclick="loadRaw()">解析数据</md-filled-button>
-  </div>
-</md-elevated-card>
+  <!-- 地区选择 -->
+  <md-elevated-card>
+    <div class="row">
+      <md-filled-select id="areaSelect" label="选择地区"></md-filled-select>
+      <md-tonal-button id="exportCSV">导出 CSV</md-tonal-button>
+    </div>
+  </md-elevated-card>
 
-<!-- 地区选择 -->
-<md-elevated-card>
-  <h3>地区选择</h3>
-  <md-filled-select id="areaSelect" onchange="filterArea()">
-    <md-select-option value="all">
-      <div slot="headline">全部地区</div>
-    </md-select-option>
-  </md-filled-select>
-</md-elevated-card>
+  <!-- 线路列表 -->
+  <md-elevated-card id="listCard"></md-elevated-card>
 
-<!-- 线路列表 -->
-<md-elevated-card>
-  <h3>线路列表</h3>
-  <div id="lineList" class="list"></div>
-  <div class="row" style="margin-top:12px">
-    <md-tonal-button onclick="exportCSV()">导出 CSV</md-tonal-button>
-  </div>
-</md-elevated-card>
-
-<!-- CSV 转换 -->
-<md-elevated-card>
-  <h3>CSV → 原始格式</h3>
-  <textarea id="csvInput" placeholder="粘贴或上传修改后的 CSV"></textarea>
-  <div class="row" style="margin-top:12px">
-    <md-filled-button onclick="convertCSV()">转换</md-filled-button>
-    <md-outlined-button onclick="copyResult()">复制</md-outlined-button>
-    <md-outlined-button onclick="downloadTXT()">导出 TXT</md-outlined-button>
-    <md-outlined-button onclick="share()">系统分享</md-outlined-button>
-  </div>
-</md-elevated-card>
-
-<!-- 输出 -->
-<md-elevated-card>
-  <h3>转换结果</h3>
-  <div id="output" class="list"></div>
-</md-elevated-card>
+  <!-- CSV 导入 / 转换 -->
+  <md-elevated-card>
+    <h3>CSV → 原始格式</h3>
+    <textarea id="csvInput" placeholder="粘贴 CSV 内容"></textarea>
+    <div class="row">
+      <md-filled-button id="convertBtn">转换</md-filled-button>
+      <md-tonal-button id="copyBtn">复制</md-tonal-button>
+      <md-tonal-button id="downloadBtn">导出 TXT</md-tonal-button>
+      <md-tonal-button id="shareBtn">系统分享</md-tonal-button>
+    </div>
+    <textarea id="resultOutput" placeholder="转换结果"></textarea>
+  </md-elevated-card>
 
 </main>
 
 <script>
-let parsed = [];
-let filtered = [];
+let allData = [];
+let currentArea = '';
 
-/* ---------- 解析原始数据 ---------- */
-function loadRaw() {
-  const text = rawInput.value.trim();
-  if (!text) return;
+/* 1️⃣ 自动读取 bus_data.txt */
+fetch('./data/bus_data.txt')
+  .then(r => r.text())
+  .then(text => {
+    allData = parseRaw(text);
+    initAreaSelect();
+    renderList();
+  });
 
-  parsed = text.split('\n').filter(Boolean).map(line => ({
+/* 2️⃣ 解析原始格式 */
+function parseRaw(text) {
+  return text.split('\n').filter(Boolean).map(line => ({
     raw: line,
     line: line.match(/【(.*?)】/)?.[1],
     area: line.match(/『(.*?)』/)?.[1] || '未知',
-    company: line.match(/\-\{(.*?)\}/)?.[1] || '',
-    first: line.match(/§(.*?)§/)?.[1] || '',
-    last: line.match(/@(.*?)@/)?.[1] || '',
-    stops: line.split('】')[1]?.split('-{')[0] || ''
+    company: line.match(/\-\{(.*?)\}/)?.[1],
+    first: line.match(/§(.*?)§/)?.[1],
+    last: line.match(/@(.*?)@/)?.[1],
+    stops: line.split('】')[1]?.split('-{')[0]
   }));
-
-  const areas = [...new Set(parsed.map(d => d.area))];
-  areaSelect.innerHTML = `
-    <md-select-option value="all">
-      <div slot="headline">全部地区</div>
-    </md-select-option>
-    ${areas.map(a =>
-      `<md-select-option value="${a}">
-        <div slot="headline">${a}</div>
-      </md-select-option>`
-    ).join('')}
-  `;
-
-  filterArea();
 }
 
-/* ---------- 地区筛选 ---------- */
-function filterArea() {
-  const area = areaSelect.value;
-  filtered = area === 'all'
-    ? parsed
-    : parsed.filter(d => d.area === area);
+/* 3️⃣ 地区下拉框 */
+function initAreaSelect() {
+  const areas = [...new Set(allData.map(d => d.area))];
+  const select = document.getElementById('areaSelect');
 
-  lineList.textContent = filtered.map(d =>
-    `【${d.line}】 ${d.area} · ${d.company}\n首 ${d.first}  末 ${d.last}\n`
+  areas.forEach(a => {
+    const opt = document.createElement('md-select-option');
+    opt.value = a;
+    opt.textContent = a;
+    select.appendChild(opt);
+  });
+
+  select.addEventListener('change', e => {
+    currentArea = e.target.value;
+    renderList();
+  });
+
+  currentArea = areas[0];
+  select.value = currentArea;
+}
+
+/* 4️⃣ 渲染线路列表 */
+function renderList() {
+  const box = document.getElementById('listCard');
+  box.innerHTML = '';
+
+  allData
+    .filter(d => d.area === currentArea)
+    .forEach(d => {
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <strong>${d.line}</strong><br>
+        ${d.company || ''}<br>
+        首 ${d.first || '-'} · 末 ${d.last || '-'}
+        <hr>
+      `;
+      box.appendChild(div);
+    });
+}
+
+/* 5️⃣ 导出 CSV */
+document.getElementById('exportCSV').onclick = () => {
+  const rows = allData.filter(d => d.area === currentArea);
+  const header = 'line,area,company,stops,first,last\n';
+  const body = rows.map(d =>
+    `"${d.line}","${d.area}","${d.company}","${d.stops}","${d.first}","${d.last}"`
   ).join('\n');
-}
 
-/* ---------- CSV 导出 ---------- */
-function exportCSV() {
-  const header = 'line,area,company,stops,first,last';
-  const rows = filtered.map(d =>
-    `"${d.line}","${d.area}","${d.company}","${d.stops.replace(/"/g,'')}","${d.first}","${d.last}"`
-  );
-  const csv = [header, ...rows].join('\n');
+  download(header + body, 'bus_data.csv');
+};
 
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'bus_data.csv';
-  a.click();
-}
-
-/* ---------- CSV → 原始 ---------- */
-function convertCSV() {
-  const lines = csvInput.value.trim().split('\n');
-  if (lines.length < 2) return;
-
-  const keys = lines.shift().split(',');
+/* 6️⃣ CSV → 原始格式 */
+document.getElementById('convertBtn').onclick = () => {
+  const text = document.getElementById('csvInput').value;
+  const lines = text.split('\n').slice(1);
   const result = lines.map(l => {
-    const v = l.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g)
-      .map(s => s.replace(/^"|"$/g, ''));
-    const o = Object.fromEntries(keys.map((k,i)=>[k,v[i]]));
-    return `【${o.line}】${o.stops}-{${o.company}}《》『${o.area}』§${o.first}§@${o.last}@`;
+    const v = l.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+      .map(x => x.replace(/^"|"$/g, ''));
+    return `【${v[0]}】${v[3]}-{${v[2]}}《》『${v[1]}』§${v[4]}§@${v[5]}@`;
   }).join('\n');
 
-  output.textContent = result;
-}
+  document.getElementById('resultOutput').value = result;
+};
 
-/* ---------- 输出操作 ---------- */
-function copyResult() {
-  navigator.clipboard.writeText(output.textContent);
-}
-function downloadTXT() {
-  const blob = new Blob([output.textContent], { type: 'text/plain' });
+/* 工具函数 */
+function download(text, name) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'bus_data.txt';
+  a.href = URL.createObjectURL(new Blob([text]));
+  a.download = name;
   a.click();
 }
-function share() {
-  if (navigator.share) {
-    navigator.share({ text: output.textContent });
-  }
-}
-</script>
 
+document.getElementById('copyBtn').onclick = () =>
+  navigator.clipboard.writeText(resultOutput.value);
+
+document.getElementById('downloadBtn').onclick = () =>
+  download(resultOutput.value, 'bus_data.txt');
+
+document.getElementById('shareBtn').onclick = () => {
+  navigator.share?.({ text: resultOutput.value });
+};
+</script>
 </body>
 </html>
