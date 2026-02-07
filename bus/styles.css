@@ -281,28 +281,18 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 
 
 
+/* ...原有CSS... */
 
-/* ...原有样式保持不变... */
+/* 新增样式 */
 
-/* 1. Planner Filter Chips 更新 */
-.filter-chips.small {
-  margin-top: 8px;
-}
-/* 颜色区分 */
-.chip[data-rule="all"].active { background: #6750A4; color: white; }
-.chip[data-rule="fastest"].active { background: #B3261E; color: white; }
-.chip[data-rule="min_transfer"].active { background: #006C4C; color: white; }
-
-/* 8. 图标微调 */
-.line-icon-badge .material-symbols-rounded {
-    font-size: 20px; 
+.walk-badge.special {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    border: 1px solid var(--md-sys-color-primary);
 }
 
-/* 4. Screenshot specific - 确保生成的图片好看 */
-.sheet-content {
-    background: var(--md-sys-color-surface); 
-    /* html2canvas 可能会捕捉透明背景，强制设置背景 */
+/* 规划卡片中的非运营时段样式 (嵌入在文本中) */
+.plan-meta .out-of-service {
+    color: var(--md-sys-color-error);
+    font-weight: 700;
 }
-
-/* Modal Actions - 在截图中忽略，已通过 data-html2canvas-ignore 处理 */
-
