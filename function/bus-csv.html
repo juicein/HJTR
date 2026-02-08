@@ -5,11 +5,10 @@
 <title>公交 / 轨道 数据双向转换器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- SheetJS（Excel 解析与导出） -->
+<!-- SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 
 <style>
-/* ===== Material 3 Expressive ===== */
 :root{
   --md-primary:#6750A4;
   --md-surface:#FFFBFE;
@@ -58,21 +57,20 @@ textarea{
 .row{
   display:flex;
   gap:10px;
-  flex-wrap:wrap;
 }
 .row button{flex:1}
 </style>
 </head>
 
 <body>
-<header> 数据转换器</header>
+<header>数据双向转换器</header>
 
 <div class="card">
   <b>① 选择地区</b>
   <select id="areaSelect"></select>
   <div class="row">
-    <button onclick="exportCSV()">导出 CSV</button>
-    <button onclick="exportExcel()">导出 Excel</button>
+    <button type="button" onclick="exportCSV()">导出 CSV</button>
+    <button type="button" onclick="exportExcel()">导出 Excel</button>
   </div>
 </div>
 
@@ -103,7 +101,7 @@ fetch('../data/bus_data.txt')
   parseData();
 });
 
-/* ===== 解析原始格式 ===== */
+/* ===== 解析 ===== */
 function parseData(){
   parsed = [];
   const areas = new Set();
@@ -131,42 +129,61 @@ function parseData(){
   });
 
   areaSelect.innerHTML =
-    [...areas].map(a => `<option>${a}</option>`).join('');
+    [...areas].map(a => `<option value="${a}">${a}</option>`).join('');
 }
 
-/* ===== 导出 CSV ===== */
+/* ===== CSV 导出 ===== */
 function exportCSV(){
   const area = areaSelect.value;
-  let csv =
-    'line,stations,company,price,area,type,start_time,end_time,color\n';
+  const rows = parsed.filter(p => p.area === area);
 
-  parsed.filter(p => p.area === area).forEach(p => {
+  if(rows.length === 0){
+    alert('该地区没有可导出的线路');
+    return;
+  }
+
+  let csv = 'line,stations,company,price,area,type,start_time,end_time,color\n';
+  rows.forEach(p => {
     csv += `"${p.line}","${p.stations}","${p.company}","${p.price}","${p.area}","${p.type}","${p.start}","${p.end}","${p.color}"\n`;
   });
 
   download(csv, `bus_${area}.csv`, 'text/csv');
 }
 
-/* ===== 导出 Excel ===== */
+/* ===== Excel 导出（修复版） ===== */
 function exportExcel(){
   const area = areaSelect.value;
+  const rows = parsed.filter(p => p.area === area);
 
-  const rows = [
+  if(rows.length === 0){
+    alert('该地区没有可导出的线路');
+    return;
+  }
+
+  const data = [
     ['line','stations','company','price','area','type','start_time','end_time','color']
   ];
 
-  parsed.filter(p => p.area === area).forEach(p => {
-    rows.push([
+  rows.forEach(p => {
+    data.push([
       p.line, p.stations, p.company, p.price,
       p.area, p.type, p.start, p.end, p.color
     ]);
   });
 
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const ws = XLSX.utils.aoa_to_sheet(data);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'data');
 
-  XLSX.writeFile(wb, `bus_${area}.xlsx`);
+  const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  const blob = new Blob([wbout], {
+    type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
+
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bus_${area}.xlsx`;
+  a.click();
 }
 
 /* ===== 导入分流 ===== */
@@ -184,11 +201,10 @@ function importFile(file){
 function importCSV(file){
   const r = new FileReader();
   r.onload = () => {
-    convertRows(
-      r.result.split('\n').slice(1)
+    const rows = r.result.split('\n').slice(1)
       .map(row => row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
-      ?.map(s => s.replace(/^"|"$/g,'')))
-    );
+      ?.map(s => s.replace(/^"|"$/g,'')));
+    convertRows(rows);
   };
   r.readAsText(file, 'utf-8');
 }
@@ -197,18 +213,15 @@ function importCSV(file){
 function importExcel(file){
   const r = new FileReader();
   r.onload = e => {
-    const wb = XLSX.read(
-      new Uint8Array(e.target.result),
-      { type:'array' }
-    );
+    const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header:1 }).slice(1);
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1}).slice(1);
     convertRows(rows);
   };
   r.readAsArrayBuffer(file);
 }
 
-/* ===== 行数据 → 原始格式 ===== */
+/* ===== 行转换 ===== */
 function convertRows(rows){
   let out = '';
   rows.forEach(c => {
