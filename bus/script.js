@@ -3,7 +3,7 @@ const appState = {
   lines: [],
   logos: { area: {}, company: {} },
   aliases: { manual: [], suffixGroups: [] },
-  directRules: { manual: [], auto: [] }, // 新增直通规则
+  directLines: { manual: [], auto: [] }, // 新增：直通线路数据
   currentView: 'home',
   selectedCity: localStorage.getItem('bus_selected_city') || 'all',
   selectedType: localStorage.getItem('bus_selected_type') || 'all', 
@@ -18,25 +18,27 @@ async function init() {
       fetch('../data/logos_area.json'),
       fetch('../data/logos_company.json'),
       fetch('../data/station_alias.json'),
-      fetch('../data/direct_line.json') // 新增
+      fetch('../data/direct_lines.json') // 加载直通配置
     ]);
 
     const txt = await txtRes.text();
     appState.logos.area = await areaRes.json();
     appState.logos.company = await compRes.json();
-    const aliasData = await aliasRes.json();
-    const directData = await directRes.json();
     
+    const aliasData = await aliasRes.json();
     appState.aliases.manual = aliasData.manual_equivalents || [];
     appState.aliases.suffixGroups = aliasData.suffix_groups || [];
-    appState.directRules = directData;
+
+    const directData = await directRes.json();
+    appState.directLines.manual = directData.manual_equivalents || [];
+    appState.directLines.auto = directData.auto_equivalents || [];
 
     parseLines(txt);
     setupUI();
     populateStationDatalist();
     applyFilters();
     
-    // URL Routing Handler
+    // URL Routing Handler (Must be last)
     handleRouting();
     
   } catch (e) {
@@ -45,47 +47,50 @@ async function init() {
   }
 }
 
-// 4. Enhanced URL Routing
+// 4. Enhanced URL Routing Logic
 function handleRouting() {
+  const url = window.location.href;
   const params = new URLSearchParams(window.location.search);
-  const view = params.get('view');
   
-  // 模式 A: /bus/search?q=LineName (兼容 prompt 要求)
-  // 模式 B: index.html?view=search&q=LineName
-  const searchQuery = params.get('q') || params.get('search');
+  // 1. 获取纯参数 (兼容 ?=Value 这种空Key写法)
+  // 获取 search 之后第一个等号后面的内容
+  let rawQuery = "";
+  if (window.location.search.startsWith("?=")) {
+    rawQuery = decodeURIComponent(window.location.search.substring(2));
+  }
   
-  if (view === 'search' || (searchQuery && !view)) {
-    if (searchQuery) {
-      document.getElementById('line-search').value = searchQuery;
-      // 尝试完全匹配跳转
-      const exactMatch = appState.lines.find(l => l.name === searchQuery);
+  // 2. 判定模式
+  const isPlanning = url.includes("/planning");
+  const isSearch = url.includes("/search");
+  
+  // 优先处理标准参数 ?start=... ?q=...
+  const paramStart = params.get('start');
+  const paramQ = params.get('q') || params.get('search');
+
+  if (isPlanning) {
+    // 模式: /bus/planning?=站点名 OR /bus/planning?start=站点名
+    const startStation = paramStart || rawQuery;
+    if (startStation) {
+      document.getElementById('plan-start').value = startStation;
+      switchView('planner');
+    }
+  } else if (isSearch || rawQuery) {
+    // 模式: /bus/search?=线路名 OR /bus/?q=线路名
+    const query = paramQ || rawQuery;
+    if (query) {
+      document.getElementById('line-search').value = query;
+      // 尝试精确匹配跳转
+      const exactMatch = appState.lines.find(l => l.name === query);
       if (exactMatch) {
         openDetail(exactMatch);
       } else {
         renderHome();
       }
     }
-    return;
-  }
-
-  // 模式 C: /bus/planning?start=Station (兼容 prompt 要求)
-  // 模式 D: index.html?view=planner&start=A&end=B
-  const startStation = params.get('start');
-  const endStation = params.get('end');
-  
-  // 简单判断是否意图进入规划页面
-  if (view === 'planner' || window.location.href.includes('planning') || startStation) {
-    if(startStation) document.getElementById('plan-start').value = startStation;
-    if(endStation) document.getElementById('plan-end').value = endStation;
-    switchView('planner');
-    if(startStation && endStation) {
-      // 稍微延迟一下等待数据完全就绪
-      setTimeout(findRoute, 200);
-    }
   }
 }
 
-/* 8. Parsing */
+/* 8. Data Parsing */
 function parseLines(rawText) {
   const lines = rawText.trim().split(/\n+/);
   appState.lines = lines.map((line, index) => {
@@ -96,6 +101,7 @@ function parseLines(rawText) {
     const startTime = line.match(/§(.*?)§/)?.[1] || "";
     const endTime = line.match(/@(.*?)@/)?.[1] || "";
     
+    // Types
     const isMonorail = line.includes("θ单轨θ");
     const isRubber = line.includes("θ胶轮θ");
     const isMetroRaw = line.includes("θ地铁θ");
@@ -111,7 +117,7 @@ function parseLines(rawText) {
     else if (isMonorail) iconType = 'tram'; 
     else if (isRubber) iconType = 'commute'; 
     else if (isMetroRaw) iconType = 'subway';
-    else if (isBRT) iconType = 'directions_bus'; 
+    else if (isBRT) iconType = 'directions_bus';
 
     const stationPart = line.replace(/^【.*?】/, "").split("-{")[0];
     const rawStations = stationPart.split("-").filter(s => s && s.trim());
@@ -143,96 +149,94 @@ function parseLines(rawText) {
   });
 }
 
-// 解决重名问题的核心：DataList 携带 City 信息
 function populateStationDatalist() {
-  const stationMap = new Map(); // Key: "StationName", Value: Set(Cities)
-
+  const allStations = new Set();
   appState.lines.forEach(l => {
-    [...l.stationsUp, ...l.stationsDown].forEach(s => {
-      if(!stationMap.has(s)) stationMap.set(s, new Set());
-      stationMap.get(s).add(l.city);
-    });
+    l.stationsUp.forEach(s => allStations.add(s));
+    l.stationsDown.forEach(s => allStations.add(s));
   });
   
   const datalist = document.getElementById('station-datalist');
   datalist.innerHTML = '';
-  
-  // 排序
-  const sortedStations = [...stationMap.keys()].sort();
-
-  sortedStations.forEach(s => {
-    const cities = stationMap.get(s);
-    // 如果该站点只属于一个城市，直接显示名字
-    // 如果属于多个城市，为了区分，虽然 datalist value 只能是文本，
-    // 我们这里暂时还是存纯名字，但是在搜索逻辑里通过 "当前选择的城市" 来过滤
-    // 或者，更高级的做法是 value="站名 (城市)"，但这需要用户精准输入。
-    // *策略*：为了保持用户体验，Datalist 存纯名字。但在搜索时，
-    // 如果名字在多个城市存在，优先使用 appState.selectedCity，如果选了 All，则无法区分（Bug源）。
-    // *修正策略*：为了满足“自动识别”和“隔离”，Datalist 显示 "站名"，但在计算时，我们会遍历所有城市构建图。
-    
+  [...allStations].sort().forEach(s => {
     const option = document.createElement('option');
     option.value = s;
-    // option.label = [...cities].join(', '); // 辅助显示城市
     datalist.appendChild(option);
   });
 }
 
-// 获取带城市命名空间的唯一ID
-// 格式: "City::CanonicalStationName"
-function getNodeId(city, stationName) {
-  let n = stationName.trim();
-  // 别名处理 (局部匹配)
+function getCanonicalStationId(name) {
+  let n = name.trim();
   for (const group of appState.aliases.manual) {
-    if (group.includes(n)) { n = group[0]; break; }
+    if (group.includes(n)) return group[0];
   }
-  if(n === stationName) { // 如果没有手动别名，尝试后缀处理
-      for (const group of appState.aliases.suffixGroups) {
-        for (const suffix of group) {
-          if (n.endsWith(suffix)) {
-            const candidate = n.substring(0, n.length - suffix.length);
-            if (candidate.length > 0) { n = candidate; break; }
-          }
-        }
-      }
-  }
-  return `${city}::${n}`;
-}
-
-/* --- Logic: Route Finding V2 (Graph Isolation) --- */
-
-// 检查是否为直通线路
-function isDirectLine(lineA, lineB) {
-  // 1. 手动规则
-  for (const group of appState.directRules.manual_equivalents) {
-    if (group.includes(lineA.name) && group.includes(lineB.name)) return true;
-  }
-  // 2. 自动规则 (正则替换后缀后比较)
-  const cleanA = removeSuffix(lineA.name);
-  const cleanB = removeSuffix(lineB.name);
-  if (cleanA && cleanB && cleanA === cleanB) return true;
-  
-  return false;
-}
-
-function removeSuffix(name) {
-  for (const group of appState.directRules.auto_equivalents) {
+  let baseName = n;
+  for (const group of appState.aliases.suffixGroups) {
     for (const suffix of group) {
-       // 简单匹配，比如 "1号线主线" -> "1号线"
-       if (name.includes(suffix)) return name.replace(suffix, "");
+      if (baseName.endsWith(suffix)) {
+        const candidate = baseName.substring(0, baseName.length - suffix.length);
+        if (candidate.length > 0) return candidate; 
+      }
     }
   }
-  return name;
+  return baseName;
 }
 
+// 核心逻辑：判断是否直通
+function isDirectLine(lineNameA, lineNameB) {
+    if (!lineNameA || !lineNameB) return false;
+    // 1. 手动列表
+    for (const group of appState.directLines.manual) {
+        if (group.includes(lineNameA) && group.includes(lineNameB)) return true;
+    }
+    // 2. 自动后缀识别 (如: 1号线主线 & 1号线支线)
+    for (const pair of appState.directLines.auto) {
+        // pair example: ["主线", "支线"]
+        const suffixA = pair.find(s => lineNameA.endsWith(s));
+        const suffixB = pair.find(s => lineNameB.endsWith(s));
+        
+        if (suffixA && suffixB && suffixA !== suffixB) {
+            const rootA = lineNameA.substring(0, lineNameA.length - suffixA.length);
+            const rootB = lineNameB.substring(0, lineNameB.length - suffixB.length);
+            if (rootA === rootB) return true;
+        }
+    }
+    return false;
+}
+
+// 核心逻辑：判断换乘类型
+function getTransferType(rawNameA, rawNameB, lineTypeA, lineTypeB) {
+  if (rawNameA !== rawNameB) return 'walking'; // 站名不同肯定是走
+  
+  // 需求4：公轨互换一定是出站
+  const isRailA = lineTypeA === 'metro' || lineTypeA === 'rail';
+  const isRailB = lineTypeB === 'metro' || lineTypeB === 'rail';
+  
+  // 只要其中一个是公交，且不全是公交(纯公交换乘通常是同站/原地)，视为出站步行
+  // 修正：公交转公交通常在同一个站台或路边，算same_station。公交转地铁一定是walking。
+  if (isRailA !== isRailB) {
+      return 'walking'; 
+  }
+  
+  // 地铁转地铁，默认为站内
+  if (isRailA && isRailB) return 'same_station';
+  
+  return 'same_station'; // 公交转公交
+}
+
+/* --- Logic: Route Finding --- */
+
+// Modified: Build Graph with Global City Filter
 function buildGraph(rule) {
   const graph = {}; 
+  // 需求3：使用全局选择的地区作为硬性过滤
+  const cityLock = appState.selectedCity !== 'all' ? appState.selectedCity : null;
 
   appState.lines.forEach(line => {
-    // 规则过滤
+    // 过滤逻辑
+    if (cityLock && line.city !== cityLock) return;
     if (rule === 'bus_only' && (line.isMetro || line.isRail)) return;
     
-    // 关键：图的构建必须限定在 Line 所在的 City
-    // 这样不同 City 的同名站点就会生成不同的 Node ID，物理隔离
     addLineEdges(graph, line, line.stationsUp, 'up', rule);
     addLineEdges(graph, line, line.stationsDown, 'down', rule);
   });
@@ -243,34 +247,32 @@ function addLineEdges(graph, line, stations, dir, rule) {
   for (let i = 0; i < stations.length - 1; i++) {
     const fromRaw = stations[i];
     const toRaw = stations[i+1];
-    // 使用带 City 的 ID
-    const fromId = getNodeId(line.city, fromRaw);
-    const toId = getNodeId(line.city, toRaw);
+    const fromId = getCanonicalStationId(fromRaw);
+    const toId = getCanonicalStationId(toRaw);
     
     if (!graph[fromId]) graph[fromId] = [];
     
-    // 权重计算
-    let weight = 1; 
+    let weight = 1; // 基础时间成本
+    
+    // 速度假设
     if (line.isMetro) weight = 0.6;
-    if (line.isRail) weight = 0.4;
+    if (line.isRail) weight = 0.4; 
     if (line.specialType === 'brt') weight = 0.8;
 
+    // 规则权重调整
     if (rule === 'rail_priority') {
-      if (line.isMetro || line.isRail) weight = 0.3; 
-      else weight = 2.0; 
+      if (line.isMetro || line.isRail) weight = 0.3; // 极度偏好轨道
+      else weight = 2.5; // 惩罚公交
     } else if (rule === 'fastest') {
-        // Fastest 模式下更加重每站的时间成本
-        if (line.isMetro) weight = 0.5;
-        else weight = 1.5;
+       // Fastest 已经在基础速度里体现了，这里不做额外惩罚
     }
-    
+
     graph[fromId].push({
       toNode: toId,
       toRawName: toRaw,
       fromRawName: fromRaw,
       lineName: line.name,
       lineId: line.id,
-      city: line.city, // 记录城市
       direction: dir,
       rawWeight: weight,
       type: line.type,
@@ -279,173 +281,157 @@ function addLineEdges(graph, line, stations, dir, rule) {
   }
 }
 
-// 核心 Dijkstra 算法
-function runDijkstra(startId, endId, rule, graph) {
-  const queue = [{ node: startId, cost: 0, path: [] }];
-  const visited = {}; 
-  const results = [];
-  // All 模式需要更多结果来聚合
-  const limit = 5; 
+function checkOperatingTime(startTime, endTime) {
+  if (!startTime || !endTime) return true;
+  constnow = new Date(); // Typo fix
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  
+  const parseTime = (t) => {
+    const [h, m] = t.split(':').map(Number);
+    return h * 60 + m;
+  };
 
-  let loops = 0;
-  while (queue.length > 0 && loops < 5000) {
-    loops++;
-    queue.sort((a, b) => a.cost - b.cost);
-    const current = queue.shift();
+  const start = parseTime(startTime);
+  const end = parseTime(endTime);
 
-    // 稍微宽松的 Visited 检查，允许不同路径
-    if (current.cost > (visited[current.node] || Infinity) + 2) continue;
-    visited[current.node] = current.cost;
-
-    if (current.node === endId) {
-      results.push(current);
-      if (results.length >= limit) break; 
-      continue;
-    }
-
-    const neighbors = graph[current.node] || [];
-    neighbors.forEach(edge => {
-      let stepCost = edge.rawWeight;
-      let isTransfer = false;
-      let transferType = 'none';
-      let transferMsg = '';
-      
-      const lastStep = current.path[current.path.length - 1];
-      
-      if (lastStep) {
-        if (lastStep.lineId !== edge.lineId) {
-          isTransfer = true;
-          
-          // 1. 直通判断
-          if (isDirectLine(lastStep.fullLine, edge.fullLine)) {
-            transferType = 'through_service';
-            stepCost += 0; // 无惩罚
-            // 计算方向：取下一段的终点或线路终点
-            const dirName = edge.direction === 'up' 
-                ? edge.fullLine.stationsUp[edge.fullLine.stationsUp.length-1]
-                : edge.fullLine.stationsDown[edge.fullLine.stationsDown.length-1];
-            transferMsg = `乘坐前往${dirName}方向的列车，需要留意站台来车`;
-          } 
-          // 2. 公交 <-> 地铁 强制出站
-          else if ((lastStep.type === 'bus' && edge.type === 'metro') || 
-                   (lastStep.type === 'metro' && edge.type === 'bus')) {
-            transferType = 'exit_station'; // 出站换乘
-            stepCost += 15; // 较大惩罚
-          }
-          // 3. 普通换乘
-          else {
-             // 同站名换乘
-             if (lastStep.toRawName === edge.fromRawName) {
-                 transferType = 'same_station';
-                 stepCost += 5;
-             } else {
-                 transferType = 'walking';
-                 stepCost += 20;
-             }
-          }
-
-          if (rule === 'min_transfer') stepCost += 50; 
-        }
-      }
-      
-      const newCost = current.cost + stepCost;
-      const newPath = [...current.path, { 
-          ...edge, 
-          transferType: isTransfer ? transferType : 'none',
-          transferMsg: transferMsg
-      }];
-
-      if (newCost < (visited[edge.toNode] || Infinity) + 5) {
-         queue.push({ node: edge.toNode, cost: newCost, path: newPath });
-      }
-    });
+  if (end < start) {
+    return currentMinutes >= start || currentMinutes <= end;
   }
-  return results.map(r => ({ ...r, ruleSource: rule })); // 标记来源
+  return currentMinutes >= start && currentMinutes <= end;
 }
 
+// 核心逻辑：主寻路入口
 function findRoute() {
-  const startInput = document.getElementById('plan-start').value.trim();
-  const endInput = document.getElementById('plan-end').value.trim();
+  const startInput = document.getElementById('plan-start').value;
+  const endInput = document.getElementById('plan-end').value;
   
   if (!startInput || !endInput) {
     showToast("请输入起点和终点");
     return;
   }
 
-  // 1. 确定搜索的城市范围
-  // 如果用户选择了特定城市，只搜索该城市。
-  // 如果是 'all'，我们需要推断。简单起见，我们遍历所有拥有该站点名的城市进行尝试。
-  
-  let targetCities = [];
-  if (appState.selectedCity !== 'all') {
-    targetCities = [appState.selectedCity];
-  } else {
-    // 查找包含起点的所有城市
-    const citiesWithStart = new Set();
-    appState.lines.forEach(l => {
-        if (l.stationsUp.includes(startInput) || l.stationsDown.includes(startInput)) {
-            citiesWithStart.add(l.city);
-        }
-    });
-    targetCities = [...citiesWithStart];
-  }
+  const startId = getCanonicalStationId(startInput);
+  const endId = getCanonicalStationId(endInput);
 
-  if (targetCities.length === 0) {
-    showToast("未找到起点所在的城市数据");
+  if (startId === endId) {
+    showToast("起点终点看起来是同一个地方");
     return;
   }
 
   const activeChip = document.getElementById('planner-filters').querySelector('.active');
-  const userRule = activeChip ? activeChip.dataset.rule : 'all';
-
+  const currentRule = activeChip ? activeChip.dataset.rule : 'all';
+  
   let finalResults = [];
 
-  // 对每个可能的城市进行搜索 (解决同名隔离)
-  targetCities.forEach(city => {
-     // 构建起点终点 ID
-     const startId = getNodeId(city, startInput);
-     const endId = getNodeId(city, endInput);
+  // 需求1：所有方案 = 把其他策略的结果聚合
+  if (currentRule === 'all') {
+      const strategies = ['fastest', 'min_transfer', 'rail_priority', 'bus_only'];
+      let aggregator = [];
+      
+      strategies.forEach(r => {
+          const res = runDijkstra(startId, endId, r);
+          aggregator = aggregator.concat(res);
+      });
+      
+      // 去重 (根据路径的线路ID序列)
+      const uniqueMap = new Map();
+      aggregator.forEach(item => {
+          const signature = item.path.map(p => p.lineId).join('-');
+          if (!uniqueMap.has(signature)) {
+              uniqueMap.set(signature, item);
+          } else {
+              // 如果重复，保留cost更小的（虽然一般路径一样cost也一样）
+              if (item.cost < uniqueMap.get(signature).cost) uniqueMap.set(signature, item);
+          }
+      });
+      finalResults = Array.from(uniqueMap.values());
+      // 按照时间/Cost排序
+      finalResults.sort((a, b) => a.cost - b.cost);
 
-     // 如果该城市没有终点，跳过
-     // (简单的预检查，避免构建图)
-     const cityHasEnd = appState.lines.some(l => l.city === city && (l.stationsUp.includes(endInput) || l.stationsDown.includes(endInput)));
-     if (!cityHasEnd) return;
+  } else {
+      // 单一策略
+      finalResults = runDijkstra(startId, endId, currentRule);
+  }
 
-     if (startId === endId) return;
-
-     // 策略执行
-     let strategies = [];
-     if (userRule === 'all') {
-         // 聚合模式：运行所有策略
-         strategies = ['fastest', 'min_transfer', 'rail_priority', 'bus_only'];
-     } else {
-         strategies = [userRule];
-     }
-
-     strategies.forEach(rule => {
-        const graph = buildGraph(rule); // 针对该策略构建图
-        const res = runDijkstra(startId, endId, rule, graph);
-        finalResults.push(...res);
-     });
-  });
-
-  // 去重 (根据路径 ID 序列)
-  const uniqueResults = [];
-  const seenPaths = new Set();
-  
-  // 排序：先按成本(时间)，再按换乘数
-  finalResults.sort((a, b) => a.cost - b.cost);
-
-  finalResults.forEach(res => {
-     const pathKey = res.path.map(p => `${p.lineId}-${p.direction}`).join('|');
-     if (!seenPaths.has(pathKey)) {
-         seenPaths.add(pathKey);
-         uniqueResults.push(res);
-     }
-  });
-
-  const formattedResults = uniqueResults.map(res => compressPath(res.path));
+  const formattedResults = finalResults.map(res => compressPath(res.path));
   renderPlannerResults(formattedResults);
+}
+
+function runDijkstra(startId, endId, rule) {
+    const graph = buildGraph(rule);
+    const queue = [{ node: startId, cost: 0, path: [] }];
+    const visited = {}; 
+    const results = [];
+    // 增加限制防止卡死，但要足够找到结果
+    const maxLoops = 8000; 
+
+    let loops = 0;
+    while (queue.length > 0 && loops < maxLoops) {
+      loops++;
+      queue.sort((a, b) => a.cost - b.cost);
+      const current = queue.shift();
+  
+      if (current.cost > (visited[current.node] || Infinity)) continue;
+      // 稍微放宽Visited检查，允许不同的路径经过同一个点（为了找到不同的换乘方案）
+      // 只有当cost显著大于已知cost时才丢弃
+      visited[current.node] = current.cost;
+  
+      if (current.node === endId) {
+        results.push(current);
+        // 如果我们只要前几个最优解，可以在这里break，但在'all'模式下我们需要多一点变种
+        if (results.length >= 3) break; 
+        continue;
+      }
+  
+      const neighbors = graph[current.node] || [];
+      neighbors.forEach(edge => {
+        let stepCost = edge.rawWeight;
+        let isTransfer = false;
+        let transferType = 'none';
+        
+        const lastStep = current.path[current.path.length - 1];
+        
+        if (lastStep) {
+          if (lastStep.lineId !== edge.lineId) {
+            isTransfer = true;
+            // 需求4：严格判断换乘类型
+            transferType = getTransferType(
+                lastStep.toRawName, 
+                edge.fromRawName, 
+                lastStep.type, 
+                edge.type
+            );
+            
+            // 换乘惩罚
+            if (transferType === 'walking') {
+              stepCost += 20; // 步行换乘很慢
+            } else {
+              stepCost += 8; // 同站换乘较快
+            }
+            
+            // 直通车特判：如果是直通车，几乎无惩罚
+            if (isDirectLine(lastStep.lineName, edge.lineName)) {
+                stepCost = edge.rawWeight; // 重置为仅行驶时间，无换乘惩罚
+                transferType = 'direct_connect'; // 标记为直通
+            }
+
+            if (rule === 'min_transfer') stepCost += 1000; // 巨额惩罚换乘
+          }
+        }
+        
+        const newCost = current.cost + stepCost;
+        // 允许略微高一点的成本进入队列，为了多样性
+        if (newCost < (visited[edge.toNode] || Infinity) + 10) {
+           queue.push({ 
+               node: edge.toNode, 
+               cost: newCost, 
+               path: [...current.path, { ...edge, transferType: isTransfer ? transferType : 'none' }] 
+           });
+        }
+      });
+    }
+    return results;
 }
 
 function compressPath(rawPath) {
@@ -466,8 +452,7 @@ function compressPath(rawPath) {
         stopCount: 1,
         direction: step.direction,
         meta: step.fullLine,
-        transferType: step.transferType,
-        transferMsg: step.transferMsg // 传递直通信息
+        transferType: step.transferType
       };
     } else if (step.lineId === currentSeg.lineId && step.direction === currentSeg.direction) {
       currentSeg.endStation = step.toRawName;
@@ -484,34 +469,13 @@ function compressPath(rawPath) {
         stopCount: 1,
         direction: step.direction,
         meta: step.fullLine,
-        transferType: step.transferType,
-        transferMsg: step.transferMsg
+        // 下一段的起始transferType来源于这一步的连接
+        transferType: step.transferType 
       };
     }
   });
   if (currentSeg) segments.push(currentSeg);
   return segments;
-}
-
-function checkOperatingTime(startTime, endTime) {
-  if (!startTime || !endTime) return true; 
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  
-  const parseTime = (t) => {
-    // 处理中文冒号等
-    const safeT = t.replace('：', ':');
-    const [h, m] = safeT.split(':').map(Number);
-    return h * 60 + m;
-  };
-
-  const start = parseTime(startTime);
-  const end = parseTime(endTime);
-
-  if (end < start) { // 跨夜
-    return currentMinutes >= start || currentMinutes <= end;
-  }
-  return currentMinutes >= start && currentMinutes <= end;
 }
 
 /* --- UI Rendering --- */
@@ -551,7 +515,6 @@ function setupUI() {
   document.getElementById('btn-dir-up').onclick = () => renderStations('up');
   document.getElementById('btn-dir-down').onclick = () => renderStations('down');
 
-  // Planner Filters
   document.querySelectorAll('#planner-filters .chip').forEach(btn => {
     btn.onclick = (e) => {
       document.querySelectorAll('#planner-filters .chip').forEach(c => c.classList.remove('active'));
@@ -679,6 +642,7 @@ function selectCity(city) {
   renderHome();
 }
 
+/* --- Render Detail --- */
 let currentLine = null;
 
 function openDetail(line) {
@@ -743,13 +707,13 @@ function renderStations(dir) {
          endIn.value = s;
          showToast(`已设为终点: ${s}`);
          switchView('planner');
-         setTimeout(findRoute, 100);
        }
     };
     list.appendChild(div);
   });
 }
 
+/* --- Planner Results --- */
 function renderPlannerResults(segmentsList) {
   const container = document.getElementById('planner-results');
   container.innerHTML = '';
@@ -766,9 +730,10 @@ function renderPlannerResults(segmentsList) {
     const card = document.createElement('div');
     card.className = 'plan-result-card';
     
+    // 逻辑：过滤直通车，直通车不计入“换乘次数”显示
+    // transferType === 'direct_connect'
+    const transfers = segments.filter(s => s.transferType !== 'none' && s.transferType !== 'direct_connect').length;
     const totalStops = segments.reduce((sum, seg) => sum + seg.stopCount, 0);
-    // 换乘次数计算：不包括 "直通运转" (through_service)
-    const transfers = segments.filter(s => s.transferType !== 'none' && s.transferType !== 'through_service').length;
     let totalTime = 0;
     
     // Operating Time Check
@@ -777,10 +742,12 @@ function renderPlannerResults(segmentsList) {
     segments.forEach((seg, i) => {
       const perStop = seg.type === 'metro' ? 2.5 : (seg.type === 'rail' ? 5 : 3.5);
       totalTime += Math.ceil(seg.stopCount * perStop);
+      
+      // 时间成本计算
       if (i > 0) {
-         if (seg.transferType === 'walking' || seg.transferType === 'exit_station') totalTime += 10;
+         if (seg.transferType === 'walking') totalTime += 10;
          else if (seg.transferType === 'same_station') totalTime += 5;
-         // through_service 加 0
+         // 直通车无额外时间惩罚
       }
       
       const inService = checkOperatingTime(seg.meta.startTime, seg.meta.endTime);
@@ -795,16 +762,20 @@ function renderPlannerResults(segmentsList) {
       ${i < segments.length - 1 ? '<span class="material-symbols-rounded step-arrow">arrow_forward</span>' : ''}
     `).join('');
     
-    // 2. 运营时间显示逻辑
-    let metaText = `${totalStops}站 · 换乘 ${transfers} 次`;
+    // 需求2：不在运营时段显示逻辑
+    let metaHTML = `${totalStops}站 · 换乘 ${transfers} 次`;
     if (!isServiceActive) {
-      metaText += ` · <span style="color:var(--md-sys-color-error)">不在运营时段</span>`;
+        metaHTML += ` <span style="color:var(--md-sys-color-error); margin-left:6px; font-weight:600">· 不在运营时段</span>`;
     }
+
+    // 如果不在运营时段，时间显示可以灰色或依旧显示但已在meta提示
+    // 这里保持显示时间，但在meta强调
+    const timeDisplay = `<div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>`;
 
     card.innerHTML = `
       <div class="plan-header">
-        <div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>
-        <div class="plan-meta">${metaText}</div>
+        ${timeDisplay}
+        <div class="plan-meta">${metaHTML}</div>
       </div>
       <div class="plan-route-visual">
         ${routeSummary}
@@ -819,7 +790,7 @@ function renderPlannerResults(segmentsList) {
 }
 
 /* --- Route Detail Modal --- */
-let currentSegments = []; 
+let currentSegments = [];
 
 function openRouteModal(segments, time, isActive) {
   currentSegments = segments;
@@ -830,8 +801,8 @@ function openRouteModal(segments, time, isActive) {
   
   let html = `
     <div class="modal-summary">
-       ${isActive ? `<div class="ms-time">${time}分钟</div>` : `<div class="out-of-service" style="font-size:24px">不在运营时段</div>`}
-       <div class="ms-meta">共 ${segments.reduce((a,b)=>a+b.stopCount,0)} 站</div>
+       <div class="ms-time">${time}分钟</div>
+       <div class="ms-meta">共 ${segments.reduce((a,b)=>a+b.stopCount,0)} 站 ${!isActive ? '<span class="out-of-service">· 不在运营时段</span>' : ''}</div>
     </div>
   `;
   
@@ -867,44 +838,28 @@ function openRouteModal(segments, time, isActive) {
     
     if (!isLast) {
       const nextSeg = segments[idx+1];
-      
-      // 4. 换乘文案逻辑
-      let transferHtml = '';
       const tType = nextSeg.transferType;
-
-      if (tType === 'through_service') {
-        transferHtml = `
-           <div class="walk-badge direct">
-             <span class="material-symbols-rounded" style="font-size:14px">sync_alt</span>
-             <span>${nextSeg.transferMsg}</span>
-           </div>
-        `;
-      } else if (tType === 'exit_station') {
-         transferHtml = `
-           <div class="walk-badge exit">
-             <span class="material-symbols-rounded" style="font-size:14px">directions_walk</span>
-             <span>出站换乘 (需重新进站)</span>
-           </div>
-         `;
-      } else if (tType === 'walking') {
-         transferHtml = `
-           <div class="walk-badge">
-             <span class="material-symbols-rounded" style="font-size:14px">directions_walk</span>
-             <span>同名/异站换乘 (需步行)</span>
-           </div>
-         `;
-      } else {
-         transferHtml = `
-           <div class="walk-badge">
-             <span class="material-symbols-rounded" style="font-size:14px">transfer_within_a_station</span>
-             <span>站内换乘</span>
-           </div>
-         `;
+      
+      let badgeIcon = 'transfer_within_a_station';
+      let badgeText = '站内换乘';
+      
+      if (tType === 'walking') {
+          badgeIcon = 'directions_walk';
+          badgeText = '出站换乘 (需步行)';
+      } else if (tType === 'direct_connect') {
+          // 需求4：直通列车提示
+          badgeIcon = 'train';
+          badgeText = `乘坐前往 ${nextSeg.direction==='up'?nextSeg.meta.stationsUp[nextSeg.meta.stationsUp.length-1]:nextSeg.meta.stationsDown[nextSeg.meta.stationsDown.length-1]} 方向的列车，需要留意站台来车`;
       }
-
+      
       html += `
         <div class="transfer-gap">
-           ${transferHtml}
+           <div class="walk-badge ${tType === 'direct_connect' ? 'direct' : ''}">
+             <span class="material-symbols-rounded" style="font-size:14px">
+               ${badgeIcon}
+             </span>
+             <span>${badgeText}</span>
+           </div>
         </div>
       `;
     }
@@ -967,7 +922,7 @@ function subscribePushReal() {
       
       new Notification('行程规划提醒已开启', {
         body: routeStr,
-        icon: '../data/logos_company.json',
+        icon: '../data/logos_company.json', 
         requireInteraction: true 
       });
       showToast("提醒已发送至通知栏");
