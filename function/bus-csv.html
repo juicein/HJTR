@@ -91,7 +91,7 @@ textarea{
 let parsed=[];
 
 /* ===== 读取原始 txt ===== */
-fetch('data/bus_data.txt')
+fetch('../data/bus_data.txt')
 .then(r=>r.text())
 .then(t=>{
   t.split(/\n+/).filter(Boolean).forEach(l=>{
