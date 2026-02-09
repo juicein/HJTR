@@ -5,7 +5,6 @@
 <title>公交 / 轨道 数据双向转换器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -21,56 +20,32 @@ body{
   background:var(--md-surface);
   color:#1C1B1F;
 }
-header{
-  padding:20px;
-  font-size:22px;
-  font-weight:600;
-}
+header{padding:20px;font-size:22px;font-weight:600}
 .card{
-  margin:16px;
-  padding:16px;
-  border-radius:var(--md-radius);
-  background:#fff;
-  box-shadow:0 1px 6px rgba(0,0,0,.1);
+  margin:16px;padding:16px;border-radius:16px;
+  background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.1)
 }
 select,button,input,textarea{
-  width:100%;
-  margin-top:10px;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid var(--md-outline);
-  font-size:15px;
+  width:100%;margin-top:10px;padding:12px;
+  border-radius:12px;border:1px solid var(--md-outline);
 }
-button{
-  background:var(--md-primary);
-  color:#fff;
-  border:none;
-}
-button.secondary{
-  background:#E8DEF8;
-  color:#21005D;
-}
-textarea{
-  height:200px;
-  font-family:monospace;
-}
-.row{
-  display:flex;
-  gap:10px;
-}
+button{background:var(--md-primary);color:#fff;border:none}
+button.secondary{background:#E8DEF8;color:#21005D}
+textarea{height:200px;font-family:monospace}
+.row{display:flex;gap:10px}
 .row button{flex:1}
 </style>
 </head>
 
 <body>
-<header>数据双向转换器</header>
+<header>🚌 公交 / 轨道 数据双向转换器</header>
 
 <div class="card">
   <b>① 选择地区</b>
   <select id="areaSelect"></select>
   <div class="row">
-    <button type="button" onclick="exportCSV()">导出 CSV</button>
-    <button type="button" onclick="exportExcel()">导出 Excel</button>
+    <button onclick="exportCSV()">导出 CSV</button>
+    <button onclick="exportExcel()">导出 Excel</button>
   </div>
 </div>
 
@@ -84,174 +59,114 @@ textarea{
   <textarea id="output"></textarea>
   <div class="row">
     <button class="secondary" onclick="copyText()">复制</button>
-    <button class="secondary" onclick="shareText()">系统分享</button>
     <button class="secondary" onclick="downloadTXT()">导出 TXT</button>
   </div>
 </div>
 
 <script>
-let rawLines = [];
-let parsed = [];
+let rawLines=[], parsed=[];
 
-/* ===== 读取 bus_data.txt ===== */
+/* ===== 读取原始数据 ===== */
 fetch('../data/bus_data.txt')
-.then(r => r.text())
-.then(t => {
-  rawLines = t.split(/\n+/).filter(l => l.trim());
+.then(r=>r.text())
+.then(t=>{
+  rawLines=t.split(/\n+/).filter(Boolean);
   parseData();
 });
 
-/* ===== 解析 ===== */
 function parseData(){
-  parsed = [];
-  const areas = new Set();
+  parsed=[];
+  const areas=new Set();
 
-  rawLines.forEach(l => {
-    const line = l.match(/【(.+?)】/)?.[1] || '';
-    const stations = l.split('】')[1].split('-{')[0];
-    const company = l.match(/\{(.+?)\}/)?.[1] || '';
-    const price = l.match(/《(.+?)》/)?.[1] || '';
-    const area = l.match(/『(.+?)』/)?.[1] || '未知';
-    const start = l.match(/§(.+?)§/)?.[1] || '';
-    const end = l.match(/@(.+?)@/)?.[1] || '';
-    const color = l.match(/∮(.+?)∮/)?.[1] || '';
-
-    let type = '公交';
-    const typeMatch = l.match(/θ(.+?)θ/);
-    if(typeMatch) type = typeMatch[1];
-
-    areas.add(area);
-
+  rawLines.forEach(l=>{
+    const typeMatch=l.match(/θ(.+?)θ/);
     parsed.push({
-      line, stations, company, price,
-      area, type, start, end, color
+      line:l.match(/【(.+?)】/)?.[1]||'',
+      stations:l.split('】')[1].split('-{')[0],
+      company:l.match(/\{(.+?)\}/)?.[1]||'',
+      price:l.match(/《(.+?)》/)?.[1]||'',
+      area:l.match(/『(.+?)』/)?.[1]||'未知',
+      type:typeMatch?typeMatch[1]:'公交',
+      start:l.match(/§(.+?)§/)?.[1]||'',
+      end:l.match(/@(.+?)@/)?.[1]||'',
+      color:l.match(/∮(.+?)∮/)?.[1]||''
     });
+    areas.add(parsed.at(-1).area);
   });
 
-  areaSelect.innerHTML =
-    [...areas].map(a => `<option value="${a}">${a}</option>`).join('');
+  areaSelect.innerHTML=[...areas].map(a=>`<option>${a}</option>`).join('');
 }
 
-/* ===== CSV 导出 ===== */
+/* ===== 导出 ===== */
 function exportCSV(){
-  const area = areaSelect.value;
-  const rows = parsed.filter(p => p.area === area);
-
-  if(rows.length === 0){
-    alert('该地区没有可导出的线路');
-    return;
-  }
-
-  let csv = 'line,stations,company,price,area,type,start_time,end_time,color\n';
-  rows.forEach(p => {
-    csv += `"${p.line}","${p.stations}","${p.company}","${p.price}","${p.area}","${p.type}","${p.start}","${p.end}","${p.color}"\n`;
+  const area=areaSelect.value;
+  let csv='line,stations,company,price,area,type,start_time,end_time,color\n';
+  parsed.filter(p=>p.area===area).forEach(p=>{
+    csv+=`"${p.line}","${p.stations}","${p.company}","${p.price}","${p.area}","${p.type}","${p.start}","${p.end}","${p.color}"\n`;
   });
-
-  download(csv, `bus_${area}.csv`, 'text/csv');
+  download(csv,`bus_${area}.csv`,'text/csv');
 }
 
-/* ===== Excel 导出（修复版） ===== */
 function exportExcel(){
-  const area = areaSelect.value;
-  const rows = parsed.filter(p => p.area === area);
-
-  if(rows.length === 0){
-    alert('该地区没有可导出的线路');
-    return;
-  }
-
-  const data = [
-    ['line','stations','company','price','area','type','start_time','end_time','color']
-  ];
-
-  rows.forEach(p => {
-    data.push([
-      p.line, p.stations, p.company, p.price,
-      p.area, p.type, p.start, p.end, p.color
-    ]);
+  const area=areaSelect.value;
+  const rows=[['line','stations','company','price','area','type','start_time','end_time','color']];
+  parsed.filter(p=>p.area===area).forEach(p=>{
+    rows.push([p.line,p.stations,p.company,p.price,p.area,p.type,p.start,p.end,p.color]);
   });
-
-  const ws = XLSX.utils.aoa_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'data');
-
-  const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
-  const blob = new Blob([wbout], {
-    type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  });
-
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `bus_${area}.xlsx`;
-  a.click();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'data');
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  download(out,`bus_${area}.xlsx`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 }
 
-/* ===== 导入分流 ===== */
+/* ===== 导入 ===== */
 function importFile(file){
-  if(file.name.endsWith('.csv')){
-    importCSV(file);
-  }else if(file.name.endsWith('.xlsx')){
-    importExcel(file);
-  }else{
-    alert('不支持的文件格式');
-  }
+  file.name.endsWith('.csv')?importCSV(file):importExcel(file);
 }
 
-/* ===== CSV → 原始格式 ===== */
 function importCSV(file){
-  const r = new FileReader();
-  r.onload = () => {
-    const rows = r.result.split('\n').slice(1)
-      .map(row => row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
-      ?.map(s => s.replace(/^"|"$/g,'')));
-    convertRows(rows);
+  const r=new FileReader();
+  r.onload=()=>{
+    const rows=r.result.split('\n').slice(1)
+      .map(l=>l.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)
+      ?.map(s=>s.replace(/^"|"$/g,'')));
+    convertRows(rows.map(c=>({
+      line:c[0],stations:c[1],company:c[2],price:c[3],
+      area:c[4],type:c[5],start_time:c[6],end_time:c[7],color:c[8]
+    })));
   };
-  r.readAsText(file, 'utf-8');
+  r.readAsText(file,'utf-8');
 }
 
-/* ===== Excel → 原始格式 ===== */
 function importExcel(file){
-  const r = new FileReader();
-  r.onload = e => {
-    const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, {header:1}).slice(1);
+  const r=new FileReader();
+  r.onload=e=>{
+    const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws); // ✅ 关键修复
     convertRows(rows);
   };
   r.readAsArrayBuffer(file);
 }
 
-/* ===== 行转换 ===== */
+/* ===== 统一生成原始格式 ===== */
 function convertRows(rows){
-  let out = '';
-  rows.forEach(c => {
-    if(!c || !c.length) return;
-
-    let txt = `【${c[0]}】${c[1]}-{${c[2]}}《${c[3]||''}》『${c[4]}』`;
-
-    if(c[5] && c[5] !== '公交'){
-      txt += `θ${c[5]}θ`;
-    }
-
-    txt += `§${c[6]||''}§@${c[7]||''}@`;
-
-    if(c[8]) txt += `∮${c[8]}∮`;
-
-    out += txt + '\n';
+  output.value='';
+  rows.forEach(o=>{
+    if(!o.line||!o.stations) return;
+    let t=`【${o.line}】${o.stations}-{${o.company||''}}《${o.price||''}》『${o.area||''}』`;
+    if(o.type&&o.type!=='公交') t+=`θ${o.type}θ`;
+    t+=`§${o.start_time||''}§@${o.end_time||''}@`;
+    if(o.color) t+=`∮${o.color}∮`;
+    output.value+=t+'\n';
   });
-  output.value = out;
 }
 
 /* ===== 工具 ===== */
-function copyText(){
-  navigator.clipboard.writeText(output.value);
-}
-function shareText(){
-  navigator.share?.({ text: output.value });
-}
-function downloadTXT(){
-  download(output.value,'bus_converted.txt','text/plain');
-}
+function copyText(){navigator.clipboard.writeText(output.value);}
+function downloadTXT(){download(output.value,'bus_converted.txt','text/plain');}
 function download(data,name,type){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([data],{type}));
