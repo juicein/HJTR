@@ -3,6 +3,8 @@
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #cbe6ff;
   --md-sys-color-on-primary-container: #001e30;
+  --md-sys-color-secondary-container: #dff2fe; /* 新增：用于直通胶囊 */
+  --md-sys-color-on-secondary-container: #001e30;
   --md-sys-color-surface: #fdfcff;
   --md-sys-color-surface-container: #f0f4f8;
   --md-sys-color-surface-container-high: #eceef2;
@@ -27,6 +29,8 @@
     --md-sys-color-on-primary: #00324e;
     --md-sys-color-primary-container: #004b70;
     --md-sys-color-on-primary-container: #cbe6ff;
+    --md-sys-color-secondary-container: #2c4658;
+    --md-sys-color-on-secondary-container: #dff2fe;
   }
 }
 
@@ -60,7 +64,7 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .view.active { display: block; animation: fadeUp 0.3s cubic-bezier(0.2, 0, 0, 1); }
 @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-/* 5. Search Bar Fix */
+/* Search Bar */
 .search-bar-container { margin: 16px 0; }
 .search-bar {
   background: var(--md-sys-color-surface-container-high); border-radius: var(--radius-full);
@@ -166,9 +170,8 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 }
 .plan-result-card:active { transform: scale(0.98); }
 .plan-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
-.plan-time-big { font-size: 24px; font-weight: 700; color: var(--md-sys-color-primary); }
-/* 运营时间警告样式 - 仅在非运营时段使用 */
-.out-of-service-text { color: var(--md-sys-color-error); font-weight: 600; margin-left: 6px; }
+.plan-time-big { font-size: 24px; font-weight: 700; color: var(--md-sys-color-primary); display: flex; align-items: baseline; gap: 4px; }
+.out-of-service-text { color: var(--md-sys-color-error); font-weight: 600; margin-left: 6px; font-size: 13px; }
 
 .plan-meta { font-size: 13px; color: var(--md-sys-color-on-surface-variant); display: flex; align-items: center; }
 .plan-route-visual { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
@@ -177,6 +180,7 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
   padding: 4px 8px; border-radius: 6px; font-size: 13px; font-weight: 500;
 }
 .step-arrow { font-size: 14px; opacity: 0.5; }
+.plan-desc { font-size: 13px; color: var(--md-sys-color-on-surface-variant); opacity: 0.8; }
 
 /* Modal (Bottom Sheet) */
 .modal-backdrop {
@@ -201,6 +205,8 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 /* Modal Content */
 .modal-summary { display: flex; align-items: baseline; gap: 12px; margin-bottom: 24px; }
 .ms-time { font-size: 32px; font-weight: bold; color: var(--md-sys-color-primary); }
+.ms-meta { color: var(--md-sys-color-on-surface-variant); font-size: 14px; }
+
 .step-card { display: flex; position: relative; gap: 16px; min-height: 80px; }
 .step-left-line {
   position: absolute; left: 15px; top: 32px; bottom: -24px; width: 2px; background: #e0e0e0; z-index: 0;
@@ -216,13 +222,18 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .step-dir { font-size: 12px; color: var(--md-sys-color-on-surface-variant); background: var(--md-sys-color-surface-container); padding: 2px 6px; border-radius: 4px; }
 .step-detail-row { font-size: 15px; margin-bottom: 6px; display:flex; align-items:center; gap:8px;}
 .step-sub-info { font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
+
 .transfer-gap {
-  display: flex; align-items: center; gap: 8px; padding: 4px 0 12px 48px;
+  display: flex; align-items: center; gap: 8px; padding: 4px 0 16px 48px;
   color: var(--md-sys-color-on-surface-variant); font-size: 13px; font-weight: 500;
 }
 .walk-badge { 
-  background: var(--md-sys-color-surface-container-high); padding: 2px 8px; 
-  border-radius: 12px; display: flex; align-items: center; gap: 4px; font-size: 12px; 
+  background: var(--md-sys-color-surface-container-high); padding: 4px 10px; 
+  border-radius: 12px; display: flex; align-items: center; gap: 6px; font-size: 12px; 
+}
+.walk-badge.direct-run {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
 }
 
 /* Modal Footer Actions */
