@@ -5,31 +5,25 @@
 <title>公交 / 轨道 数据双向转换器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- SheetJS -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
 
 <style>
 :root{
   --md-primary:#6750A4;
-  --md-surface:#FFFBFE;
   --md-outline:#CAC4D0;
   --md-radius:16px;
 }
 body{
   margin:0;
-  font-family:system-ui,-apple-system;
-  background:var(--md-surface);
+  font-family:system-ui;
+  background:#FFFBFE;
 }
-header{
-  padding:20px;
-  font-size:22px;
-  font-weight:600;
-}
+header{padding:20px;font-size:22px;font-weight:600;}
 .card{
   margin:16px;
   padding:16px;
-  background:#fff;
   border-radius:var(--md-radius);
+  background:#fff;
   box-shadow:0 1px 6px rgba(0,0,0,.1);
 }
 select,button,input,textarea{
@@ -39,24 +33,14 @@ select,button,input,textarea{
   border-radius:12px;
   border:1px solid var(--md-outline);
 }
-button{
-  background:var(--md-primary);
-  color:#fff;
-  border:none;
+button{background:var(--md-primary);color:#fff;border:none;}
+textarea{height:200px;font-family:monospace;}
+.error{
+  white-space:pre-wrap;
+  color:#B3261E;
+  margin-top:10px;
+  font-size:14px;
 }
-button.secondary{
-  background:#E8DEF8;
-  color:#21005D;
-}
-textarea{
-  height:220px;
-  font-family:monospace;
-}
-.row{
-  display:flex;
-  gap:10px;
-}
-.row button{flex:1}
 </style>
 </head>
 
@@ -64,68 +48,66 @@ textarea{
 <header>🚌 公交 / 轨道 数据双向转换器</header>
 
 <div class="card">
-  <b>① 选择地区</b>
+  <b>选择地区并导出</b>
   <select id="areaSelect"></select>
-  <div class="row">
-    <button onclick="exportCSV()">导出 CSV</button>
-    <button onclick="exportExcel()">导出 Excel</button>
-  </div>
+  <button onclick="exportCSV()">导出 CSV</button>
+  <button onclick="exportExcel()">导出 Excel</button>
 </div>
 
 <div class="card">
-  <b>② 导入 CSV / Excel</b>
+  <b>导入 CSV / Excel</b>
   <input type="file" accept=".csv,.xlsx" onchange="importFile(this.files[0])">
+  <div id="errorBox" class="error"></div>
 </div>
 
 <div class="card">
-  <b>③ 转换结果（原始格式）</b>
+  <b>转换结果（原始格式）</b>
   <textarea id="output"></textarea>
-  <div class="row">
-    <button class="secondary" onclick="copyText()">复制</button>
-    <button class="secondary" onclick="shareText()">系统分享</button>
-    <button class="secondary" onclick="downloadTXT()">导出 TXT</button>
-  </div>
 </div>
 
 <script>
-let parsed=[];
+let parsed=[], rawLines=[];
 
-/* ===== 读取原始 txt ===== */
 fetch('../data/bus_data.txt')
 .then(r=>r.text())
 .then(t=>{
-  t.split(/\n+/).filter(Boolean).forEach(l=>{
-    const typeMatch=l.match(/θ(.+?)θ/);
-    parsed.push({
+  rawLines=t.split(/\n+/).filter(Boolean);
+  parseRaw();
+});
+
+function parseRaw(){
+  const areas=new Set();
+  parsed=[];
+  rawLines.forEach(l=>{
+    const type=l.match(/θ(.+?)θ/)?.[1]||'公交';
+    const obj={
       line:l.match(/【(.+?)】/)?.[1]||'',
       stations:l.split('】')[1]?.split('-{')[0]||'',
       company:l.match(/\{(.+?)\}/)?.[1]||'',
       price:l.match(/《(.+?)》/)?.[1]||'',
       area:l.match(/『(.+?)』/)?.[1]||'未知',
-      type:typeMatch?typeMatch[1]:'公交',
+      type,
       start:l.match(/§(.+?)§/)?.[1]||'',
       end:l.match(/@(.+?)@/)?.[1]||'',
       color:l.match(/∮(.+?)∮/)?.[1]||''
-    });
+    };
+    areas.add(obj.area);
+    parsed.push(obj);
   });
-  areaSelect.innerHTML=[...new Set(parsed.map(p=>p.area))]
-    .map(a=>`<option>${a}</option>`).join('');
-});
+  areaSelect.innerHTML=[...areas].map(a=>`<option>${a}</option>`).join('');
+}
 
-/* ===== 导出 ===== */
+/* ===== CSV 导出 ===== */
 function exportCSV(){
   const area=areaSelect.value;
   let csv='line,stations,company,price,area,type,start_time,end_time,color\n';
   parsed.filter(p=>p.area===area).forEach(p=>{
-    csv+=Object.values({
-      line:p.line,stations:p.stations,company:p.company,
-      price:p.price,area:p.area,type:p.type,
-      start_time:p.start,end_time:p.end,color:p.color
-    }).map(v=>`"${v||''}"`).join(',')+'\n';
+    csv+=`${safe(p.line)},${safe(p.stations)},${safe(p.company)},${safe(p.price)},${safe(p.area)},${safe(p.type)},${safe(p.start)},${safe(p.end)},${safe(p.color)}\n`;
   });
-  download(csv,`bus_${area}.csv`,'text/csv');
+  download(csv,'bus_'+area+'.csv','text/csv');
 }
 
+/* ===== Excel 导出 ===== */
 function exportExcel(){
   const area=areaSelect.value;
   const rows=[['line','stations','company','price','area','type','start_time','end_time','color']];
@@ -134,60 +116,85 @@ function exportExcel(){
   });
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'data');
-  XLSX.writeFile(wb,`bus_${area}.xlsx`);
+  XLSX.writeFile(wb,'bus_'+area+'.xlsx');
 }
 
 /* ===== 导入 ===== */
 function importFile(file){
-  file.name.endsWith('.xlsx') ? importExcel(file) : importCSV(file);
+  errorBox.textContent='';
+  output.value='';
+  if(file.name.endsWith('.csv')) importCSV(file);
+  else if(file.name.endsWith('.xlsx')) importExcel(file);
+  else errorBox.textContent='❌ 不支持的文件类型';
 }
 
+/* ===== CSV 强容错解析 ===== */
+function importCSV(file){
+  const r=new FileReader();
+  r.onload=()=>{
+    const rows=parseCSV(r.result);
+    convertRows(rows);
+  };
+  r.readAsText(file,'utf-8');
+}
+
+/* ===== Excel 按表头解析 ===== */
 function importExcel(file){
   const r=new FileReader();
   r.onload=e=>{
     const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
-    convertJSON(XLSX.utils.sheet_to_json(ws,{defval:''}));
+    const json=XLSX.utils.sheet_to_json(ws,{defval:''});
+    const rows=json.map(o=>[
+      o.line,o.stations,o.company,o.price,
+      o.area,o.type,o.start_time,o.end_time,o.color
+    ]);
+    convertRows(rows);
   };
   r.readAsArrayBuffer(file);
 }
 
-function importCSV(file){
-  const r=new FileReader();
-  r.onload=()=>{
-    const [h,...lines]=r.result.split('\n');
-    const keys=h.split(',').map(s=>s.trim());
-    convertJSON(lines.map(l=>{
-      const v=l.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g)||[];
-      const o={};
-      keys.forEach((k,i)=>o[k]=v[i]?.replace(/^"|"$/g,'')||'');
-      return o;
-    }));
-  };
-  r.readAsText(file,'utf-8');
-}
-
-/* ===== JSON → 原始格式 ===== */
-function convertJSON(rows){
-  output.value='';
-  rows.forEach(r=>{
-    if(!r.line) return;
-    let txt=`【${r.line}】${r.stations}-{${r.company}}《${r.price||''}》『${r.area}』`;
-    if(r.type && r.type!=='公交') txt+=`θ${r.type}θ`;
-    txt+=`§${r.start_time||''}§@${r.end_time||''}@`;
-    if(r.color) txt+=`∮${r.color}∮`;
-    output.value+=txt+'\n';
+/* ===== 转换 + 报错 ===== */
+function convertRows(rows){
+  let out='',errors=[];
+  rows.forEach((c,i)=>{
+    if(!c||!c[0]) return;
+    if(!c[4]) errors.push(`第 ${i+2} 行缺少 area`);
+    let txt=`【${c[0]}】${c[1]||''}-{${c[2]||''}}《${c[3]||''}》『${c[4]||''}』`;
+    if(c[5]&&c[5]!=='公交') txt+=`θ${c[5]}θ`;
+    txt+=`§${c[6]||''}§@${c[7]||''}@`;
+    if(c[8]) txt+=`∮${c[8]}∮`;
+    out+=txt+'\n';
   });
+  output.value=out;
+  if(errors.length) errorBox.textContent='⚠ 导入警告：\n'+errors.join('\n');
 }
 
-/* ===== 工具 ===== */
-function copyText(){navigator.clipboard.writeText(output.value);}
-function shareText(){navigator.share?.({text:output.value});}
-function downloadTXT(){download(output.value,'bus_converted.txt','text/plain');}
-function download(d,n,t){
+/* ===== CSV 解析器 ===== */
+function parseCSV(text){
+  const lines=text.replace(/\r/g,'').split('\n');
+  const res=[];
+  for(let i=1;i<lines.length;i++){
+    let row=[],cur='',q=false;
+    for(let c of lines[i]){
+      if(c==='"') q=!q;
+      else if(c===','&&!q){row.push(cur);cur='';}
+      else cur+=c;
+    }
+    row.push(cur);
+    res.push(row.map(s=>s.replace(/^"|"$/g,'')));
+  }
+  return res;
+}
+
+function safe(v){
+  v=v??'';
+  return `"${String(v).replace(/"/g,'""')}"`;
+}
+function download(data,name,type){
   const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([d],{type:t}));
-  a.download=n;a.click();
+  a.href=URL.createObjectURL(new Blob([data],{type}));
+  a.download=name;a.click();
 }
 </script>
 </body>
