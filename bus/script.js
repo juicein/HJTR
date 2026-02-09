@@ -104,7 +104,7 @@ function parseLines(rawText) {
     
     let iconType = 'directions_bus'; 
     if (isRail) iconType = 'train';
-    else if (isMonorail) iconType = 'tram'; 
+    else if (isMonorail) iconType = 'monorail'; 
     else if (isRubber) iconType = 'commute'; 
     else if (isMetroRaw) iconType = 'subway';
     else if (isBRT) iconType = 'directions_bus'; 
