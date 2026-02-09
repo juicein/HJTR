@@ -66,7 +66,7 @@ pre{background:#f6f6f6;padding:10px;border-radius:12px;white-space:pre-wrap;}
 let parsed = [];
 
 /* ===== 读取原始数据 ===== */
-fetch('data/bus_data.txt').then(r=>r.text()).then(t=>{
+fetch('../data/bus_data.txt').then(r=>r.text()).then(t=>{
   t.split(/\n+/).forEach(l=>{
     const area = l.match(/『(.+?)』/)?.[1];
     if(area) parsed.push({area});
