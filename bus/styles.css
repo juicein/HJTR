@@ -3,8 +3,11 @@
   --md-sys-color-on-primary: #ffffff;
   --md-sys-color-primary-container: #cbe6ff;
   --md-sys-color-on-primary-container: #001e30;
-  --md-sys-color-secondary-container: #dff2fe; /* 新增：用于直通胶囊 */
-  --md-sys-color-on-secondary-container: #001e30;
+  
+  /* 直通/特殊提示使用 Tertiary 色系 */
+  --md-sys-color-tertiary-container: #dff2fe; 
+  --md-sys-color-on-tertiary-container: #001e30;
+  
   --md-sys-color-surface: #fdfcff;
   --md-sys-color-surface-container: #f0f4f8;
   --md-sys-color-surface-container-high: #eceef2;
@@ -29,8 +32,8 @@
     --md-sys-color-on-primary: #00324e;
     --md-sys-color-primary-container: #004b70;
     --md-sys-color-on-primary-container: #cbe6ff;
-    --md-sys-color-secondary-container: #2c4658;
-    --md-sys-color-on-secondary-container: #dff2fe;
+    --md-sys-color-tertiary-container: #2c4658;
+    --md-sys-color-on-tertiary-container: #dff2fe;
   }
 }
 
@@ -224,16 +227,22 @@ main { flex: 1; overflow-y: auto; padding: 0 16px 80px; position: relative; }
 .step-sub-info { font-size: 13px; color: var(--md-sys-color-on-surface-variant); }
 
 .transfer-gap {
-  display: flex; align-items: center; gap: 8px; padding: 4px 0 16px 48px;
+  display: flex; align-items: flex-start; /* 改为 flex-start 以适应多行文本 */
+  gap: 8px; padding: 4px 0 16px 48px;
   color: var(--md-sys-color-on-surface-variant); font-size: 13px; font-weight: 500;
 }
 .walk-badge { 
-  background: var(--md-sys-color-surface-container-high); padding: 4px 10px; 
-  border-radius: 12px; display: flex; align-items: center; gap: 6px; font-size: 12px; 
+  background: var(--md-sys-color-surface-container-high); padding: 6px 10px; /* 增加一点Padding */
+  border-radius: 12px; display: flex; align-items: flex-start; /* 图标对齐顶部 */
+  gap: 8px; font-size: 12px; line-height: 1.4;
+  white-space: normal; /* 允许换行 */
+  text-align: left;
 }
+
+/* 直通运行的特殊样式 - 使用 Tertiary 色调以提示这是"顺畅"的连接但需要注意 */
 .walk-badge.direct-run {
-    background: var(--md-sys-color-secondary-container);
-    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
 }
 
 /* Modal Footer Actions */
