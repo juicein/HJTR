@@ -297,6 +297,27 @@
    "level": "4C",
    "runways": 1
  },
+    {
+   "name": "清湖清边",
+   "code": "QTE",
+  "lat": -38.01417,
+   "lng": 144.51353,
+   "aliases": ["圣火清湖"],
+   "level": "4E",
+   "ICAO": "QWTE",
+   "runways": 2
+ },
+ 
+  {
+   "name": "万和桑园",
+   "code": "WSI",
+  "lat": 32.71619,
+   "lng": 109.01580,
+   "aliases": ["新舟万和"],
+   "level": "4F",
+   "ICAO": "XWSI",
+   "runways": 2
+ },
   {
     "name": "茶花泯山",
     "code": "CHX",
