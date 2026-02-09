@@ -35,10 +35,10 @@ async function init() {
     parseLines(txt);
     setupUI();
     
-    // 初始化时应用城市筛选，解决重名问题
+    // 初始化时应用城市筛选
     applyCityFilter(); 
 
-    // URL Routing Handler (2 & 4. Routing & Isolation logic)
+    // URL Routing Handler
     handleRouting();
     
   } catch (e) {
@@ -47,26 +47,22 @@ async function init() {
   }
 }
 
-// 4. URL Routing Logic
+// URL Routing Logic
 function handleRouting() {
-  // Parsing standard query params or special ?= format
   const href = window.location.href;
   const searchParam = window.location.search;
   
   let qStart = "";
   let qSearch = "";
 
-  // 1. Check for standard ?start=... or ?q=...
   const params = new URLSearchParams(searchParam);
   if (params.get('start')) qStart = params.get('start');
   if (params.get('q') || params.get('search')) qSearch = params.get('q') || params.get('search');
 
-  // 2. Check for Requested Special Pattern: /bus/planning?=StartStation
   if (href.includes('planning?=')) {
     const parts = href.split('planning?=');
     if (parts[1]) qStart = decodeURIComponent(parts[1].split('&')[0]);
   }
-  // 3. Check for Requested Special Pattern: /bus/search?=LineName
   else if (href.includes('search?=')) {
     const parts = href.split('search?=');
     if (parts[1]) qSearch = decodeURIComponent(parts[1].split('&')[0]);
@@ -83,7 +79,6 @@ function handleRouting() {
   } else if (qStart) {
     document.getElementById('plan-start').value = qStart;
     switchView('planner');
-    // 如果有起点，尝试自动聚焦地区（如果能从起点推断更好，但目前按“选中地区”逻辑）
   }
 }
 
@@ -155,7 +150,7 @@ function populateStationDatalist() {
   const currentCity = appState.selectedCity;
 
   appState.lines.forEach(l => {
-    // 3. 严格隔离：只添加当前选中城市的站点
+    // 严格隔离：只添加当前选中城市的站点
     if (currentCity !== 'all' && l.city !== currentCity) return;
     
     l.stationsUp.forEach(s => allStations.add(s));
@@ -194,7 +189,7 @@ function checkDirectLine(lineA, lineB) {
   for (const pair of appState.directLines.manual) {
     if (pair.includes(lineA.name) && pair.includes(lineB.name)) return true;
   }
-  // 自动规则 (主线/支线 等)
+  // 自动规则
   for (const pair of appState.directLines.auto) {
      const nameA = lineA.name;
      const nameB = lineB.name;
@@ -216,7 +211,7 @@ function buildGraph(rule, limitCity) {
   const graph = {}; 
 
   appState.lines.forEach(line => {
-    // 3. 地区隔离：如果在规划时强制限制城市（基于起点或全局设置）
+    // 地区隔离
     if (limitCity && limitCity !== 'all' && line.city !== limitCity) return;
     
     if (rule === 'bus_only' && (line.isMetro || line.isRail)) return;
@@ -269,7 +264,7 @@ function checkOperatingTime(startTime, endTime) {
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   
   const parseTime = (t) => {
-    const [h, m] = t.split(/[:：]/).map(Number); // 兼容中文冒号
+    const [h, m] = t.split(/[:：]/).map(Number);
     return h * 60 + m;
   };
 
@@ -284,6 +279,14 @@ function checkOperatingTime(startTime, endTime) {
 
 /* 1. 全能规划逻辑 */
 async function findRoute() {
+  // --- 需求3：必须选择地区 ---
+  if (appState.selectedCity === 'all') {
+    showToast("请先点击右上角选择具体地区");
+    // 自动打开地区菜单
+    document.getElementById('filter-area-btn').click();
+    return;
+  }
+
   const startInput = document.getElementById('plan-start').value;
   const endInput = document.getElementById('plan-end').value;
   
@@ -315,7 +318,7 @@ async function findRoute() {
       allPaths.push(...paths);
     }
     
-    // 去重逻辑：基于路径LineID序列
+    // 去重逻辑
     const seen = new Set();
     finalResults = allPaths.filter(res => {
         const sig = res.path.map(p => `${p.lineId}-${p.direction}`).join('|');
@@ -333,7 +336,7 @@ async function findRoute() {
 }
 
 function runDijkstra(startId, endId, rule) {
-  // 3. 地区隔离：只构建当前选中城市的图
+  // 地区隔离：只构建当前选中城市的图
   const currentCity = appState.selectedCity;
   const graph = buildGraph(rule, currentCity);
 
@@ -369,22 +372,20 @@ function runDijkstra(startId, endId, rule) {
         if (lastStep.lineId !== edge.lineId) {
           isTransfer = true;
           
-          // 4. 直通与换乘判定逻辑
           const isDirect = checkDirectLine(lastStep.fullLine, edge.fullLine);
 
           if (isDirect) {
-             stepCost += 0; // 直通无代价
+             stepCost += 0;
              transferType = 'direct_continue';
           } else {
-             // 4. 公交 <-> 地铁 强制为出站换乘
              const isMixType = (lastStep.type === 'bus' && edge.type !== 'bus') || 
                                (lastStep.type !== 'bus' && edge.type === 'bus');
              
              if (isMixType) {
-                 stepCost += 25; // 出站换乘高代价
+                 stepCost += 25; 
                  transferType = 'out_station';
              } else {
-                 stepCost += 10; // 站内/同台换乘
+                 stepCost += 10;
                  transferType = 'same_station';
              }
           }
@@ -394,7 +395,6 @@ function runDijkstra(startId, endId, rule) {
       }
       
       const newCost = current.cost + stepCost;
-      // 存储 path 时把 transferType 记下来，以便压缩时使用
       const newPath = [...current.path, { ...edge, transferType: isTransfer ? transferType : 'none' }];
 
       if (newCost < (visited[edge.toNode] || Infinity) + 5) {
@@ -440,7 +440,7 @@ function compressPath(rawPath) {
         stopCount: 1,
         direction: step.direction,
         meta: step.fullLine,
-        transferType: step.transferType // 这是这一段开始时的换乘类型
+        transferType: step.transferType 
       };
     }
   });
@@ -609,7 +609,7 @@ function selectCity(city) {
   localStorage.setItem('bus_selected_city', city);
   document.getElementById('area-menu').classList.remove('open');
   document.getElementById('area-menu-backdrop').classList.remove('open');
-  // 3. 切换城市时，强制刷新数据和过滤器
+  // 切换城市时，强制刷新数据和过滤器
   applyCityFilter();
   renderHome();
 }
@@ -735,11 +735,8 @@ function renderPlannerResults(segmentsList) {
       ${i < segments.length - 1 ? '<span class="material-symbols-rounded step-arrow">arrow_forward</span>' : ''}
     `).join('');
     
-    // 2. 运营时间显示逻辑
-    const timeDisplay = isServiceActive 
-        ? `<div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>` 
-        : `<div class="plan-time-big" style="color:var(--md-sys-color-on-surface);opacity:0.6">-- <span style="font-size:14px">分钟</span></div>`;
-    
+    // --- 需求1：始终显示时间，但保留警告 ---
+    const timeDisplay = `<div class="plan-time-big">${totalTime} <span style="font-size:14px; font-weight:normal">分钟</span></div>`;
     const serviceWarning = !isServiceActive ? `<span class="out-of-service-text"> · 不在运营时段</span>` : ``;
 
     card.innerHTML = `
@@ -771,7 +768,7 @@ function openRouteModal(segments, time, isActive) {
   
   let html = `
     <div class="modal-summary">
-       ${isActive ? `<div class="ms-time">${time}分钟</div>` : `<div class="ms-time" style="color:var(--md-sys-color-on-surface-variant)">非运营</div>`}
+       <div class="ms-time">${time}分钟</div>
        <div class="ms-meta">共 ${segments.reduce((a,b)=>a+b.stopCount,0)} 站 ${!isActive?'<span class="out-of-service-text">不在运营时段</span>':''}</div>
     </div>
   `;
@@ -780,14 +777,6 @@ function openRouteModal(segments, time, isActive) {
     const isLast = idx === segments.length - 1;
     const color = seg.meta.color ? `#${seg.meta.color.slice(0,6)}` : '#006495';
     
-    // 获取下一段，用于判断直通方向
-    let nextDirHint = "";
-    if (!isLast && segments[idx+1].transferType === 'direct_continue') {
-        const nextSeg = segments[idx+1];
-        const nextDest = nextSeg.direction === 'up' ? nextSeg.meta.stationsUp[nextSeg.meta.stationsUp.length-1] : nextSeg.meta.stationsDown[nextSeg.meta.stationsDown.length-1];
-        nextDirHint = `<div class="step-sub-info" style="color:${color};font-weight:500;margin-top:4px">乘坐前往 ${nextDest} 方向的列车，无需下车</div>`;
-    }
-
     html += `
       <div class="step-card">
         <div class="step-left-line"></div>
@@ -810,41 +799,39 @@ function openRouteModal(segments, time, isActive) {
           <div class="step-sub-info">
             ${seg.stopCount} 站 · ${seg.meta.fare || '按段收费'}
           </div>
-          ${nextDirHint}
         </div>
       </div>
     `;
     
-    // 4. 换乘提示逻辑
+    // --- 需求4：直通线路使用统一UI显示 ---
     if (!isLast) {
       const nextSeg = segments[idx+1];
       const tType = nextSeg.transferType;
       
       let badgeIcon = 'transfer_within_a_station';
       let badgeText = '站内换乘';
-      let badgeStyle = '';
+      let badgeClass = '';
 
       if (tType === 'out_station') {
           badgeIcon = 'directions_walk';
           badgeText = '出站换乘 (需步行)';
       } else if (tType === 'direct_continue') {
-          badgeIcon = 'link';
-          badgeText = '直通运行';
-          badgeStyle = 'display:none'; // 视觉上隐藏gap，用上面的nextDirHint代替
+          // 直通模式 UI 统一
+          badgeIcon = 'link'; 
+          badgeText = '直通运行 (无需下车)';
+          badgeClass = 'direct-run'; // 对应 CSS 中的 .walk-badge.direct-run
       }
 
-      if (tType !== 'direct_continue') {
-        html += `
-            <div class="transfer-gap">
-            <div class="walk-badge" style="${badgeStyle}">
-                <span class="material-symbols-rounded" style="font-size:14px">
-                ${badgeIcon}
-                </span>
-                <span>${badgeText}</span>
-            </div>
-            </div>
-        `;
-      }
+      html += `
+        <div class="transfer-gap">
+          <div class="walk-badge ${badgeClass}">
+            <span class="material-symbols-rounded" style="font-size:14px">
+              ${badgeIcon}
+            </span>
+            <span>${badgeText}</span>
+          </div>
+        </div>
+      `;
     }
   });
 
@@ -890,10 +877,27 @@ function subscribePushReal() {
     showToast("浏览器不支持通知");
     return;
   }
+
+  // --- 需求2：构造详细通知内容 ---
+  let bodyStr = `从 ${currentSegments[0].startStation} 出发`;
+  currentSegments.forEach((seg, i) => {
+     bodyStr += ` -> ${seg.lineName}`;
+     // 如果不是最后一段，显示换乘站
+     if (i < currentSegments.length - 1) {
+         bodyStr += ` -> ${seg.endStation}`;
+     }
+  });
+  bodyStr += ` -> 到达 ${currentSegments[currentSegments.length-1].endStation}`;
+
   Notification.requestPermission().then(permission => {
     if (permission === 'granted') {
-       new Notification('行程已开启', { body: "我们会在您到达换乘站前提醒您" });
-       showToast("提醒已开启");
+       new Notification('行程提醒已开启', { 
+           body: bodyStr,
+           icon: '/icons/bus.png' // 可选，如果有图标的话
+       });
+       showToast("提醒已开启，请查看通知栏");
+    } else {
+       showToast("请允许通知权限以接收提醒");
     }
   });
 }
