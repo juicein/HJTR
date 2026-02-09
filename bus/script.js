@@ -803,7 +803,7 @@ function openRouteModal(segments, time, isActive) {
       </div>
     `;
     
-    // --- 需求4：直通线路使用统一UI显示 ---
+    // --- 需求4：直通线路使用统一UI显示，但包含特定文案 ---
     if (!isLast) {
       const nextSeg = segments[idx+1];
       const tType = nextSeg.transferType;
@@ -816,16 +816,21 @@ function openRouteModal(segments, time, isActive) {
           badgeIcon = 'directions_walk';
           badgeText = '出站换乘 (需步行)';
       } else if (tType === 'direct_continue') {
-          // 直通模式 UI 统一
-          badgeIcon = 'link'; 
-          badgeText = '直通运行 (无需下车)';
-          badgeClass = 'direct-run'; // 对应 CSS 中的 .walk-badge.direct-run
+          // 获取下一段线路的方向终点名称
+          const nextDirName = nextSeg.direction === 'up' 
+             ? nextSeg.meta.stationsUp[nextSeg.meta.stationsUp.length - 1] 
+             : nextSeg.meta.stationsDown[nextSeg.meta.stationsDown.length - 1];
+
+          // 直通模式 UI 逻辑
+          badgeIcon = 'train'; // 使用火车/车辆图标表示继续乘坐
+          badgeText = `乘坐前往 <strong>${nextDirName}</strong> 方向的列车，无需换乘，注意站台列车显示方向`;
+          badgeClass = 'direct-run'; 
       }
 
       html += `
         <div class="transfer-gap">
           <div class="walk-badge ${badgeClass}">
-            <span class="material-symbols-rounded" style="font-size:14px">
+            <span class="material-symbols-rounded" style="font-size:18px; flex-shrink:0;">
               ${badgeIcon}
             </span>
             <span>${badgeText}</span>
