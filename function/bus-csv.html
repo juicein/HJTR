@@ -19,139 +19,211 @@ body{
   font-family:system-ui,-apple-system;
   background:var(--md-surface);
 }
-header{padding:20px;font-size:22px;font-weight:600;}
+header{
+  padding:20px;
+  font-size:22px;
+  font-weight:600;
+}
 .card{
-  margin:16px;padding:16px;border-radius:16px;
-  background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.1);
+  margin:16px;
+  padding:16px;
+  border-radius:var(--md-radius);
+  background:#fff;
+  box-shadow:0 1px 6px rgba(0,0,0,.1);
 }
 select,button,input,textarea{
-  width:100%;margin-top:10px;padding:12px;
-  border-radius:12px;border:1px solid var(--md-outline);
+  width:100%;
+  margin-top:10px;
+  padding:12px;
+  border-radius:12px;
+  border:1px solid var(--md-outline);
 }
-button{background:var(--md-primary);color:#fff;border:none;}
-button.secondary{background:#E8DEF8;color:#21005D;}
-textarea{height:180px;font-family:monospace;}
-pre{background:#f6f6f6;padding:10px;border-radius:12px;white-space:pre-wrap;}
+button{
+  background:var(--md-primary);
+  color:#fff;
+  border:none;
+}
+button.secondary{
+  background:#E8DEF8;
+  color:#21005D;
+}
+textarea{
+  height:200px;
+  font-family:monospace;
+}
+.row{
+  display:flex;
+  gap:10px;
+}
+.row button{flex:1}
+#error{
+  color:red;
+  margin-top:10px;
+}
 </style>
 </head>
 
 <body>
-<header>🚌 公交 / 轨道 数据双向转换器（稳定版）</header>
+<header>🚌 公交 / 轨道 数据双向转换器</header>
 
 <div class="card">
-<b>① 选择地区</b>
-<select id="areaSelect"></select>
-<button onclick="exportExcel()">导出 Excel</button>
-<button onclick="exportCSV()">导出 CSV</button>
+  <b>① 选择地区</b>
+  <select id="areaSelect"></select>
+  <div class="row">
+    <button onclick="exportCSV()">导出 CSV</button>
+    <button onclick="exportExcel()">导出 Excel</button>
+  </div>
 </div>
 
 <div class="card">
-<b>② 导入 CSV / Excel</b>
-<input type="file" accept=".csv,.xlsx" onchange="importFile(this.files[0])">
+  <b>② 导入 CSV / Excel</b>
+  <input type="file" accept=".csv,.xlsx" onchange="importFile(this.files[0])">
+  <div id="error"></div>
 </div>
 
 <div class="card">
-<b>③ 转换结果</b>
-<textarea id="output"></textarea>
-<button class="secondary" onclick="copyText()">复制</button>
-<button class="secondary" onclick="downloadTXT()">导出 TXT</button>
-</div>
-
-<div class="card">
-<b>⚠ 解析日志</b>
-<pre id="log"></pre>
+  <b>③ 转换结果</b>
+  <textarea id="output"></textarea>
+  <div class="row">
+    <button class="secondary" onclick="copyText()">复制</button>
+    <button class="secondary" onclick="downloadTXT()">导出 TXT</button>
+  </div>
 </div>
 
 <script>
-let parsed = [];
+let parsed=[];
 
-/* ===== 读取原始数据 ===== */
-fetch('../data/bus_data.txt').then(r=>r.text()).then(t=>{
-  t.split(/\n+/).forEach(l=>{
-    const area = l.match(/『(.+?)』/)?.[1];
-    if(area) parsed.push({area});
+/* ===== 读取原始数据库 ===== */
+fetch('data/bus_data.txt')
+.then(r=>r.text())
+.then(t=>{
+  const lines=t.split(/\n+/).filter(l=>l.trim());
+  const areas=new Set();
+
+  lines.forEach(l=>{
+    const area=l.match(/『(.+?)』/)?.[1]||'未知';
+    areas.add(area);
   });
-  areaSelect.innerHTML = [...new Set(parsed.map(p=>p.area))]
-    .map(a=>`<option>${a}</option>`).join('');
+
+  areaSelect.innerHTML=[...areas].map(a=>`<option>${a}</option>`).join('');
 });
 
-/* ===== 导入分流 ===== */
-function importFile(file){
-  log.textContent='';
-  if(file.name.endsWith('.xlsx')) importExcel(file);
-  else if(file.name.endsWith('.csv')) importCSV(file);
-  else log.textContent='不支持的文件类型';
+/* ===== 导出 CSV ===== */
+function exportCSV(){
+  const area=areaSelect.value;
+  let csv='line,stations,company,price,area,type,start_time,end_time,color\n';
+  parsed.filter(p=>p.area===area).forEach(p=>{
+    csv+=`${Object.values(p).map(v=>`"${v||''}"`).join(',')}\n`;
+  });
+  download(csv,`bus_${area}.csv`,'text/csv');
 }
 
-/* ===== CSV（UTF-8 / GBK 自动） ===== */
+/* ===== 导出 Excel ===== */
+function exportExcel(){
+  const area=areaSelect.value;
+  const rows=[['line','stations','company','price','area','type','start_time','end_time','color']];
+  parsed.filter(p=>p.area===area).forEach(p=>{
+    rows.push(Object.values(p));
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'data');
+  XLSX.writeFile(wb,`bus_${area}.xlsx`);
+}
+
+/* ===== 导入入口 ===== */
+function importFile(file){
+  error.textContent='';
+  if(file.name.endsWith('.xlsx')){
+    importExcel(file);
+  }else if(file.name.endsWith('.csv')){
+    importCSV(file);
+  }else{
+    error.textContent='❌ 不支持的文件类型';
+  }
+}
+
+/* ===== Excel 转 CSV 再解析 ===== */
+function importExcel(file){
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array'});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+    parseTable(rows);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* ===== CSV 解析 ===== */
 function importCSV(file){
-  const reader = new FileReader();
-  reader.onload = () => {
-    let text = reader.result;
-    if(text.includes('�')){ logLine('检测到乱码，尝试 GBK 解码'); }
-    parseTable(parseCSV(text));
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const rows=e.target.result.split('\n')
+      .map(r=>r.split(',').map(c=>c.replace(/^"|"$/g,'')));
+    parseTable(rows);
   };
   reader.readAsText(file,'utf-8');
 }
 
-/* ===== Excel ===== */
-function importExcel(file){
-  const r = new FileReader();
-  r.onload = e => {
-    const wb = XLSX.read(new Uint8Array(e.target.result),{type:'array'});
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    parseTable(XLSX.utils.sheet_to_json(ws));
-  };
-  r.readAsArrayBuffer(file);
-}
-
-/* ===== CSV → 对象数组 ===== */
-function parseCSV(text){
-  const lines = text.replace(/\r/g,'').split('\n');
-  const headers = lines.shift().split(',');
-  return lines.map(l=>{
-    const cols = l.split(',');
-    const obj={};
-    headers.forEach((h,i)=>obj[h.trim()]=cols[i]?.trim());
-    return obj;
-  });
-}
-
-/* ===== 表格 → 原始格式 ===== */
+/* ===== 核心解析（容错） ===== */
 function parseTable(rows){
-  let out='';
-  rows.forEach((r,i)=>{
-    if(!r.line || !r.area){
-      logLine(`第 ${i+2} 行缺少 line / area，已跳过`);
+  if(!rows.length){ error.textContent='❌ 文件为空'; return; }
+
+  const header=rows[0].map(h=>h.trim().toLowerCase());
+
+  const required=['line','stations','company','area'];
+  for(let r of required){
+    if(!header.includes(r)){
+      error.textContent=`❌ 缺少必要字段：${r}`;
       return;
     }
-    let txt=`【${r.line}】${r.stations||''}-{${r.company||''}}《${r.price||''}》『${r.area}』`;
-    if(r.type && r.type!=='公交') txt+=`θ${r.type}θ`;
-    txt+=`§${r.start_time||''}§@${r.end_time||''}@`;
-    if(r.color) txt+=`∮${r.color}∮`;
-    out+=txt+'\n';
+  }
+
+  const index={};
+  header.forEach((h,i)=>index[h]=i);
+
+  parsed=[];
+  let outputText='';
+
+  rows.slice(1).forEach((row,i)=>{
+    if(!row || row.every(c=>!c.trim())) return;
+
+    const get=k=>row[index[k]]?.trim()||'';
+
+    const obj={
+      line:get('line'),
+      stations:get('stations'),
+      company:get('company'),
+      price:get('price'),
+      area:get('area'),
+      type:get('type')||'公交',
+      start_time:get('start_time'),
+      end_time:get('end_time'),
+      color:get('color')
+    };
+
+    parsed.push(obj);
+
+    let txt=`【${obj.line}】${obj.stations}-{${obj.company}}《${obj.price}》『${obj.area}』`;
+    if(obj.type && obj.type!=='公交') txt+=`θ${obj.type}θ`;
+    txt+=`§${obj.start_time}§@${obj.end_time}@`;
+    if(obj.color) txt+=`∮${obj.color}∮`;
+
+    outputText+=txt+'\n';
   });
-  output.value=out;
+
+  output.value=outputText;
 }
 
-/* ===== 导出 ===== */
-function exportCSV(){
-  download(output.value,'bus.csv','text/plain');
-}
-function exportExcel(){
-  const wb=XLSX.utils.book_new();
-  const ws=XLSX.utils.aoa_to_sheet([['原始数据'],[output.value]]);
-  XLSX.utils.book_append_sheet(wb,ws,'data');
-  XLSX.writeFile(wb,'bus.xlsx');
-}
-
-function logLine(t){ log.textContent+=t+'\n'; }
-function copyText(){ navigator.clipboard.writeText(output.value); }
-function downloadTXT(){ download(output.value,'bus.txt','text/plain'); }
+/* ===== 工具 ===== */
+function copyText(){navigator.clipboard.writeText(output.value);}
+function downloadTXT(){download(output.value,'bus_converted.txt','text/plain');}
 function download(data,name,type){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([data],{type}));
-  a.download=name;a.click();
+  a.download=name;
+  a.click();
 }
 </script>
 </body>
