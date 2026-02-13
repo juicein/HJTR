@@ -94,7 +94,7 @@ textarea{
 let parsed=[];
 
 /* ===== 读取原始数据库 ===== */
-fetch('data/bus_data.txt')
+fetch('../data/bus_data.txt')
 .then(r=>r.text())
 .then(t=>{
   const lines=t.split(/\n+/).filter(l=>l.trim());
