@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>HJTR 公交管理系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{
+  font-family:Roboto;
+  background:#f5f5f5;
+  margin:0;
+  padding:20px;
+}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom:20px;
+}
+input,select{
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #ccc;
+  margin:5px 0;
+  width:100%;
+}
+button{
+  background:#6750A4;
+  color:white;
+  border:none;
+  padding:8px 16px;
+  border-radius:20px;
+  cursor:pointer;
+}
+button:hover{
+  opacity:0.9;
+}
+.lineCard{
+  margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>公司登录</h2>
+<input id="company" placeholder="公司名">
+<input id="password" type="password" placeholder="密码">
+<button onclick="login()">登录</button>
+</div>
+
+<div id="panel" style="display:none;">
+
+<div class="card">
+<h3>线路管理</h3>
+<button onclick="createLine()">新增线路</button>
+<div id="lines"></div>
+<button onclick="save()">保存修改</button>
+</div>
+
+</div>
+
+<script>
+
+const WORKER_URL = "替换为你的workers地址";
+
+const companyConfig = {
+  "北方公交": "123456",
+  "西部公汽": "654321",
+  "北联国铁": "999999"
+};
+
+let currentCompany = "";
+let rawLines = [];
+let parsedLines = [];
+
+async function login(){
+  const c = company.value;
+  const p = password.value;
+
+  if(companyConfig[c] !== p){
+    alert("密码错误");
+    return;
+  }
+
+  currentCompany = c;
+  panel.style.display="block";
+
+  const res = await fetch("data/bus_data.txt");
+  const text = await res.text();
+  rawLines = text.split("\n").filter(l=>l.trim());
+
+  parseAll();
+  render();
+}
+
+function parseLine(line){
+  return {
+    name: line.match(/【(.*?)】/)?.[1]||"",
+    stops: line.match(/】(.*?)-\{/)?.
+      [1]?.split("-").filter(s=>s)||[],
+    company: line.match(/\{(.*?)\}/)?.[1]||"",
+    price: line.match(/《(.*?)》/)?.[1]||"",
+    area: line.match(/『(.*?)』/)?.[1]||"",
+    type: line.match(/θ(.*?)θ/)?.[1]||"",
+    start: line.match(/§(.*?)§/)?.[1]||"",
+    end: line.match(/@(.*?)@/)?.[1]||"",
+    color: line.match(/∮(.*?)∮/)?.[1]||""
+  }
+}
+
+function buildLine(data){
+  return `【${data.name}】${data.stops.join("-")}-`+
+    `{${data.company}}《${data.price}》『${data.area}』`+
+    (data.type?`θ${data.type}θ`:"")+
+    `§${data.start}§@${data.end}@`+
+    (data.color?`∮${data.color}∮`:"");
+}
+
+function parseAll(){
+  parsedLines = rawLines.map(parseLine)
+    .filter(l=>l.company===currentCompany);
+}
+
+function render(){
+  lines.innerHTML="";
+  parsedLines.forEach((line,i)=>{
+    const div=document.createElement("div");
+    div.className="card lineCard";
+
+    div.innerHTML=`
+      <b>${line.name}</b>
+      <input value="${line.name}" onchange="parsedLines[${i}].name=this.value">
+      <textarea rows=3 onchange="updateStops(${i},this.value)">
+${line.stops.join("-")}
+      </textarea>
+      <input value="${line.price}" placeholder="票价" onchange="parsedLines[${i}].price=this.value">
+      <input value="${line.area}" placeholder="区域" onchange="parsedLines[${i}].area=this.value">
+      <input value="${line.type}" placeholder="类型(如地铁)" onchange="parsedLines[${i}].type=this.value">
+      <input value="${line.start}" placeholder="首班时间" onchange="parsedLines[${i}].start=this.value">
+      <input value="${line.end}" placeholder="末班时间" onchange="parsedLines[${i}].end=this.value">
+      <input value="${line.color}" placeholder="颜色HEX" onchange="parsedLines[${i}].color=this.value">
+      <button onclick="deleteLine(${i})">删除</button>
+    `;
+    lines.appendChild(div);
+  });
+}
+
+function updateStops(i,val){
+  parsedLines[i].stops = val.split("-").filter(s=>s.trim());
+}
+
+function deleteLine(i){
+  parsedLines.splice(i,1);
+  render();
+}
+
+function createLine(){
+  parsedLines.push({
+    name:"",
+    stops:[],
+    company:currentCompany,
+    price:"",
+    area:"",
+    type:"",
+    start:"",
+    end:"",
+    color:""
+  });
+  render();
+}
+
+async function save(){
+  const otherLines = rawLines.filter(l=>{
+    const c = l.match(/\{(.*?)\}/)?.[1];
+    return c!==currentCompany;
+  });
+
+  const newLines = parsedLines.map(buildLine);
+  const finalText = [...otherLines,...newLines].join("\n");
+
+  await fetch(WORKER_URL,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({
+      content:finalText,
+      company:currentCompany,
+      action:"可视化编辑"
+    })
+  });
+
+  alert("保存成功！");
+}
+
+</script>
+</body>
+</html>
