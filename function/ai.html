@@ -163,8 +163,8 @@ function analyze() {
   let rawScore = (lengthScore * 0.4 + sentenceCount * 0.01 + repetition * 5);
 
   // 强制限定在 80–95%
-  let aiRate = Math.floor(0 + (rawScore % 1) * 15);
-  if (aiRate > 25) aiRate = 15;
+  let aiRate = Math.floor(70+ (rawScore % 1) * 15);
+  if (aiRate > 100) aiRate = 99.15;
 
   document.getElementById("rate").innerText = aiRate + "%";
   document.getElementById("result").style.display = "block";
