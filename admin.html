@@ -2,171 +2,174 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>HJTR Bus CMS</title>
+<title>HJTR 公交管理系统</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 <style>
 body{
-  font-family:Roboto;
-  background:#f5f5f5;
   margin:0;
-  padding:20px;
+  font-family:Roboto;
+  background:#f4efff;
+}
+.header{
+  background:#6750A4;
+  color:white;
+  padding:16px;
+  font-size:20px;
 }
 .card{
   background:white;
-  border-radius:24px;
-  padding:24px;
-  margin-bottom:20px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.08);
-}
-input,textarea{
-  width:100%;
-  padding:10px;
-  margin:6px 0;
-  border-radius:12px;
-  border:1px solid #ccc;
+  margin:16px;
+  padding:16px;
+  border-radius:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.08);
 }
 button{
   background:#6750A4;
   color:white;
   border:none;
-  padding:10px 18px;
-  border-radius:24px;
+  padding:8px 16px;
+  border-radius:20px;
   cursor:pointer;
 }
-button:hover{opacity:0.9;}
+input,select,textarea{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+  border-radius:12px;
+  border:1px solid #ccc;
+}
+.lineCard{
+  border:1px solid #eee;
+  border-radius:16px;
+  padding:12px;
+  margin-top:12px;
+}
+.logo{
+  width:32px;
+  vertical-align:middle;
+  margin-right:8px;
+}
 </style>
 </head>
 <body>
 
+<div class="header">HJTR 公交管理系统</div>
+
 <div class="card">
-<h2>公司登录</h2>
-<input id="company" placeholder="公司名">
+<h3>登录</h3>
+
+<select id="companySelect"></select>
+<input id="companyInput" placeholder="或手动输入公司名">
 <input id="password" type="password" placeholder="密码">
 <button onclick="login()">登录</button>
 </div>
 
-<div id="panel" style="display:none;">
-<div class="card">
-<h3>线路管理</h3>
-<button onclick="createLine()">新增线路</button>
-<div id="lines"></div>
-<button onclick="save()">保存修改</button>
-</div>
-</div>
+<div id="panel" style="display:none"></div>
 
 <script>
 
-const API="orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
+const WORKER_URL="orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
-let session="";
 let currentCompany="";
-let allLines=[];
-let parsed=[];
+let passwordValue="";
+let rawText="";
+let lines=[];
+let logos={};
+
+async function loadCompanies(){
+  const res=await fetch("../data/logos_company.json");
+  logos=await res.json();
+
+  const select=document.getElementById("companySelect");
+  select.innerHTML="<option value=''>选择公司</option>";
+
+  Object.keys(logos).forEach(name=>{
+    select.innerHTML+=`<option value="${name}">${name}</option>`;
+  });
+}
+
+loadCompanies();
 
 async function login(){
-  const res=await fetch(API+"/login",{
+  const selected=companySelect.value;
+  const manual=companyInput.value.trim();
+
+  currentCompany=manual||selected;
+  passwordValue=password.value;
+
+  const res=await fetch(WORKER_URL,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      company:company.value,
-      password:password.value
+      action:"getData",
+      company:currentCompany,
+      password:passwordValue
     })
   });
-  const data=await res.json();
-  if(!data.success){alert("登录失败");return;}
-  session=data.session;
-  currentCompany=company.value;
-  panel.style.display="block";
-  loadData();
-}
 
-async function loadData(){
-  const res=await fetch("data/bus_data.txt");
-  const text=await res.text();
-  allLines=text.split("\n").filter(l=>l.trim());
-  parsed=allLines.map(parseLine)
-    .filter(l=>l.company===currentCompany);
+  if(res.status!==200){
+    alert("认证失败");
+    return;
+  }
+
+  const data=await res.json();
+  rawText=data.text;
+  parseData();
   render();
 }
 
-function parseLine(line){
-  return{
-    name:line.match(/【(.*?)】/)?.[1]||"",
-    stops:line.match(/】(.*?)-\{/)?.
-      [1]?.split("-").filter(s=>s)||[],
-    company:line.match(/\{(.*?)\}/)?.[1]||"",
-    price:line.match(/《(.*?)》/)?.[1]||"",
-    area:line.match(/『(.*?)』/)?.[1]||"",
-    type:line.match(/θ(.*?)θ/)?.[1]||"",
-    start:line.match(/§(.*?)§/)?.[1]||"",
-    end:line.match(/@(.*?)@/)?.[1]||"",
-    color:line.match(/∮(.*?)∮/)?.[1]||""
-  }
-}
-
-function buildLine(d){
-  return `【${d.name}】${d.stops.join("-")}-`+
-    `{${d.company}}《${d.price}》『${d.area}』`+
-    (d.type?`θ${d.type}θ`:"")+
-    `§${d.start}§@${d.end}@`+
-    (d.color?`∮${d.color}∮`:"");
+function parseData(){
+  lines=rawText.split("\n").filter(l=>{
+    return l.includes(`{${currentCompany}}`);
+  });
 }
 
 function render(){
-  lines.innerHTML="";
-  parsed.forEach((l,i)=>{
-    const div=document.createElement("div");
-    div.className="card";
-    div.innerHTML=`
-      <input value="${l.name}" onchange="parsed[${i}].name=this.value">
-      <textarea rows=3 onchange="parsed[${i}].stops=this.value.split('-')">
-${l.stops.join("-")}
-      </textarea>
-      <input value="${l.price}" onchange="parsed[${i}].price=this.value">
-      <input value="${l.area}" onchange="parsed[${i}].area=this.value">
-      <input value="${l.type}" onchange="parsed[${i}].type=this.value">
-      <input value="${l.start}" onchange="parsed[${i}].start=this.value">
-      <input value="${l.end}" onchange="parsed[${i}].end=this.value">
-      <input value="${l.color}" onchange="parsed[${i}].color=this.value">
-      <button onclick="parsed.splice(${i},1);render()">删除</button>
+  panel.style.display="block";
+  panel.innerHTML="";
+
+  lines.forEach((line,i)=>{
+    panel.innerHTML+=`
+      <div class="card lineCard">
+      <b>${line.match(/【(.*?)】/)?.[1]}</b>
+      <textarea onchange="updateLine(${i},this.value)">${line}</textarea>
+      <button onclick="deleteLine(${i})">删除</button>
+      </div>
     `;
-    lines.appendChild(div);
   });
+
+  panel.innerHTML+=`<button onclick="save()">保存全部</button>`;
 }
 
-function createLine(){
-  parsed.push({
-    name:"",
-    stops:[],
-    company:currentCompany,
-    price:"",
-    area:"",
-    type:"",
-    start:"",
-    end:"",
-    color:""
-  });
+function updateLine(i,val){
+  lines[i]=val;
+}
+
+function deleteLine(i){
+  lines.splice(i,1);
   render();
 }
 
 async function save(){
-  const others=allLines.filter(l=>{
-    const c=l.match(/\{(.*?)\}/)?.[1];
-    return c!==currentCompany;
-  });
-  const newLines=parsed.map(buildLine);
-  const final=[...others,...newLines].join("\n");
 
-  await fetch(API+"/save",{
+  const other=rawText.split("\n").filter(l=>{
+    return !l.includes(`{${currentCompany}}`);
+  });
+
+  const finalText=[...other,...lines].join("\n");
+
+  await fetch(WORKER_URL,{
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body:JSON.stringify({
-      session,
-      content:final
+      action:"save",
+      company:currentCompany,
+      password:passwordValue,
+      content:finalText
     })
   });
 
-  alert("保存成功");
+  alert("保存成功！");
 }
 
 </script>
