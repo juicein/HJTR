@@ -2,238 +2,163 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HJTR 公交管理系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HJTR 管理后台</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 
 <style>
 body{
   margin:0;
-  font-family:Roboto;
-  background:#f4efff;
+  font-family:Roboto,sans-serif;
+  background:#f4f6fb;
 }
-
-.header{
+header{
   background:#6750A4;
   color:white;
-  padding:16px;
+  padding:20px;
   font-size:20px;
-  font-weight:500;
 }
-
+.container{
+  padding:20px;
+  max-width:900px;
+  margin:auto;
+}
 .card{
   background:white;
-  margin:16px;
-  padding:16px;
-  border-radius:20px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.08);
+  border-radius:16px;
+  padding:20px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  margin-bottom:20px;
 }
-
+input, select, button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  border-radius:12px;
+  border:1px solid #ccc;
+  font-size:14px;
+}
 button{
   background:#6750A4;
   color:white;
   border:none;
-  padding:10px 18px;
-  border-radius:24px;
   cursor:pointer;
-  font-weight:500;
 }
-
-button:hover{
-  opacity:0.9;
+.station-item{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
 }
-
-input,select,textarea{
-  width:100%;
-  padding:10px;
-  margin:8px 0;
-  border-radius:14px;
-  border:1px solid #ddd;
-  font-size:14px;
-}
-
-textarea{
-  min-height:90px;
-}
-
-.lineCard{
-  border:1px solid #eee;
-  border-radius:16px;
-  padding:14px;
-  margin-top:14px;
-}
-
-.logo{
-  width:28px;
-  vertical-align:middle;
-  margin-right:8px;
+.station-item input{
+  flex:1;
 }
 </style>
 </head>
 
 <body>
 
-<div class="header">HJTR 公交管理后台</div>
+<header>HJTR 后台管理</header>
+
+<div class="container">
 
 <div class="card">
-<h3>公司登录</h3>
-
-<select id="companySelect"></select>
-
-<input id="companyManual" placeholder="或手动输入公司名称">
-
-<input id="password" type="password" placeholder="输入公司密码">
-
+<h3>登录</h3>
+<input type="password" id="password" placeholder="输入后台密码">
 <button onclick="login()">登录</button>
-
-<div id="loginStatus"></div>
 </div>
 
-<div id="panel" style="display:none"></div>
+<div class="card" id="editor" style="display:none;">
+<h3>新增线路</h3>
+
+<input id="lineName" placeholder="线路名称">
+
+<select id="companySelect"></select>
+<input id="companyManual" placeholder="或手动输入公司名称">
+
+<div id="stations"></div>
+<button onclick="addStation()">添加站点</button>
+
+<button onclick="submitData()">提交到 GitHub</button>
+
+</div>
+
+</div>
 
 <script>
+const WORKER_URL="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev/";
 
-const WORKER_URL = "https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
-
-let currentCompany = "";
-let currentPassword = "";
-let rawText = "";
-let companyLines = [];
-let logos = {};
+let logos={};
 
 async function loadCompanies(){
-  const res = await fetch("../data/logos_company.json");
-  logos = await res.json();
-
-  const select = document.getElementById("companySelect");
-  select.innerHTML = "<option value=''>请选择公司</option>";
-
+  const res=await fetch("../data/logos_company.json");
+  logos=await res.json();
+  const select=document.getElementById("companySelect");
+  select.innerHTML="";
   Object.keys(logos).forEach(name=>{
-    select.innerHTML += `<option value="${name}">${name}</option>`;
+    const option=document.createElement("option");
+    option.value=name;
+    option.textContent=name;
+    select.appendChild(option);
   });
+}
+
+function login(){
+  const pwd=document.getElementById("password").value;
+  if(!pwd){alert("请输入密码");return;}
+  document.getElementById("editor").style.display="block";
+}
+
+function addStation(){
+  const div=document.createElement("div");
+  div.className="station-item";
+  div.innerHTML=`<input placeholder="站点名称">`;
+  document.getElementById("stations").appendChild(div);
+}
+
+async function submitData(){
+
+  const password=document.getElementById("password").value;
+
+  const lineName=document.getElementById("lineName").value;
+
+  const companyManual=document.getElementById("companyManual").value;
+  const companySelect=document.getElementById("companySelect").value;
+
+  const company=companyManual||companySelect;
+
+  const stations=[...document.querySelectorAll(".station-item input")]
+      .map(i=>i.value)
+      .filter(v=>v);
+
+  const data={
+    name:lineName,
+    company:company,
+    logo:logos[company]||"",
+    stations:stations
+  };
+
+  const res=await fetch(WORKER_URL,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body:JSON.stringify({
+      password:password,
+      data:data
+    })
+  });
+
+  const result=await res.json();
+
+  if(result.success){
+    alert("提交成功！");
+  }else{
+    alert("错误："+JSON.stringify(result));
+  }
 }
 
 loadCompanies();
-
-async function login(){
-
-  const selected = document.getElementById("companySelect").value.trim();
-  const manual = document.getElementById("companyManual").value.trim();
-
-  currentCompany = manual || selected;
-  currentPassword = document.getElementById("password").value;
-
-  if(!currentCompany || !currentPassword){
-    alert("请输入公司名和密码");
-    return;
-  }
-
-  document.getElementById("loginStatus").innerText="登录中...";
-
-  const res = await fetch(WORKER_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      action:"getData",
-      company:currentCompany,
-      password:currentPassword
-    })
-  });
-
-  const data = await res.json();
-
-  if(!res.ok){
-    document.getElementById("loginStatus").innerText = data.error || "登录失败";
-    return;
-  }
-
-  rawText = data.text;
-  parseCompanyLines();
-  renderPanel();
-  document.getElementById("loginStatus").innerText="登录成功";
-}
-
-function parseCompanyLines(){
-  const all = rawText.split("\n").filter(l=>l.trim());
-  companyLines = all.filter(l=>l.includes(`{${currentCompany}}`));
-}
-
-function renderPanel(){
-
-  const panel = document.getElementById("panel");
-  panel.style.display="block";
-  panel.innerHTML="";
-
-  const logoUrl = logos[currentCompany] || "";
-
-  panel.innerHTML += `
-  <div class="card">
-  <h3>${logoUrl?`< img src="${logoUrl}" class="logo">`:''}${currentCompany}</h3>
-  <button onclick="addLine()">新增线路</button>
-  </div>
-  `;
-
-  companyLines.forEach((line,i)=>{
-    panel.innerHTML += `
-    <div class="card lineCard">
-      <textarea onchange="updateLine(${i},this.value)">${line}</textarea>
-      <button onclick="deleteLine(${i})">删除</button>
-    </div>
-    `;
-  });
-
-  panel.innerHTML += `
-  <div class="card">
-    <button onclick="saveAll()">保存全部修改</button>
-  </div>
-  `;
-}
-
-function updateLine(index,value){
-  companyLines[index]=value;
-}
-
-function deleteLine(index){
-  companyLines.splice(index,1);
-  renderPanel();
-}
-
-function addLine(){
-  const example = `【新线路】站点1-站点2-站点3-{${currentCompany}}《票价》『区域』§6:00§@22:00@`;
-  companyLines.push(example);
-  renderPanel();
-}
-
-async function saveAll(){
-
-  const all = rawText.split("\n").filter(l=>{
-    return !l.includes(`{${currentCompany}}`);
-  });
-
-  const finalText = [...all,...companyLines].join("\n");
-
-  const res = await fetch(WORKER_URL,{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      action:"save",
-      company:currentCompany,
-      password:currentPassword,
-      content:finalText
-    })
-  });
-
-  const data = await res.json();
-
-  if(!res.ok){
-    alert("保存失败："+(data.error||"未知错误"));
-    return;
-  }
-
-  alert("保存成功！");
-}
-
 </script>
 
 </body>
