@@ -1,189 +1,157 @@
-<!DOCTYPE html>
-<html>
+ <!DOCTYPE html>
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>公交管理系统</title>
+<title>公交数据管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-
 <style>
-body{
-  font-family: Roboto;
-  margin:0;
-  background:#f3f6fb;
-}
-
-.topbar{
-  background:#6750A4;
-  color:white;
-  padding:16px;
-  font-size:20px;
-}
-
+:root{--p:#6750A4;}
+body{margin:0;font-family:system-ui;background:#f4f7fb;}
+header{background:var(--p);color:#fff;padding:16px;font-size:20px;}
+main{max-width:1200px;margin:20px auto;padding:0 16px;}
 .card{
-  background:white;
-  margin:16px;
+  background:#fff;
   padding:16px;
-  border-radius:16px;
-  box-shadow:0 2px 6px rgba(0,0,0,.1);
+  border-radius:14px;
+  margin-bottom:14px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
 }
-
+.station{display:flex;gap:6px;margin-bottom:6px;}
+input{padding:6px;border-radius:6px;border:1px solid #ccc;}
 button{
-  background:#6750A4;
-  color:white;
+  background:var(--p);
+  color:#fff;
   border:none;
-  padding:8px 14px;
-  border-radius:20px;
-  margin:4px;
+  padding:6px 12px;
+  border-radius:6px;
+  cursor:pointer;
 }
-
-input{
-  padding:8px;
-  margin:6px 0;
-  width:100%;
-}
-.station{
-  display:flex;
-  margin:6px 0;
-}
-.station input{
-  flex:1;
-}
-.station button{
-  background:#B3261E;
-}
+.red{background:#B3261E;}
 </style>
 </head>
 
 <body>
 
-<div class="topbar">公交数据管理</div>
+<header>公交数据管理系统</header>
 
-<div class="card" id="loginBox">
-  <h3>登录</h3>
-  <input id="name" placeholder="公司 / SUPER_ADMIN / REGION_北联">
-  <input id="pass" type="password" placeholder="密码">
-  <button onclick="login()">登录</button>
-</div>
+<main>
 
-<div id="main" style="display:none"></div>
+<button onclick="login()">登录</button>
+<button onclick="addLine()">新增线路</button>
+<button onclick="save()">保存全部</button>
+<div id="status"></div>
+<hr>
+
+<div id="container"></div>
+
+</main>
 
 <script>
 
-const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev"
+const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
-let RAW=""
-let CURRENT=""
-let LINES=[]
+let PASSWORD="";
+let ROLE="";
+let ALL=[];
+let ORIGINAL="";
 
-async function login(){
-  const r=await fetch(API+"/login",{
+function login(){
+  const p=prompt("输入密码");
+  if(!p) return;
+  PASSWORD=p;
+  load();
+}
+
+async function load(){
+  const res=await fetch(API);
+  ORIGINAL=await res.text();
+  ALL=ORIGINAL.split("\n").filter(x=>x.trim());
+  render();
+}
+
+function getCompany(l){return l.match(/\{(.*?)\}/)?.[1]||"";}
+function getRegion(l){return l.match(/『(.*?)』/)?.[1]||"";}
+
+function render(){
+  container.innerHTML="";
+
+  ALL.forEach((line,i)=>{
+
+    const card=document.createElement("div");
+    card.className="card";
+
+    const title=line.match(/【(.*?)】/)?.[1]||"";
+    const company=getCompany(line);
+    const region=getRegion(line);
+
+    card.innerHTML=`<b>${title}</b><br>
+    公司: ${company} ｜ 地区: ${region}<hr>`;
+
+    const stations=line.split("】")[1].split("-{")[0].split("-");
+
+    stations.forEach((s,j)=>{
+      const row=document.createElement("div");
+      row.className="station";
+      row.innerHTML=`
+        <input value="${s}">
+        <button class="red">X</button>
+      `;
+      row.querySelector("button").onclick=()=>{
+        stations.splice(j,1);
+        updateLine(i,stations);
+      };
+      card.appendChild(row);
+    });
+
+    const add=document.createElement("button");
+    add.innerText="添加站点";
+    add.onclick=()=>{
+      stations.push("新站点");
+      updateLine(i,stations);
+    };
+
+    const del=document.createElement("button");
+    del.className="red";
+    del.innerText="删除线路";
+    del.onclick=()=>{
+      ALL.splice(i,1);
+      render();
+    };
+
+    card.appendChild(add);
+    card.appendChild(del);
+
+    container.appendChild(card);
+  });
+}
+
+function updateLine(i,stations){
+  const orig=ALL[i];
+  const head=orig.split("】")[0]+"】";
+  const tail=orig.split("-{")[1];
+  ALL[i]=head+stations.join("-")+"-{"+tail;
+  render();
+}
+
+function addLine(){
+  const newLine="【新线路】起点-终点-{公司名}《》『地区』§6:00§@22:00@";
+  ALL.push(newLine);
+  render();
+}
+
+async function save(){
+  status.innerText="保存中...";
+  const res=await fetch(API,{
     method:"POST",
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      name:name.value,
-      password:pass.value
+      content:ALL.join("\n"),
+      password:PASSWORD
     })
-  })
-  if(await r.text()=="ok"){
-    CURRENT=name.value
-    loginBox.style.display="none"
-    loadData()
-  }else alert("密码错误")
-}
+  });
 
-async function loadData(){
-  const r=await fetch(API+"/get")
-  RAW=await r.text()
-  parseData()
-}
-
-function parseData(){
-  LINES=[]
-  RAW.split("\n").forEach(line=>{
-    if(!line.trim()) return
-    const company=line.match(/\{(.*?)\}/)?.[1]
-    const region=line.match(/『(.*?)』/)?.[1]
-    if(CURRENT=="SUPER_ADMIN"
-      || CURRENT==company
-      || CURRENT=="REGION_"+region){
-        LINES.push(line)
-    }
-  })
-  render()
-}
-
-function render(){
-  main.style.display="block"
-  main.innerHTML=""
-  LINES.forEach((line,i)=>{
-    const card=document.createElement("div")
-    card.className="card"
-
-    const title=line.match(/【(.*?)】/)[1]
-    const stations=line.split("】")[1].split("-{")[0].split("-")
-
-    card.innerHTML=`<h3>${title}</h3>`
-
-    stations.forEach((s,j)=>{
-      const div=document.createElement("div")
-      div.className="station"
-      div.innerHTML=`
-        <input value="${s}">
-        <button onclick="removeStation(${i},${j})">X</button>
-      `
-      card.appendChild(div)
-    })
-
-    const addBtn=document.createElement("button")
-    addBtn.innerText="添加站点"
-    addBtn.onclick=()=>addStation(i)
-    card.appendChild(addBtn)
-
-    const del=document.createElement("button")
-    del.innerText="删除线路"
-    del.onclick=()=>deleteLine(i)
-    card.appendChild(del)
-
-    main.appendChild(card)
-  })
-
-  const save=document.createElement("button")
-  save.innerText="保存全部"
-  save.onclick=saveAll
-  main.appendChild(save)
-}
-
-function addStation(i){
-  LINES[i]=LINES[i].replace("-{","-新站点-{")
-  render()
-}
-
-function removeStation(i,j){
-  const arr=LINES[i].split("】")
-  const head=arr[0]+"】"
-  const rest=arr[1]
-  const part=rest.split("-{")
-  let stations=part[0].split("-")
-  stations.splice(j,1)
-  LINES[i]=head+stations.join("-")+"-{"+part[1]
-  render()
-}
-
-function deleteLine(i){
-  LINES.splice(i,1)
-  render()
-}
-
-async function saveAll(){
-  const text=LINES.join("\n")
-  await fetch(API+"/save",{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({content:text})
-  })
-  alert("已保存到 ")
+  status.innerText=res.status===200?"保存成功":"密码错误";
 }
 
 </script>
