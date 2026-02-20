@@ -2,33 +2,42 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>线路编辑系统</title>
+<title>线路管理系统</title>
 <style>
-body{font-family:Arial;margin:0;background:#f5f5f5}
-.topbar{
+body { font-family: Arial; margin:0; background:#f5f5f5;}
+.topbar {
   background:#1976d2;
   color:white;
-  padding:10px;
+  padding:12px;
   display:flex;
   justify-content:space-between;
+  align-items:center;
 }
-button{padding:6px 12px;margin-left:5px}
-.card{
+button {
+  padding:6px 12px;
+  border:none;
+  border-radius:4px;
+  cursor:pointer;
+}
+.primary { background:#4caf50; color:white; }
+.card {
   background:white;
-  margin:10px;
-  padding:10px;
-  border-radius:6px;
+  margin:12px;
+  padding:12px;
+  border-radius:8px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
-input,select{margin:4px;padding:4px}
+input,select { margin:4px; padding:4px; }
+.title { font-weight:bold; font-size:18px; }
 </style>
 </head>
 <body>
 
 <div class="topbar">
-  <div>线路管理系统</div>
+  <div>公交线路管理</div>
   <div>
     <button onclick="addLine()">新增线路</button>
-    <button onclick="saveData()">保存</button>
+    <button class="primary" onclick="save()">保存</button>
   </div>
 </div>
 
@@ -36,48 +45,60 @@ input,select{margin:4px;padding:4px}
 
 <script>
 
-const API="https://你的workers域名.workers.dev";
-let rawText="";
-let lines=[];
+const API = "https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
-function parseLine(str){
+let lines = [];
+
+function parseLine(line){
+
+  const number = line.match(/【(.*?)】/)?.[1] || "";
+  const company = line.match(/\{(.*?)\}/)?.[1] || "";
+  const area = line.match(/『(.*?)』/)?.[1] || "";
+  const type = line.match(/θ(.*?)θ/)?.[1] || "";
+  const first = line.match(/§(.*?)§/)?.[1] || "";
+  const last = line.match(/@(.*?)@/)?.[1] || "";
+  const color = line.match(/∮(.*?)∮/)?.[1] || "";
+
+  const stationsPart = line.split("】")[1].split("-{")[0];
 
   return {
-    raw:str,
-    line: str.match(/【(.*?)】/)?.[1]||"",
-    stations: str.match(/】(.*?)-\{/)?.[1]||"",
-    company: str.match(/\{(.*?)\}/)?.[1]||"",
-    note: str.match(/《(.*?)》/)?.[1]||"",
-    area: str.match(/『(.*?)』/)?.[1]||"",
-    type: str.match(/θ(.*?)θ/)?.[1]||"公交",
-    first: str.match(/§(.*?)§/)?.[1]||"",
-    last: str.match(/@(.*?)@/)?.[1]||"",
-    color: str.match(/∮(.*?)∮/)?.[1]||"000000"
+    raw: line,
+    number,
+    stations: stationsPart,
+    company,
+    area,
+    type,
+    first,
+    last,
+    color
   };
 }
 
-function buildLine(obj){
-  return `【${obj.line}】${obj.stations}-{${obj.company}}《${obj.note}》『${obj.area}』θ${obj.type}θ§${obj.first}§@${obj.last}@∮${obj.color}∮`;
+function rebuildLine(d){
+  return `【${d.number}】${d.stations}-{${d.company}}《》『${d.area}』θ${d.type}θ§${d.first}§@${d.last}@∮${d.color}∮`;
 }
 
 async function load(){
-  const r=await fetch(API);
-  rawText=await r.text();
-  lines=rawText.split("\n").filter(x=>x.trim()!="").map(parseLine);
+  const r = await fetch(API);
+  const text = await r.text();
+  lines = text.split("\n").filter(x=>x.trim()).map(parseLine);
   render();
 }
 
 function render(){
-  const list=document.getElementById("list");
-  list.innerHTML="";
+  const list = document.getElementById("list");
+  list.innerHTML = "";
 
   lines.forEach((l,i)=>{
-    list.innerHTML+=`
+
+    list.innerHTML += `
     <div class="card">
-      线路:<input value="${l.line}" onchange="lines[${i}].line=this.value"><br>
-      站点:<input value="${l.stations}" onchange="lines[${i}].stations=this.value"><br>
-      公司:<input value="${l.company}" onchange="lines[${i}].company=this.value"><br>
-      地区:<input value="${l.area}" onchange="lines[${i}].area=this.value"><br>
+      <div class="title">${l.number}</div>
+
+      站点:
+      <input value="${l.stations}" 
+      onchange="lines[${i}].stations=this.value"><br>
+
       类型:
       <select onchange="lines[${i}].type=this.value">
         <option ${l.type=="公交"?"selected":""}>公交</option>
@@ -85,10 +106,27 @@ function render(){
         <option ${l.type=="单轨"?"selected":""}>单轨</option>
         <option ${l.type=="铁路"?"selected":""}>铁路</option>
       </select><br>
-      首班:<input type="time" value="${l.first}" onchange="lines[${i}].first=this.value"><br>
-      末班:<input type="time" value="${l.last}" onchange="lines[${i}].last=this.value"><br>
-      票价说明:<input value="${l.note}" onchange="lines[${i}].note=this.value"><br>
-      颜色:<input value="${l.color}" onchange="lines[${i}].color=this.value"><br>
+
+      首班:
+      <input type="time" value="${l.first}" 
+      onchange="lines[${i}].first=this.value">
+
+      末班:
+      <input type="time" value="${l.last}" 
+      onchange="lines[${i}].last=this.value"><br>
+
+      公司:
+      <input value="${l.company}" 
+      onchange="lines[${i}].company=this.value"><br>
+
+      地区:
+      <input value="${l.area}" 
+      onchange="lines[${i}].area=this.value"><br>
+
+      颜色:
+      <input value="${l.color}" 
+      onchange="lines[${i}].color=this.value"><br>
+
       <button onclick="removeLine(${i})">删除</button>
     </div>
     `;
@@ -97,10 +135,9 @@ function render(){
 
 function addLine(){
   lines.push({
-    line:"",
+    number:"新线路",
     stations:"",
     company:"",
-    note:"",
     area:"",
     type:"公交",
     first:"06:00",
@@ -115,17 +152,20 @@ function removeLine(i){
   render();
 }
 
-async function saveData(){
+async function save(){
 
-  const password=prompt("输入管理密码");
-  if(!password)return;
+  const password = prompt("请输入管理员密码");
+  if(!password) return;
 
-  const content=lines.map(buildLine).join("\n");
+  const text = lines.map(l=>rebuildLine(l)).join("\n");
 
-  const r=await fetch(API,{
+  const r = await fetch(API,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({content,password})
+    headers:{ "Content-Type":"application/json" },
+    body: JSON.stringify({
+      content:text,
+      password:password
+    })
   });
 
   alert(await r.text());
@@ -134,6 +174,6 @@ async function saveData(){
 load();
 
 </script>
+
 </body>
-</html>
 </html>
