@@ -1,107 +1,65 @@
- <!DOCTYPE html>
-<html lang="zh-CN">
+<!DOCTYPE html>
+<html>
 <head>
 <meta charset="UTF-8">
-<title>公交数据管理</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
+<title>公交管理系统</title>
 <style>
-:root{--p:#6750A4;}
-body{margin:0;font-family:system-ui;background:#f4f7fb;}
-header{background:var(--p);color:#fff;padding:16px;font-size:20px;}
-main{max-width:1200px;margin:20px auto;padding:0 16px;}
-.card{
-  background:#fff;
-  padding:16px;
-  border-radius:14px;
-  margin-bottom:14px;
-  box-shadow:0 2px 8px rgba(0,0,0,.08);
-}
-.station{display:flex;gap:6px;margin-bottom:6px;}
-input{padding:6px;border-radius:6px;border:1px solid #ccc;}
-button{
-  background:var(--p);
-  color:#fff;
-  border:none;
-  padding:6px 12px;
-  border-radius:6px;
-  cursor:pointer;
-}
-.red{background:#B3261E;}
+body{font-family:system-ui;background:#f3f6fb;margin:0}
+header{background:#6750A4;color:#fff;padding:16px}
+.card{background:#fff;margin:12px;padding:12px;border-radius:12px}
+.station{display:flex;margin:6px 0}
+.station input{flex:1}
+button{background:#6750A4;color:#fff;border:none;padding:6px 10px;border-radius:8px;margin:4px}
+.small{background:#B3261E}
 </style>
 </head>
-
 <body>
 
-<header>公交数据管理系统</header>
-
-<main>
+<header>公交数据管理</header>
 
 <button onclick="login()">登录</button>
+<div id="box"></div>
 <button onclick="addLine()">新增线路</button>
-<button onclick="save()">保存全部</button>
-<div id="status"></div>
-<hr>
-
-<div id="container"></div>
-
-</main>
+<button onclick="save()">保存</button>
 
 <script>
 
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
 let PASSWORD="";
-let ROLE="";
 let ALL=[];
-let ORIGINAL="";
 
 function login(){
-  const p=prompt("输入密码");
-  if(!p) return;
-  PASSWORD=p;
+  PASSWORD=prompt("输入密码");
+  if(!PASSWORD) return;
   load();
 }
 
 async function load(){
-  const res=await fetch(API);
-  ORIGINAL=await res.text();
-  ALL=ORIGINAL.split("\n").filter(x=>x.trim());
+  const r=await fetch(API);
+  ALL=(await r.text()).split("\n").filter(x=>x.trim());
   render();
 }
 
-function getCompany(l){return l.match(/\{(.*?)\}/)?.[1]||"";}
-function getRegion(l){return l.match(/『(.*?)』/)?.[1]||"";}
-
 function render(){
-  container.innerHTML="";
-
+  box.innerHTML="";
   ALL.forEach((line,i)=>{
-
     const card=document.createElement("div");
     card.className="card";
-
     const title=line.match(/【(.*?)】/)?.[1]||"";
-    const company=getCompany(line);
-    const region=getRegion(line);
-
-    card.innerHTML=`<b>${title}</b><br>
-    公司: ${company} ｜ 地区: ${region}<hr>`;
+    card.innerHTML=`<b>${title}</b><hr>`;
 
     const stations=line.split("】")[1].split("-{")[0].split("-");
-
     stations.forEach((s,j)=>{
-      const row=document.createElement("div");
-      row.className="station";
-      row.innerHTML=`
-        <input value="${s}">
-        <button class="red">X</button>
-      `;
-      row.querySelector("button").onclick=()=>{
+      const div=document.createElement("div");
+      div.className="station";
+      div.innerHTML=`<input value="${s}">
+      <button class="small">X</button>`;
+      div.querySelector("button").onclick=()=>{
         stations.splice(j,1);
         updateLine(i,stations);
       };
-      card.appendChild(row);
+      card.appendChild(div);
     });
 
     const add=document.createElement("button");
@@ -112,7 +70,7 @@ function render(){
     };
 
     const del=document.createElement("button");
-    del.className="red";
+    del.className="small";
     del.innerText="删除线路";
     del.onclick=()=>{
       ALL.splice(i,1);
@@ -121,28 +79,25 @@ function render(){
 
     card.appendChild(add);
     card.appendChild(del);
-
-    container.appendChild(card);
+    box.appendChild(card);
   });
 }
 
 function updateLine(i,stations){
-  const orig=ALL[i];
-  const head=orig.split("】")[0]+"】";
-  const tail=orig.split("-{")[1];
+  const original=ALL[i];
+  const head=original.split("】")[0]+"】";
+  const tail=original.split("-{")[1];
   ALL[i]=head+stations.join("-")+"-{"+tail;
   render();
 }
 
 function addLine(){
-  const newLine="【新线路】起点-终点-{公司名}《》『地区』§6:00§@22:00@";
-  ALL.push(newLine);
+  ALL.push("【新线路】起点-终点-{公司}《》『地区』θ公交θ§6:00§@22:00@");
   render();
 }
 
 async function save(){
-  status.innerText="保存中...";
-  const res=await fetch(API,{
+  const r=await fetch(API,{
     method:"POST",
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
@@ -150,8 +105,7 @@ async function save(){
       password:PASSWORD
     })
   });
-
-  status.innerText=res.status===200?"保存成功":"密码错误";
+  alert(r.status===200?"保存成功":"保存失败");
 }
 
 </script>
