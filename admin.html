@@ -1,165 +1,141 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HJTR 管理后台</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-
+<title>HJTR 管理系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
 <style>
-body{
-  margin:0;
-  font-family:Roboto,sans-serif;
-  background:#f4f6fb;
-}
-header{
-  background:#6750A4;
-  color:white;
-  padding:20px;
-  font-size:20px;
-}
-.container{
-  padding:20px;
-  max-width:900px;
-  margin:auto;
-}
-.card{
-  background:white;
-  border-radius:16px;
-  padding:20px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  margin-bottom:20px;
-}
-input, select, button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border-radius:12px;
-  border:1px solid #ccc;
-  font-size:14px;
-}
-button{
-  background:#6750A4;
-  color:white;
-  border:none;
-  cursor:pointer;
-}
-.station-item{
-  display:flex;
-  gap:10px;
-  margin-top:10px;
-}
-.station-item input{
-  flex:1;
-}
+body{font-family:Roboto;background:#f6f2ff;margin:0;padding:20px}
+.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+button{background:#6750A4;color:#fff;border:none;padding:8px 16px;border-radius:8px}
+input,textarea{width:100%;padding:8px;margin:6px 0;border-radius:8px;border:1px solid #ccc}
+#app{max-width:900px;margin:auto}
 </style>
 </head>
-
 <body>
-
-<header>HJTR 后台管理</header>
-
-<div class="container">
-
-<div class="card">
-<h3>登录</h3>
-<input type="password" id="password" placeholder="输入后台密码">
-<button onclick="login()">登录</button>
-</div>
-
-<div class="card" id="editor" style="display:none;">
-<h3>新增线路</h3>
-
-<input id="lineName" placeholder="线路名称">
-
-<select id="companySelect"></select>
-<input id="companyManual" placeholder="或手动输入公司名称">
-
-<div id="stations"></div>
-<button onclick="addStation()">添加站点</button>
-
-<button onclick="submitData()">提交到 GitHub</button>
-
-</div>
-
-</div>
+<div id="app"></div>
 
 <script>
-const WORKER_URL="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev/";
+const API="你的worker地址"
+let TOKEN=""
+let DATA=[]
 
-let logos={};
-
-async function loadCompanies(){
-  const res=await fetch("../data/logos_company.json");
-  logos=await res.json();
-  const select=document.getElementById("companySelect");
-  select.innerHTML="";
-  Object.keys(logos).forEach(name=>{
-    const option=document.createElement("option");
-    option.value=name;
-    option.textContent=name;
-    select.appendChild(option);
-  });
+function renderLogin(){
+app.innerHTML=`
+<div class="card">
+<h2>登录</h2>
+<input id="name" placeholder="名称">
+<input id="pass" type="password" placeholder="密码">
+<button onclick="login()">登录</button>
+</div>`
 }
 
-function login(){
-  const pwd=document.getElementById("password").value;
-  if(!pwd){alert("请输入密码");return;}
-  document.getElementById("editor").style.display="block";
+async function login(){
+const r=await fetch(API+"/login",{method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({name:name.value,password:pass.value})})
+const d=await r.json()
+if(!d.token) return alert("失败")
+TOKEN=d.token
+loadData()
 }
 
-function addStation(){
-  const div=document.createElement("div");
-  div.className="station-item";
-  div.innerHTML=`<input placeholder="站点名称">`;
-  document.getElementById("stations").appendChild(div);
+async function loadData(){
+const r=await fetch(API+"/routes",{headers:{Authorization:"Bearer "+TOKEN}})
+DATA=await r.json()
+renderMain()
 }
 
-async function submitData(){
-
-  const password=document.getElementById("password").value;
-
-  const lineName=document.getElementById("lineName").value;
-
-  const companyManual=document.getElementById("companyManual").value;
-  const companySelect=document.getElementById("companySelect").value;
-
-  const company=companyManual||companySelect;
-
-  const stations=[...document.querySelectorAll(".station-item input")]
-      .map(i=>i.value)
-      .filter(v=>v);
-
-  const data={
-    name:lineName,
-    company:company,
-    logo:logos[company]||"",
-    stations:stations
-  };
-
-  const res=await fetch(WORKER_URL,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body:JSON.stringify({
-      password:password,
-      data:data
-    })
-  });
-
-  const result=await res.json();
-
-  if(result.success){
-    alert("提交成功！");
-  }else{
-    alert("错误："+JSON.stringify(result));
-  }
+function renderMain(){
+app.innerHTML=`
+<button onclick="renderAdd()">新增线路</button>
+<input placeholder="搜索" oninput="search(this.value)">
+<div id="list"></div>`
+renderList(DATA)
 }
 
-loadCompanies();
+function renderList(arr){
+list.innerHTML=""
+arr.forEach((l,i)=>{
+list.innerHTML+=`
+<div class="card">
+<b>${l.name} ｜ ${l.type}</b><br>
+${l.stations[0]} → ${l.stations[l.stations.length-1]}<br>
+${l.company}
+<br><button onclick="edit(${i})">修改</button>
+<button onclick="del(${i})">删除</button>
+</div>`
+})
+}
+
+function search(v){
+renderList(DATA.filter(l=>l.name.includes(v)))
+}
+
+function renderAdd(){
+app.innerHTML=`
+<div class="card">
+<h3>新增</h3>
+<input id="n" placeholder="线路名">
+<textarea id="s" placeholder="站点用-分隔"></textarea>
+<input id="c" placeholder="公司">
+<input id="r" placeholder="地区">
+<input id="t" placeholder="类型">
+<input id="st" placeholder="首班">
+<input id="ed" placeholder="末班">
+<input id="p" placeholder="票价">
+<button onclick="saveNew()">保存</button>
+</div>`
+}
+
+function saveNew(){
+DATA.push({
+name:n.value,
+stations:s.value.split("-"),
+company:c.value,
+region:r.value,
+type:t.value,
+start:st.value,
+end:ed.value,
+price:p.value
+})
+saveAll()
+}
+
+function edit(i){
+const l=DATA[i]
+renderAdd()
+n.value=l.name
+s.value=l.stations.join("-")
+c.value=l.company
+r.value=l.region
+t.value=l.type
+st.value=l.start
+ed.value=l.end
+p.value=l.price
+DATA.splice(i,1)
+}
+
+function del(i){
+if(confirm("确认删除？")){
+DATA.splice(i,1)
+saveAll()
+}
+}
+
+async function saveAll(){
+await fetch(API+"/save",{
+method:"POST",
+headers:{
+"Content-Type":"application/json",
+Authorization:"Bearer "+TOKEN
+},
+body:JSON.stringify({data:DATA})
+})
+loadData()
+}
+
+renderLogin()
 </script>
-
 </body>
 </html>
