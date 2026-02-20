@@ -2,140 +2,190 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>HJTR 管理系统</title>
-<link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+<title>公交管理系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+
 <style>
-body{font-family:Roboto;background:#f6f2ff;margin:0;padding:20px}
-.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-button{background:#6750A4;color:#fff;border:none;padding:8px 16px;border-radius:8px}
-input,textarea{width:100%;padding:8px;margin:6px 0;border-radius:8px;border:1px solid #ccc}
-#app{max-width:900px;margin:auto}
-</style>
-</head>
-<body>
-<div id="app"></div>
-
-<script>
-const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev"
-let TOKEN=""
-let DATA=[]
-
-function renderLogin(){
-app.innerHTML=`
-<div class="card">
-<h2>登录</h2>
-<input id="name" placeholder="名称">
-<input id="pass" type="password" placeholder="密码">
-<button onclick="login()">登录</button>
-</div>`
+body{
+  font-family: Roboto;
+  margin:0;
+  background:#f3f6fb;
 }
 
+.topbar{
+  background:#6750A4;
+  color:white;
+  padding:16px;
+  font-size:20px;
+}
+
+.card{
+  background:white;
+  margin:16px;
+  padding:16px;
+  border-radius:16px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+}
+
+button{
+  background:#6750A4;
+  color:white;
+  border:none;
+  padding:8px 14px;
+  border-radius:20px;
+  margin:4px;
+}
+
+input{
+  padding:8px;
+  margin:6px 0;
+  width:100%;
+}
+.station{
+  display:flex;
+  margin:6px 0;
+}
+.station input{
+  flex:1;
+}
+.station button{
+  background:#B3261E;
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">公交数据管理</div>
+
+<div class="card" id="loginBox">
+  <h3>登录</h3>
+  <input id="name" placeholder="公司 / SUPER_ADMIN / REGION_北联">
+  <input id="pass" type="password" placeholder="密码">
+  <button onclick="login()">登录</button>
+</div>
+
+<div id="main" style="display:none"></div>
+
+<script>
+
+const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev"
+
+let RAW=""
+let CURRENT=""
+let LINES=[]
+
 async function login(){
-const r=await fetch(API+"/login",{method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({name:name.value,password:pass.value})})
-const d=await r.json()
-if(!d.token) return alert("失败")
-TOKEN=d.token
-loadData()
+  const r=await fetch(API+"/login",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      name:name.value,
+      password:pass.value
+    })
+  })
+  if(await r.text()=="ok"){
+    CURRENT=name.value
+    loginBox.style.display="none"
+    loadData()
+  }else alert("密码错误")
 }
 
 async function loadData(){
-const r=await fetch(API+"/routes",{headers:{Authorization:"Bearer "+TOKEN}})
-DATA=await r.json()
-renderMain()
+  const r=await fetch(API+"/get")
+  RAW=await r.text()
+  parseData()
 }
 
-function renderMain(){
-app.innerHTML=`
-<button onclick="renderAdd()">新增线路</button>
-<input placeholder="搜索" oninput="search(this.value)">
-<div id="list"></div>`
-renderList(DATA)
+function parseData(){
+  LINES=[]
+  RAW.split("\n").forEach(line=>{
+    if(!line.trim()) return
+    const company=line.match(/\{(.*?)\}/)?.[1]
+    const region=line.match(/『(.*?)』/)?.[1]
+    if(CURRENT=="SUPER_ADMIN"
+      || CURRENT==company
+      || CURRENT=="REGION_"+region){
+        LINES.push(line)
+    }
+  })
+  render()
 }
 
-function renderList(arr){
-list.innerHTML=""
-arr.forEach((l,i)=>{
-list.innerHTML+=`
-<div class="card">
-<b>${l.name} ｜ ${l.type}</b><br>
-${l.stations[0]} → ${l.stations[l.stations.length-1]}<br>
-${l.company}
-<br><button onclick="edit(${i})">修改</button>
-<button onclick="del(${i})">删除</button>
-</div>`
-})
+function render(){
+  main.style.display="block"
+  main.innerHTML=""
+  LINES.forEach((line,i)=>{
+    const card=document.createElement("div")
+    card.className="card"
+
+    const title=line.match(/【(.*?)】/)[1]
+    const stations=line.split("】")[1].split("-{")[0].split("-")
+
+    card.innerHTML=`<h3>${title}</h3>`
+
+    stations.forEach((s,j)=>{
+      const div=document.createElement("div")
+      div.className="station"
+      div.innerHTML=`
+        <input value="${s}">
+        <button onclick="removeStation(${i},${j})">X</button>
+      `
+      card.appendChild(div)
+    })
+
+    const addBtn=document.createElement("button")
+    addBtn.innerText="添加站点"
+    addBtn.onclick=()=>addStation(i)
+    card.appendChild(addBtn)
+
+    const del=document.createElement("button")
+    del.innerText="删除线路"
+    del.onclick=()=>deleteLine(i)
+    card.appendChild(del)
+
+    main.appendChild(card)
+  })
+
+  const save=document.createElement("button")
+  save.innerText="保存全部"
+  save.onclick=saveAll
+  main.appendChild(save)
 }
 
-function search(v){
-renderList(DATA.filter(l=>l.name.includes(v)))
+function addStation(i){
+  LINES[i]=LINES[i].replace("-{","-新站点-{")
+  render()
 }
 
-function renderAdd(){
-app.innerHTML=`
-<div class="card">
-<h3>新增</h3>
-<input id="n" placeholder="线路名">
-<textarea id="s" placeholder="站点用-分隔"></textarea>
-<input id="c" placeholder="公司">
-<input id="r" placeholder="地区">
-<input id="t" placeholder="类型">
-<input id="st" placeholder="首班">
-<input id="ed" placeholder="末班">
-<input id="p" placeholder="票价">
-<button onclick="saveNew()">保存</button>
-</div>`
+function removeStation(i,j){
+  const arr=LINES[i].split("】")
+  const head=arr[0]+"】"
+  const rest=arr[1]
+  const part=rest.split("-{")
+  let stations=part[0].split("-")
+  stations.splice(j,1)
+  LINES[i]=head+stations.join("-")+"-{"+part[1]
+  render()
 }
 
-function saveNew(){
-DATA.push({
-name:n.value,
-stations:s.value.split("-"),
-company:c.value,
-region:r.value,
-type:t.value,
-start:st.value,
-end:ed.value,
-price:p.value
-})
-saveAll()
-}
-
-function edit(i){
-const l=DATA[i]
-renderAdd()
-n.value=l.name
-s.value=l.stations.join("-")
-c.value=l.company
-r.value=l.region
-t.value=l.type
-st.value=l.start
-ed.value=l.end
-p.value=l.price
-DATA.splice(i,1)
-}
-
-function del(i){
-if(confirm("确认删除？")){
-DATA.splice(i,1)
-saveAll()
-}
+function deleteLine(i){
+  LINES.splice(i,1)
+  render()
 }
 
 async function saveAll(){
-await fetch(API+"/save",{
-method:"POST",
-headers:{
-"Content-Type":"application/json",
-Authorization:"Bearer "+TOKEN
-},
-body:JSON.stringify({data:DATA})
-})
-loadData()
+  const text=LINES.join("\n")
+  await fetch(API+"/save",{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({content:text})
+  })
+  alert("已保存到 ")
 }
 
-renderLogin()
 </script>
 </body>
 </html>
