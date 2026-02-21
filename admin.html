@@ -16,11 +16,7 @@ header{background:#003f6b;color:#fff;padding:16px;font-size:18px}
   margin-bottom:15px;
   box-shadow:0 3px 10px rgba(0,0,0,0.08)
 }
-input,select{
-  width:100%;
-  padding:6px;
-  margin:4px 0;
-}
+input{width:100%;padding:6px;margin:4px 0}
 button{
   padding:6px 12px;
   border:none;
@@ -51,7 +47,7 @@ button{
 
 <div id="loginBox">
   <h3>管理员登录</h3>
-  <input id="username" placeholder="名称（公司名/地区名/admin）">
+  <input id="username" placeholder="名称">
   <input id="password" type="password" placeholder="密码">
   <button onclick="login()">登录</button>
 </div>
@@ -76,47 +72,42 @@ let role=null;
 let allLines=[];
 let visibleLines=[];
 
-function login(){
-  localStorage.setItem("auth_user",username.value);
-  localStorage.setItem("auth_pass",password.value);
-  init();
-}
+async function login(){
 
-function logout(){
-  localStorage.clear();
-  location.reload();
-}
+  const username=usernameInput.value;
+  const password=passwordInput.value;
 
-async function init(){
-
-  const user=localStorage.getItem("auth_user");
-  const pass=localStorage.getItem("auth_pass");
-  if(!user)return;
-
-  const res=await fetch(API);
-  const text=await res.text();
-
-  allLines=text.split("\n").filter(x=>x.trim());
-
-  const test=await fetch(API,{
+  const res=await fetch(API+"/auth",{
     method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username:user,password:pass,content:text})
+    body:JSON.stringify({username,password})
   });
 
-  if(test.status===401){
-    alert("权限错误");
-    logout();
+  if(res.status!==200){
+    alert("登录失败");
     return;
   }
 
-  const data=await test.json();
+  const data=await res.json();
   role=data.role;
+
+  localStorage.setItem("user",username);
+  localStorage.setItem("pass",password);
 
   document.getElementById("loginBox").hidden=true;
   document.getElementById("app").hidden=false;
 
   roleInfo.innerText="身份："+role.type+"："+role.name;
+
+  loadData();
+}
+
+async function loadData(){
+
+  const res=await fetch(API+"/data");
+  const text=await res.text();
+
+  allLines=text.split("\n").filter(x=>x.trim());
 
   filterLines();
   render();
@@ -146,7 +137,6 @@ function render(){
     const name=line.match(/【(.+?)】/)?.[1]||"";
     const company=line.match(/\{(.+?)\}/)?.[1]||"";
     const region=line.match(/『(.+?)』/)?.[1]||"";
-    const type=line.match(/θ(.+?)θ/)?.[1]||"";
 
     const card=document.createElement("div");
     card.className="card";
@@ -158,9 +148,6 @@ function render(){
       <input value="${company}" id="company${i}">
       <label>地区</label>
       <input value="${region}" id="region${i}">
-      <label>类型</label>
-      <input value="${type}" id="type${i}">
-      <br>
       <button onclick="updateLine(${i})">修改</button>
       <button onclick="deleteLine(${i})">删除</button>
     `;
@@ -174,32 +161,28 @@ function updateLine(i){
   const name=document.getElementById("name"+i).value;
   const company=document.getElementById("company"+i).value;
   const region=document.getElementById("region"+i).value;
-  const type=document.getElementById("type"+i).value;
 
   visibleLines[i]=
-  `【${name}】示例站点1-示例站点2-{${company}}《票价88元》『${region}』θ${type}θ§6:00§@22:30@`;
+  `【${name}】示例站点-示例站点-{${company}}《票价888元》『${region}』θ公交θ§6:00§@22:30@`;
 
-  rebuildAll();
+  rebuild();
   render();
 }
 
 function deleteLine(i){
   visibleLines.splice(i,1);
-  rebuildAll();
+  rebuild();
   render();
 }
 
 function addLine(){
-
-  const newline=
-  `【新线路】起点-终点-{${role.type==="company"?role.name:"公司名"}}《票价888元》『${role.type==="region"?role.name:"地区名"}』θ公交θ§6:00§@22:30@`;
-
-  visibleLines.push(newline);
-  rebuildAll();
+  visibleLines.push(
+  `【新线路】起点-终点-{${role.name}}《票价888元》『${role.name}』θ公交θ§6:00§@22:30@`);
+  rebuild();
   render();
 }
 
-function rebuildAll(){
+function rebuild(){
 
   if(role.type==="super"){
     allLines=[...visibleLines];
@@ -218,15 +201,15 @@ function rebuildAll(){
 
 async function saveAll(){
 
-  const user=localStorage.getItem("auth_user");
-  const pass=localStorage.getItem("auth_pass");
+  const username=localStorage.getItem("user");
+  const password=localStorage.getItem("pass");
 
-  const res=await fetch(API,{
+  const res=await fetch(API+"/save",{
     method:"POST",
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      username:user,
-      password:pass,
+      username,
+      password,
       content:allLines.join("\n")
     })
   });
@@ -235,7 +218,13 @@ async function saveAll(){
   else alert("保存失败");
 }
 
-init();
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
+
+const usernameInput=document.getElementById("username");
+const passwordInput=document.getElementById("password");
 
 </script>
 </body>
