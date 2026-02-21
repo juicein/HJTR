@@ -28,7 +28,7 @@ button{
 }
 #loginBox{
   max-width:400px;
-  margin:100px auto;
+  margin:120px auto;
   background:#fff;
   padding:20px;
   border-radius:12px;
@@ -43,7 +43,7 @@ button{
 
 <body>
 
-<header>HJTR 公交管理</header>
+<header>HJTR 公交理系统</header>
 
 <div id="loginBox">
   <h3>管理员登录</h3>
@@ -74,42 +74,47 @@ let visibleLines=[];
 
 async function login(){
 
-  const username=usernameInput.value;
-  const password=passwordInput.value;
+  const user=username.value;
+  const pass=password.value;
 
-  const res=await fetch(API+"/auth",{
+  const res=await fetch(API+"/login",{
     method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({username,password})
+    body:JSON.stringify({username:user,password:pass})
   });
 
-  if(res.status!==200){
-    alert("登录失败");
+  if(res.status===401){
+    alert("密码错误");
     return;
   }
 
-  const data=await res.json();
-  role=data.role;
+  role=await res.json();
 
-  localStorage.setItem("user",username);
-  localStorage.setItem("pass",password);
-
-  document.getElementById("loginBox").hidden=true;
-  document.getElementById("app").hidden=false;
-
-  roleInfo.innerText="身份："+role.type+"："+role.name;
+  localStorage.setItem("user",user);
+  localStorage.setItem("pass",pass);
 
   loadData();
 }
 
+function logout(){
+  localStorage.clear();
+  location.reload();
+}
+
 async function loadData(){
 
-  const res=await fetch(API+"/data");
+  const res=await fetch(API);
   const text=await res.text();
 
   allLines=text.split("\n").filter(x=>x.trim());
 
   filterLines();
+
+  loginBox.hidden=true;
+  app.hidden=false;
+
+  roleInfo.innerText="身份："+role.type+"："+role.name;
+
   render();
 }
 
@@ -120,11 +125,11 @@ function filterLines(){
     return;
   }
 
-  visibleLines=allLines.filter(x=>{
+  visibleLines=allLines.filter(line=>{
     if(role.type==="company")
-      return x.includes(`{${role.name}}`);
+      return line.includes(`{${role.name}}`);
     if(role.type==="region")
-      return x.includes(`『${role.name}』`);
+      return line.includes(`『${role.name}』`);
   });
 }
 
@@ -137,17 +142,21 @@ function render(){
     const name=line.match(/【(.+?)】/)?.[1]||"";
     const company=line.match(/\{(.+?)\}/)?.[1]||"";
     const region=line.match(/『(.+?)』/)?.[1]||"";
+    const type=line.match(/θ(.+?)θ/)?.[1]||"";
 
     const card=document.createElement("div");
     card.className="card";
 
     card.innerHTML=`
       <label>线路名</label>
-      <input value="${name}" id="name${i}">
+      <input id="n${i}" value="${name}">
       <label>公司</label>
-      <input value="${company}" id="company${i}">
+      <input id="c${i}" value="${company}">
       <label>地区</label>
-      <input value="${region}" id="region${i}">
+      <input id="r${i}" value="${region}">
+      <label>类型</label>
+      <input id="t${i}" value="${type}">
+      <br>
       <button onclick="updateLine(${i})">修改</button>
       <button onclick="deleteLine(${i})">删除</button>
     `;
@@ -156,60 +165,65 @@ function render(){
   });
 }
 
-function updateLine(i){
-
-  const name=document.getElementById("name"+i).value;
-  const company=document.getElementById("company"+i).value;
-  const region=document.getElementById("region"+i).value;
-
-  visibleLines[i]=
-  `【${name}】示例站点-示例站点-{${company}}《票价888元》『${region}』θ公交θ§6:00§@22:30@`;
-
-  rebuild();
-  render();
-}
-
-function deleteLine(i){
-  visibleLines.splice(i,1);
-  rebuild();
-  render();
-}
-
-function addLine(){
-  visibleLines.push(
-  `【新线路】起点-终点-{${role.name}}《票价888元》『${role.name}』θ公交θ§6:00§@22:30@`);
-  rebuild();
-  render();
-}
-
-function rebuild(){
+function rebuildAll(){
 
   if(role.type==="super"){
     allLines=[...visibleLines];
     return;
   }
 
-  allLines=allLines.filter(x=>{
+  allLines=allLines.filter(line=>{
     if(role.type==="company")
-      return !x.includes(`{${role.name}}`);
+      return !line.includes(`{${role.name}}`);
     if(role.type==="region")
-      return !x.includes(`『${role.name}』`);
+      return !line.includes(`『${role.name}』`);
   });
 
   allLines=[...allLines,...visibleLines];
 }
 
+function updateLine(i){
+
+  const n=document.getElementById("n"+i).value;
+  const c=document.getElementById("c"+i).value;
+  const r=document.getElementById("r"+i).value;
+  const t=document.getElementById("t"+i).value;
+
+  visibleLines[i]=
+  `【${n}】起点-终点-{${c}}《票价888元》『${r}』θ${t}θ§6:00§@22:30@`;
+
+  rebuildAll();
+  render();
+}
+
+function deleteLine(i){
+  visibleLines.splice(i,1);
+  rebuildAll();
+  render();
+}
+
+function addLine(){
+
+  const newline=
+  `【新线路】起点-终点-{${role.type==="company"?role.name:"公司"}}《票价888元》『${role.type==="region"?role.name:"地区"}』θ公交θ§6:00§@22:30@`;
+
+  visibleLines.push(newline);
+
+  rebuildAll();
+  render();
+}
+
 async function saveAll(){
 
-  const username=localStorage.getItem("user");
-  const password=localStorage.getItem("pass");
+  const user=localStorage.getItem("user");
+  const pass=localStorage.getItem("pass");
 
   const res=await fetch(API+"/save",{
     method:"POST",
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      username,
-      password,
+      username:user,
+      password:pass,
       content:allLines.join("\n")
     })
   });
@@ -217,14 +231,6 @@ async function saveAll(){
   if(res.ok) alert("保存成功");
   else alert("保存失败");
 }
-
-function logout(){
-  localStorage.clear();
-  location.reload();
-}
-
-const usernameInput=document.getElementById("username");
-const passwordInput=document.getElementById("password");
 
 </script>
 </body>
