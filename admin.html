@@ -1,179 +1,242 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>线路管理系统</title>
+<title>HJTR 公交管理系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <style>
-body { font-family: Arial; margin:0; background:#f5f5f5;}
-.topbar {
-  background:#1976d2;
-  color:white;
-  padding:12px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+body{margin:0;font-family:system-ui;background:#eef3f8}
+header{background:#003f6b;color:#fff;padding:16px;font-size:18px}
+.container{max-width:1200px;margin:auto;padding:20px}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:12px;
+  margin-bottom:15px;
+  box-shadow:0 3px 10px rgba(0,0,0,0.08)
 }
-button {
+input,select{
+  width:100%;
+  padding:6px;
+  margin:4px 0;
+}
+button{
   padding:6px 12px;
   border:none;
-  border-radius:4px;
-  cursor:pointer;
-}
-.primary { background:#4caf50; color:white; }
-.card {
-  background:white;
-  margin:12px;
-  padding:12px;
   border-radius:8px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+  background:#006495;
+  color:#fff;
+  cursor:pointer;
+  margin-right:6px;
 }
-input,select { margin:4px; padding:4px; }
-.title { font-weight:bold; font-size:18px; }
+#loginBox{
+  max-width:400px;
+  margin:100px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:12px;
+}
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:15px;
+}
 </style>
 </head>
+
 <body>
 
-<div class="topbar">
-  <div>公交线路管理</div>
-  <div>
-    <button onclick="addLine()">新增线路</button>
-    <button class="primary" onclick="save()">保存</button>
-  </div>
+<header>HJTR 公交数据管理</header>
+
+<div id="loginBox">
+  <h3>管理员登录</h3>
+  <input id="username" placeholder="名称（公司名/地区名/admin）">
+  <input id="password" type="password" placeholder="密码">
+  <button onclick="login()">登录</button>
 </div>
 
-<div id="list"></div>
+<div class="container" id="app" hidden>
+  <div class="topbar">
+    <div id="roleInfo"></div>
+    <div>
+      <button onclick="addLine()">新增</button>
+      <button onclick="saveAll()">保存</button>
+      <button onclick="logout()">退出</button>
+    </div>
+  </div>
+  <div id="list"></div>
+</div>
 
 <script>
 
-const API = "https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
+const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
-let lines = [];
+let role=null;
+let allLines=[];
+let visibleLines=[];
 
-function parseLine(line){
-
-  const number = line.match(/【(.*?)】/)?.[1] || "";
-  const company = line.match(/\{(.*?)\}/)?.[1] || "";
-  const area = line.match(/『(.*?)』/)?.[1] || "";
-  const type = line.match(/θ(.*?)θ/)?.[1] || "";
-  const first = line.match(/§(.*?)§/)?.[1] || "";
-  const last = line.match(/@(.*?)@/)?.[1] || "";
-  const color = line.match(/∮(.*?)∮/)?.[1] || "";
-
-  const stationsPart = line.split("】")[1].split("-{")[0];
-
-  return {
-    raw: line,
-    number,
-    stations: stationsPart,
-    company,
-    area,
-    type,
-    first,
-    last,
-    color
-  };
+function login(){
+  localStorage.setItem("auth_user",username.value);
+  localStorage.setItem("auth_pass",password.value);
+  init();
 }
 
-function rebuildLine(d){
-  return `【${d.number}】${d.stations}-{${d.company}}《》『${d.area}』θ${d.type}θ§${d.first}§@${d.last}@∮${d.color}∮`;
+function logout(){
+  localStorage.clear();
+  location.reload();
 }
 
-async function load(){
-  const r = await fetch(API);
-  const text = await r.text();
-  lines = text.split("\n").filter(x=>x.trim()).map(parseLine);
+async function init(){
+
+  const user=localStorage.getItem("auth_user");
+  const pass=localStorage.getItem("auth_pass");
+  if(!user)return;
+
+  const res=await fetch(API);
+  const text=await res.text();
+
+  allLines=text.split("\n").filter(x=>x.trim());
+
+  const test=await fetch(API,{
+    method:"POST",
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({username:user,password:pass,content:text})
+  });
+
+  if(test.status===401){
+    alert("权限错误");
+    logout();
+    return;
+  }
+
+  const data=await test.json();
+  role=data.role;
+
+  document.getElementById("loginBox").hidden=true;
+  document.getElementById("app").hidden=false;
+
+  roleInfo.innerText="身份："+role.type+"："+role.name;
+
+  filterLines();
   render();
+}
+
+function filterLines(){
+
+  if(role.type==="super"){
+    visibleLines=[...allLines];
+    return;
+  }
+
+  visibleLines=allLines.filter(x=>{
+    if(role.type==="company")
+      return x.includes(`{${role.name}}`);
+    if(role.type==="region")
+      return x.includes(`『${role.name}』`);
+  });
 }
 
 function render(){
-  const list = document.getElementById("list");
-  list.innerHTML = "";
 
-  lines.forEach((l,i)=>{
+  list.innerHTML="";
 
-    list.innerHTML += `
-    <div class="card">
-      <div class="title">${l.number}</div>
+  visibleLines.forEach((line,i)=>{
 
-      站点:
-      <input value="${l.stations}" 
-      onchange="lines[${i}].stations=this.value"><br>
+    const name=line.match(/【(.+?)】/)?.[1]||"";
+    const company=line.match(/\{(.+?)\}/)?.[1]||"";
+    const region=line.match(/『(.+?)』/)?.[1]||"";
+    const type=line.match(/θ(.+?)θ/)?.[1]||"";
 
-      类型:
-      <select onchange="lines[${i}].type=this.value">
-        <option ${l.type=="公交"?"selected":""}>公交</option>
-        <option ${l.type=="地铁"?"selected":""}>地铁</option>
-        <option ${l.type=="单轨"?"selected":""}>单轨</option>
-        <option ${l.type=="铁路"?"selected":""}>铁路</option>
-      </select><br>
+    const card=document.createElement("div");
+    card.className="card";
 
-      首班:
-      <input type="time" value="${l.first}" 
-      onchange="lines[${i}].first=this.value">
-
-      末班:
-      <input type="time" value="${l.last}" 
-      onchange="lines[${i}].last=this.value"><br>
-
-      公司:
-      <input value="${l.company}" 
-      onchange="lines[${i}].company=this.value"><br>
-
-      地区:
-      <input value="${l.area}" 
-      onchange="lines[${i}].area=this.value"><br>
-
-      颜色:
-      <input value="${l.color}" 
-      onchange="lines[${i}].color=this.value"><br>
-
-      <button onclick="removeLine(${i})">删除</button>
-    </div>
+    card.innerHTML=`
+      <label>线路名</label>
+      <input value="${name}" id="name${i}">
+      <label>公司</label>
+      <input value="${company}" id="company${i}">
+      <label>地区</label>
+      <input value="${region}" id="region${i}">
+      <label>类型</label>
+      <input value="${type}" id="type${i}">
+      <br>
+      <button onclick="updateLine(${i})">修改</button>
+      <button onclick="deleteLine(${i})">删除</button>
     `;
+
+    list.appendChild(card);
   });
+}
+
+function updateLine(i){
+
+  const name=document.getElementById("name"+i).value;
+  const company=document.getElementById("company"+i).value;
+  const region=document.getElementById("region"+i).value;
+  const type=document.getElementById("type"+i).value;
+
+  visibleLines[i]=
+  `【${name}】示例站点1-示例站点2-{${company}}《票价88元》『${region}』θ${type}θ§6:00§@22:30@`;
+
+  rebuildAll();
+  render();
+}
+
+function deleteLine(i){
+  visibleLines.splice(i,1);
+  rebuildAll();
+  render();
 }
 
 function addLine(){
-  lines.push({
-    number:"新线路",
-    stations:"",
-    company:"",
-    area:"",
-    type:"公交",
-    first:"06:00",
-    last:"22:00",
-    color:"000000"
+
+  const newline=
+  `【新线路】起点-终点-{${role.type==="company"?role.name:"公司名"}}《票价888元》『${role.type==="region"?role.name:"地区名"}』θ公交θ§6:00§@22:30@`;
+
+  visibleLines.push(newline);
+  rebuildAll();
+  render();
+}
+
+function rebuildAll(){
+
+  if(role.type==="super"){
+    allLines=[...visibleLines];
+    return;
+  }
+
+  allLines=allLines.filter(x=>{
+    if(role.type==="company")
+      return !x.includes(`{${role.name}}`);
+    if(role.type==="region")
+      return !x.includes(`『${role.name}』`);
   });
-  render();
+
+  allLines=[...allLines,...visibleLines];
 }
 
-function removeLine(i){
-  lines.splice(i,1);
-  render();
-}
+async function saveAll(){
 
-async function save(){
+  const user=localStorage.getItem("auth_user");
+  const pass=localStorage.getItem("auth_pass");
 
-  const password = prompt("请输入管理员密码");
-  if(!password) return;
-
-  const text = lines.map(l=>rebuildLine(l)).join("\n");
-
-  const r = await fetch(API,{
+  const res=await fetch(API,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body: JSON.stringify({
-      content:text,
-      password:password
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      username:user,
+      password:pass,
+      content:allLines.join("\n")
     })
   });
 
-  alert(await r.text());
+  if(res.ok) alert("保存成功");
+  else alert("保存失败");
 }
 
-load();
+init();
 
 </script>
-
 </body>
 </html>
