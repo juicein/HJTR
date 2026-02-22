@@ -4,7 +4,7 @@ window.QUICK_ACTIONS = [
     { id: 2, title: "航班动态", icon: "connecting_airports", link: "/flights_map" },
     { id: 3, title: "公共交通", icon: "directions_bus", link: "/bus" },
  { id: 4, title: "CSV数据", icon: "luggage", link: "/function/bus-csv" },
-   { id: 5, title: "后台服务", icon: "connecting_airports", link: "/admin" },
+   { id: 5, title: "后台服务", icon: "connecting_airports", link: "/admin" }
   //  { id: 6, title: "贵宾厅", icon: "diamond", link: "#" },
   //  { id: 7, title: "餐饮购物", icon: "restaurant", link: "#" },
   //  { id: 8, title: "交通指南", icon: "directions_bus", link: "#" }monitor
