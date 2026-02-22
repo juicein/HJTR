@@ -4,163 +4,163 @@
 <meta charset="UTF-8" />
 <title>公交数据管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
 <style>
-:root { --p:#006495; }
-body{ margin:0;font-family:system-ui;background:#f4f7fb; }
-header{
-  background:var(--p);
-  color:#fff;
-  padding:14px 18px;
-  display:flex;
-  justify-content:space-between;
-}
-main{ max-width:1100px;margin:20px auto;padding:0 16px; }
-textarea{
-  width:100%;height:60vh;
-  padding:14px;border-radius:10px;
-  border:1px solid #ccc;font-family:monospace;
-}
-.card{
-  background:#fff;padding:12px;
-  border-radius:10px;margin-bottom:10px;
-}
-button{
-  background:var(--p);
-  color:#fff;border:none;
-  padding:6px 12px;border-radius:8px;
-}
-#login{max-width:400px;margin:40px auto;}
-input{width:100%;padding:8px;margin-bottom:10px;}
+body{margin:0;font-family:system-ui;background:#f4f7fb}
+header{background:#006495;color:#fff;padding:14px;display:flex;justify-content:space-between}
+main{max-width:1200px;margin:20px auto;padding:0 16px}
+textarea{width:100%;height:60vh;border-radius:10px;padding:12px;font-family:monospace}
+.card{background:#fff;padding:12px;margin-bottom:10px;border-radius:8px}
+button{background:#006495;color:#fff;border:none;padding:6px 12px;border-radius:6px;margin-right:6px}
+input{padding:6px;margin-right:6px}
 </style>
 </head>
-<body>
 
+<body>
 <header>
-  公交数据管理系统
-  <span id="who"></span>
+公交管理后台
 </header>
 
 <main>
 
-<div id="login">
-  <h3>登录</h3>
-  <input id="name" placeholder="名称">
-  <input id="pwd" type="password" placeholder="密码">
-  <button onclick="login()">登录</button>
-  <div id="msg"></div>
+<div id="loginBox">
+<input id="user" placeholder="管理员名称">
+<input id="pass" type="password" placeholder="密码">
+<button onclick="login()">登录</button>
+<div id="loginMsg"></div>
 </div>
 
 <div id="panel" hidden>
-  <button onclick="addLine()">新增</button>
-  <button onclick="save()">保存</button>
-  <textarea id="editor"></textarea>
-  <div id="visual"></div>
+
+<button onclick="setMode('visual')">可视化</button>
+<button onclick="setMode('text')">文本</button>
+
+<textarea id="editor"></textarea>
+<div id="visual" hidden></div>
+
+<button onclick="save()">保存</button>
+<div id="status"></div>
+
 </div>
 
 </main>
 
 <script>
+const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev/";
+const RAW="https://haojin.guanmu233.cn/data/bus_data.txt";
 
-const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
-
-let role=null;
-let roleName=null;
-let rawData="";
+let username="";
+let password="";
+let role="";
+let scope="";
+let mode="visual";
 
 const editor=document.getElementById("editor");
 const visual=document.getElementById("visual");
 
-function parseLines(txt){
-  return txt.split("\n").filter(x=>x.includes("【"));
-}
-function getCompany(s){ return s.match(/\{(.+?)\}/)?.[1]||""; }
-function getRegion(s){ return s.match(/『(.+?)』/)?.[1]||""; }
-function getName(s){ return s.match(/【(.+?)】/)?.[1]||""; }
-
 async function login(){
-  const n=document.getElementById("name").value.trim();
-  const p=document.getElementById("pwd").value.trim();
+  username=user.value.trim();
+  password=pass.value.trim();
 
-  const res=await fetch(API,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify({action:"login",name:n,password:p})
-  });
-
-  const r=await res.json();
-  if(!r.ok){
-    msg.innerText=r.msg;
+  if(!username||!password){
+    loginMsg.textContent="请输入账号密码";
     return;
   }
 
-  role=r.role;
-  roleName=r.name;
-  who.innerText=role+"："+roleName;
+  const r=await fetch(API,{
+    method:"POST",
+    headers:{ "Content-Type":"application/json"},
+    body:JSON.stringify({content:"",username,password})
+  });
 
-  login.hidden=true;
+  if(r.status===403){
+    loginMsg.textContent="账号或密码错误";
+    return;
+  }
+
+  loginBox.hidden=true;
   panel.hidden=false;
 
   load();
 }
 
 async function load(){
-  const res=await fetch(API);
-  rawData=await res.text();
-  render();
+  const r=await fetch(RAW);
+  editor.value=await r.text();
+  renderVisual();
 }
 
-function render(){
-  let lines=parseLines(rawData);
+function parseLines(txt){
+  return txt.split("\n").filter(x=>x.includes("【"));
+}
 
-  if(role==="company")
-    lines=lines.filter(x=>getCompany(x)===roleName);
-
-  if(role==="region")
-    lines=lines.filter(x=>getRegion(x)===roleName);
-
-  editor.value=lines.join("\n");
-  renderVisual();
+function getCompany(line){
+  return line.match(/\{(.+?)\}/)?.[1]||"";
 }
 
 function renderVisual(){
   visual.innerHTML="";
-  parseLines(editor.value).forEach((l,i)=>{
+  let lines=parseLines(editor.value);
+
+  lines.forEach((line,i)=>{
+    const company=getCompany(line);
+
+    if(role==="company" && company!==username) return;
+
     const div=document.createElement("div");
     div.className="card";
     div.innerHTML=`
-      <b>${getName(l)}</b>
-      公司:${getCompany(l)} 地区:${getRegion(l)}
-      <button onclick="del(${i})">删除</button>
+      ${line}<br>
+      <button onclick="editLine(${i})">修改</button>
+      <button onclick="deleteLine(${i})">删除</button>
     `;
     visual.appendChild(div);
   });
 }
 
-function del(i){
-  let arr=parseLines(editor.value);
-  arr.splice(i,1);
-  editor.value=arr.join("\n");
-  renderVisual();
+function editLine(i){
+  let lines=parseLines(editor.value);
+  const newLine=prompt("修改线路",lines[i]);
+  if(newLine){
+    lines[i]=newLine;
+    editor.value=lines.join("\n");
+    renderVisual();
+  }
 }
 
-function addLine(){
-  editor.value+="\n【新线路】站1-站2-{公司}《票价1元》『地区』θ公交θ§6:00§@22:00@∮FFFFFF∮";
+function deleteLine(i){
+  let lines=parseLines(editor.value);
+  lines.splice(i,1);
+  editor.value=lines.join("\n");
   renderVisual();
 }
 
 async function save(){
-  const res=await fetch(API,{
+  status.textContent="保存中...";
+  const r=await fetch(API,{
     method:"POST",
-    headers:{ "Content-Type":"application/json" },
+    headers:{ "Content-Type":"application/json"},
     body:JSON.stringify({
-      action:"save",
-      content:editor.value
+      content:editor.value,
+      username,
+      password
     })
   });
-  const r=await res.json();
-  alert(r.msg);
+
+  status.textContent=await r.text();
 }
 
+function setMode(m){
+  mode=m;
+  if(m==="visual"){
+    editor.hidden=true;
+    visual.hidden=false;
+    renderVisual();
+  }else{
+    editor.hidden=false;
+    visual.hidden=true;
+  }
+}
 </script>
 </body>
 </html>
