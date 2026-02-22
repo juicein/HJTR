@@ -1,210 +1,168 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HJTR 公交管理后台</title>
+<meta charset="UTF-8" />
+<title>公交数据管理系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
-:root{
-  --p:#006495;
-}
-body{
-  margin:0;
-  font-family:system-ui;
-  background:#f4f7fb;
-}
+:root{ --p:#006495; }
+body{ margin:0;font-family:system-ui;background:#f4f7fb; }
 header{
   background:var(--p);
   color:#fff;
-  padding:16px;
-  text-align:center;
-  font-size:20px;
+  padding:14px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-.container{
-  max-width:1100px;
-  margin:auto;
-  padding:16px;
+main{ max-width:1200px;margin:20px auto;padding:0 16px; }
+textarea{
+  width:100%;height:60vh;padding:14px;border-radius:10px;
+  border:1px solid #ccc;font-family:monospace;
 }
 .card{
-  background:#fff;
-  border-radius:12px;
-  padding:14px;
-  margin-bottom:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,.05);
+  background:#fff;padding:14px;border-radius:10px;
+  margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.05);
 }
 button{
-  background:var(--p);
-  color:#fff;
-  border:none;
-  padding:6px 12px;
-  border-radius:8px;
-  cursor:pointer;
+  background:var(--p);color:#fff;border:none;
+  padding:6px 12px;border-radius:8px;margin-right:6px;
 }
-input{
-  padding:8px;
-  width:100%;
-  margin-bottom:8px;
-  border-radius:8px;
-  border:1px solid #ccc;
-}
-.flex{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-.hidden{display:none;}
-@media(max-width:600px){
-  .flex{flex-direction:column;}
-}
+#loginBox{margin:30px auto;max-width:400px;}
+input{width:100%;padding:10px;margin-bottom:10px;}
+#status{margin-top:10px;color:#666}
 </style>
 </head>
 <body>
 
-<header>HJTR 公交管理系统</header>
+<header>
+  公交数据管理系统
+  <div id="who"></div>
+</header>
 
-<div class="container">
+<main>
 
-<div id="loginBox" class="card">
+<div id="loginBox">
   <h3>管理员登录</h3>
-  <input id="user" placeholder="用户名">
+  <input id="name" placeholder="名称">
   <input id="pwd" type="password" placeholder="密码">
   <button onclick="login()">登录</button>
   <div id="loginMsg"></div>
 </div>
 
-<div id="adminPanel" class="hidden">
-
-  <div class="card">
-    <button onclick="addLine()">新增线路</button>
-    <button onclick="save()">保存所有修改</button>
-    <div id="status"></div>
-  </div>
-
-  <div id="list"></div>
-
+<div id="panel" hidden>
+  <button onclick="addLine()">新增线路</button>
+  <button onclick="save()">保存修改</button>
+  <textarea id="editor"></textarea>
+  <div id="visual"></div>
+  <div id="status"></div>
 </div>
 
-</div>
+</main>
 
 <script>
 
-const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev/";
-
+const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
+let role=null;
+let roleName=null;
 let rawData="";
-let lines=[];
-let currentUser=null;
-let userInfo=null;
+
+const editor=document.getElementById("editor");
+const visual=document.getElementById("visual");
 
 function parseLines(txt){
-  return txt.split("\n").filter(x=>x.trim()!=="");
+  return txt.split("\n").filter(x=>x.includes("【"));
 }
 
-function getField(s,r){
-  return s.match(r)?.[1]||"";
-}
+function getCompany(s){ return s.match(/\{(.+?)\}/)?.[1]||""; }
+function getRegion(s){ return s.match(/『(.+?)』/)?.[1]||""; }
+function getName(s){ return s.match(/【(.+?)】/)?.[1]||""; }
 
-function login(){
-  fetch(API,{
+async function login(){
+  const n=name.value.trim();
+  const p=pwd.value.trim();
+  const res=await fetch(API,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({
-      username:user.value,
-      password:pwd.value,
-      action:"login"
-    })
-  }).then(async r=>{
-    if(!r.ok){
-      loginMsg.innerText=await r.text();
-      return;
-    }
-    userInfo=await r.json();
-    currentUser=user.value;
-    loginBox.classList.add("hidden");
-    adminPanel.classList.remove("hidden");
-    load();
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:"login",name:n,password:p})
   });
+  const r=await res.json();
+  if(!r.ok){
+    loginMsg.innerText=r.msg;
+    return;
+  }
+  role=r.role;
+  roleName=r.name;
+  document.getElementById("who").innerText=role+"："+roleName;
+  loginBox.hidden=true;
+  panel.hidden=false;
+  load();
 }
 
 async function load(){
   const res=await fetch(API);
   rawData=await res.text();
-  lines=parseLines(rawData);
-  render();
+  filterRender();
 }
 
-function filterPermission(arr){
-  if(userInfo.type==="super") return arr;
-
-  if(userInfo.type==="region"){
-    return arr.filter(x=>x.includes("『"+currentUser+"』"));
+function filterRender(){
+  let lines=parseLines(rawData);
+  if(role==="company"){
+    lines=lines.filter(x=>getCompany(x)===roleName);
   }
-
-  if(userInfo.type==="company"){
-    return arr.filter(x=>x.includes("{"+currentUser+"}"));
+  if(role==="region"){
+    lines=lines.filter(x=>getRegion(x)===roleName);
   }
+  editor.value=lines.join("\n");
+  renderVisual();
 }
 
-function render(){
-  list.innerHTML="";
-  const view=filterPermission(lines);
-
-  view.forEach((l,i)=>{
-
-    const name=getField(l,/【(.+?)】/);
-    const company=getField(l,/\{(.+?)\}/);
-    const region=getField(l,/『(.+?)』/);
-    const type=getField(l,/θ(.+?)θ/);
-
+function renderVisual(){
+  visual.innerHTML="";
+  parseLines(editor.value).forEach((l,i)=>{
     const div=document.createElement("div");
     div.className="card";
     div.innerHTML=`
-      <b>${name}</b><br>
-      公司: ${company} ｜ 地区: ${region} ｜ 类型: ${type}
-      <div class="flex">
-        <button onclick="editLine('${l.replace(/'/g,"")}')">修改</button>
-        <button onclick="deleteLine('${l.replace(/'/g,"")}')">删除</button>
-      </div>
+      <b>${getName(l)}</b><br>
+      公司：${getCompany(l)} ｜ 地区：${getRegion(l)}<br>
+      <button onclick="edit(${i})">修改</button>
+      <button onclick="del(${i})">删除</button>
     `;
-    list.appendChild(div);
+    visual.appendChild(div);
   });
 }
 
-function deleteLine(line){
-  lines=lines.filter(x=>x!==line);
-  render();
+function edit(i){
+  alert("直接在上方文本框修改后保存即可");
 }
 
-function editLine(line){
-  const newLine=prompt("编辑整条线路数据：",line);
-  if(newLine){
-    const i=lines.indexOf(line);
-    lines[i]=newLine;
-    render();
-  }
+function del(i){
+  let arr=parseLines(editor.value);
+  arr.splice(i,1);
+  editor.value=arr.join("\n");
+  renderVisual();
 }
 
 function addLine(){
-  const newLine=prompt("输入完整线路字符串：");
-  if(newLine){
-    lines.push(newLine);
-    render();
-  }
+  editor.value+="\n【新线路】站点1-站点2-{公司}《票价1元》『地区』θ公交θ§6:00§@22:00@∮FFFFFF∮";
+  renderVisual();
 }
 
-function save(){
-  fetch(API,{
+async function save(){
+  status.innerText="保存中...";
+  const res=await fetch(API,{
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
-      username:currentUser,
-      password:pwd.value,
-      content:lines.join("\n"),
-      action:"save"
+      action:"save",
+      content:editor.value,
+      role,
+      roleName
     })
-  }).then(async r=>{
-    status.innerText=await r.text();
   });
+  const r=await res.json();
+  status.innerText=r.msg;
 }
 
 </script>
