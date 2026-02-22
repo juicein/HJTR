@@ -2,88 +2,63 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>公交管理员</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>公交管理系统</title>
 
 <style>
 body{
-  margin:0;
   font-family:system-ui;
   background:#f5f5f5;
+  margin:0;
+  padding:20px;
 }
-
-header{
-  background:#6750A4;
-  color:#fff;
-  padding:16px;
-  font-size:20px;
-}
-
-.container{
-  padding:16px;
-}
-
+h2{font-weight:500}
 .card{
-  background:#fff;
+  background:white;
   border-radius:16px;
-  padding:16px;
-  margin-bottom:16px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
-
 input,select{
   width:100%;
   padding:10px;
-  border-radius:12px;
-  border:1px solid #ddd;
-  margin-top:6px;
-  margin-bottom:12px;
-  font-size:14px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
 }
-
 button{
-  background:#6750A4;
-  color:white;
+  padding:8px 14px;
   border:none;
-  padding:8px 16px;
   border-radius:20px;
   cursor:pointer;
-  margin:4px 0;
+  background:#6750A4;
+  color:white;
+  margin:5px 5px 5px 0;
 }
-
 button.delete{
   background:#B3261E;
 }
-
-.station-row{
+.station{
   display:flex;
-  gap:6px;
+  gap:8px;
   margin-bottom:6px;
 }
-
-.station-row input{
-  flex:1;
-}
+.station input{flex:1}
 </style>
 </head>
 <body>
 
-<header>公交管理员后台</header>
+<h2>公交管理系统</h2>
 
-<div class="container">
-
-<div id="loginCard" class="card">
-<input id="password" placeholder="输入管理员口令">
-<button onclick="login()">进入</button>
+<div id="login" class="card">
+  <input id="pwd" placeholder="输入管理员口令">
+  <button onclick="login()">登录</button>
 </div>
 
 <div id="main" style="display:none">
-<button onclick="addLine()">新增线路</button>
-<div id="list"></div>
-</div>
-
+  <button onclick="addLine()">新增线路</button>
+  <div id="list"></div>
 </div>
 
 <script>
@@ -91,24 +66,17 @@ button.delete{
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
 let allData=[];
-let filteredData=[];
-let adminType="";
-let adminValue="";
-let saveTimer=null;
-
-function autoSave(){
-  if(saveTimer) clearTimeout(saveTimer);
-  saveTimer=setTimeout(save,2000);
-}
+let role="";
+let roleValue="";
 
 async function login(){
 
-  const pwd=document.getElementById("password").value;
+  const password=document.getElementById("pwd").value;
 
   const res=await fetch(API,{
     method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode:"verify",password:pwd})
+    body:JSON.stringify({mode:"login",password})
   });
 
   const data=await res.json();
@@ -118,13 +86,13 @@ async function login(){
     return;
   }
 
-  adminType=data.type;
-  adminValue=data.value||"";
+  role=data.type;
+  roleValue=data.value || "";
 
-  localStorage.setItem("adminType",adminType);
-  localStorage.setItem("adminValue",adminValue);
+  localStorage.setItem("role",role);
+  localStorage.setItem("roleValue",roleValue);
 
-  document.getElementById("loginCard").style.display="none";
+  document.getElementById("login").style.display="none";
   document.getElementById("main").style.display="block";
 
   loadData();
@@ -132,128 +100,115 @@ async function login(){
 
 async function loadData(){
   const res=await fetch(API);
-  const text=await res.text();
-  allData=JSON.parse(text);
-  applyFilter();
+  allData=JSON.parse(await res.text());
+  render();
 }
 
-function applyFilter(){
-
-  if(adminType==="super"){
-    filteredData=allData;
-  }
-  else if(adminType==="area"){
-    filteredData=allData.filter(x=>x.area===adminValue);
-  }
-  else if(adminType==="company"){
-    filteredData=allData.filter(x=>x.company===adminValue);
-  }
-
-  render();
+function getVisibleData(){
+  if(role==="super") return allData;
+  if(role==="region") return allData.filter(x=>x.region===roleValue);
+  if(role==="company") return allData.filter(x=>x.company===roleValue);
 }
 
 function render(){
 
-  const box=document.getElementById("list");
-  box.innerHTML="";
+  const container=document.getElementById("list");
+  container.innerHTML="";
 
-  filteredData.forEach((line,index)=>{
-
-    const realIndex=allData.indexOf(line);
+  getVisibleData().forEach((line,index)=>{
 
     const card=document.createElement("div");
     card.className="card";
 
     card.innerHTML=`
-    <input value="${line.name}" onchange="update(${realIndex},'name',this.value)">
-    <input value="${line.area}" onchange="update(${realIndex},'area',this.value)">
-    <input value="${line.company}" onchange="update(${realIndex},'company',this.value)">
-    首班车
-    <input type="time" value="${line.start}" onchange="update(${realIndex},'start',this.value)">
-    末班车
-    <input type="time" value="${line.end}" onchange="update(${realIndex},'end',this.value)">
-    <div id="stations-${realIndex}"></div>
-    <button onclick="addStation(${realIndex})">增加站点</button>
-    <button class="delete" onclick="removeLine(${realIndex})">删除线路</button>
+    <input value="${line.name}" onchange="update(index,'name',this.value)">
+    <input value="${line.region}" onchange="update(index,'region',this.value)">
+    <input value="${line.company}" onchange="update(index,'company',this.value)">
+    首班车:
+    <input type="time" value="${line.start}" onchange="update(index,'start',this.value)">
+    末班车:
+    <input type="time" value="${line.end}" onchange="update(index,'end',this.value)">
+    <div id="st-${index}"></div>
+    <button onclick="addStation(index)">增加站点</button>
+    <button class="delete" onclick="removeLine(index)">删除线路</button>
     `;
 
-    box.appendChild(card);
-    renderStations(realIndex);
+    container.appendChild(card);
+
+    renderStations(index);
   });
 }
 
 function renderStations(i){
-  const box=document.getElementById("stations-"+i);
+  const box=document.getElementById("st-"+i);
   box.innerHTML="";
-  allData[i].stations.forEach((st,j)=>{
-    const row=document.createElement("div");
-    row.className="station-row";
-    row.innerHTML=`
-      <input value="${st}" onchange="updateStation(${i},${j},this.value)">
+  getVisibleData()[i].stations.forEach((s,j)=>{
+    const div=document.createElement("div");
+    div.className="station";
+    div.innerHTML=`
+      <input value="${s}" onchange="updateStation(${i},${j},this.value)">
       <button class="delete" onclick="removeStation(${i},${j})">X</button>
     `;
-    box.appendChild(row);
+    box.appendChild(div);
   });
 }
 
-function update(i,key,val){
-  allData[i][key]=val;
+function update(i,key,value){
+  const line=getVisibleData()[i];
+  line[key]=value;
   autoSave();
 }
 
-function updateStation(i,j,val){
-  allData[i].stations[j]=val;
-  autoSave();
-}
-
-function addLine(){
-  const newLine={
-    name:"新线路",
-    area:adminType==="area"?adminValue:"",
-    company:adminType==="company"?adminValue:"",
-    start:"06:00",
-    end:"22:00",
-    stations:[]
-  };
-  allData.push(newLine);
-  applyFilter();
-  autoSave();
-}
-
-function removeLine(i){
-  allData.splice(i,1);
-  applyFilter();
+function updateStation(i,j,value){
+  getVisibleData()[i].stations[j]=value;
   autoSave();
 }
 
 function addStation(i){
-  allData[i].stations.push("新站点");
-  renderStations(i);
+  getVisibleData()[i].stations.push("新站点");
+  render();
   autoSave();
 }
 
 function removeStation(i,j){
-  allData[i].stations.splice(j,1);
-  renderStations(i);
+  getVisibleData()[i].stations.splice(j,1);
+  render();
   autoSave();
 }
 
-async function save(){
+function removeLine(i){
+  const visible=getVisibleData();
+  const realIndex=allData.indexOf(visible[i]);
+  allData.splice(realIndex,1);
+  render();
+  autoSave();
+}
 
-  const pwd=document.getElementById("password").value;
+function addLine(){
+  allData.push({
+    name:"新线路",
+    region: role==="region"?roleValue:"",
+    company: role==="company"?roleValue:"",
+    start:"06:00",
+    end:"22:00",
+    stations:[]
+  });
+  render();
+  autoSave();
+}
 
+async function autoSave(){
   const res=await fetch(API,{
     method:"POST",
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
       mode:"save",
-      password:pwd,
       content:JSON.stringify(allData,null,2)
     })
   });
 
   if(!res.ok){
-    alert("保存失败");
+    alert("自动保存失败！");
   }
 }
 
