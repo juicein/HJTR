@@ -6,44 +6,32 @@
 <title>公交管理系统</title>
 
 <style>
-body{
-  font-family:system-ui;
-  background:#f5f5f5;
-  margin:0;
-  padding:20px;
-}
-h2{font-weight:500}
+body{font-family:system-ui;background:#f6f6f6;padding:20px}
 .card{
-  background:white;
-  border-radius:16px;
+  background:#fff;
   padding:20px;
+  border-radius:18px;
   margin-bottom:20px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  box-shadow:0 6px 16px rgba(0,0,0,0.08);
 }
 input,select{
   width:100%;
-  padding:10px;
+  padding:8px;
   margin:6px 0;
   border-radius:8px;
   border:1px solid #ccc;
 }
 button{
-  padding:8px 14px;
+  padding:8px 16px;
   border:none;
   border-radius:20px;
-  cursor:pointer;
   background:#6750A4;
   color:white;
+  cursor:pointer;
   margin:5px 5px 5px 0;
 }
-button.delete{
-  background:#B3261E;
-}
-.station{
-  display:flex;
-  gap:8px;
-  margin-bottom:6px;
-}
+.delete{background:#B3261E}
+.station{display:flex;gap:6px;margin-bottom:5px}
 .station input{flex:1}
 </style>
 </head>
@@ -65,9 +53,30 @@ button.delete{
 
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
-let allData=[];
+let rawText="";
+let lines=[];
 let role="";
 let roleValue="";
+
+function parseLine(text){
+
+  const name=text.match(/【(.*?)】/)[1];
+  const company=text.match(/{(.*?)}/)[1];
+  const region=text.match(/『(.*?)』/)[1];
+  const type=text.match(/θ(.*?)θ/)[1];
+  const start=text.match(/§(.*?)§/)[1];
+  const end=text.match(/@(.*?)@/)[1];
+  const color=text.match(/∮(.*?)∮/)[1];
+
+  const stationPart=text.split("】")[1].split("-{")[0];
+  const stations=stationPart.split("-").filter(s=>s);
+
+  return {name,company,region,type,start,end,color,stations};
+}
+
+function buildLine(l){
+  return `【${l.name}】${l.stations.join("-")}-{${l.company}}《》『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@∮${l.color}∮`;
+}
 
 async function login(){
 
@@ -80,34 +89,31 @@ async function login(){
   });
 
   const data=await res.json();
-
-  if(!data.success){
-    alert("口令错误");
-    return;
-  }
+  if(!data.success){alert("口令错误");return;}
 
   role=data.type;
-  roleValue=data.value || "";
-
-  localStorage.setItem("role",role);
-  localStorage.setItem("roleValue",roleValue);
+  roleValue=data.value||"";
 
   document.getElementById("login").style.display="none";
   document.getElementById("main").style.display="block";
 
-  loadData();
+  load();
 }
 
-async function loadData(){
+async function load(){
   const res=await fetch(API);
-  allData=JSON.parse(await res.text());
+  rawText=await res.text();
+
+  const arr=rawText.split("\n").filter(x=>x.trim());
+  lines=arr.map(parseLine);
+
   render();
 }
 
-function getVisibleData(){
-  if(role==="super") return allData;
-  if(role==="region") return allData.filter(x=>x.region===roleValue);
-  if(role==="company") return allData.filter(x=>x.company===roleValue);
+function getVisible(){
+  if(role==="super")return lines;
+  if(role==="region")return lines.filter(x=>x.region===roleValue);
+  if(role==="company")return lines.filter(x=>x.company===roleValue);
 }
 
 function render(){
@@ -115,100 +121,88 @@ function render(){
   const container=document.getElementById("list");
   container.innerHTML="";
 
-  getVisibleData().forEach((line,index)=>{
+  getVisible().forEach((l,i)=>{
 
     const card=document.createElement("div");
     card.className="card";
 
     card.innerHTML=`
-    <input value="${line.name}" onchange="update(index,'name',this.value)">
-    <input value="${line.region}" onchange="update(index,'region',this.value)">
-    <input value="${line.company}" onchange="update(index,'company',this.value)">
-    首班车:
-    <input type="time" value="${line.start}" onchange="update(index,'start',this.value)">
-    末班车:
-    <input type="time" value="${line.end}" onchange="update(index,'end',this.value)">
-    <div id="st-${index}"></div>
-    <button onclick="addStation(index)">增加站点</button>
-    <button class="delete" onclick="removeLine(index)">删除线路</button>
+    <input value="${l.name}" onchange="l.name=this.value;save()">
+    <input value="${l.company}" onchange="l.company=this.value;save()">
+    <input value="${l.region}" onchange="l.region=this.value;save()">
+    <input value="${l.type}" onchange="l.type=this.value;save()">
+    首班车:<input type="time" value="${l.start}" onchange="l.start=this.value;save()">
+    末班车:<input type="time" value="${l.end}" onchange="l.end=this.value;save()">
+    <div id="st-${i}"></div>
+    <button onclick="addStation(${i})">增加站点</button>
+    <button class="delete" onclick="removeLine(${i})">删除线路</button>
     `;
 
     container.appendChild(card);
-
-    renderStations(index);
+    renderStations(i);
   });
 }
 
 function renderStations(i){
   const box=document.getElementById("st-"+i);
   box.innerHTML="";
-  getVisibleData()[i].stations.forEach((s,j)=>{
+  getVisible()[i].stations.forEach((s,j)=>{
     const div=document.createElement("div");
     div.className="station";
     div.innerHTML=`
-      <input value="${s}" onchange="updateStation(${i},${j},this.value)">
+      <input value="${s}" onchange="getVisible()[${i}].stations[${j}]=this.value;save()">
       <button class="delete" onclick="removeStation(${i},${j})">X</button>
     `;
     box.appendChild(div);
   });
 }
 
-function update(i,key,value){
-  const line=getVisibleData()[i];
-  line[key]=value;
-  autoSave();
-}
-
-function updateStation(i,j,value){
-  getVisibleData()[i].stations[j]=value;
-  autoSave();
-}
-
 function addStation(i){
-  getVisibleData()[i].stations.push("新站点");
+  getVisible()[i].stations.push("新站点");
   render();
-  autoSave();
+  save();
 }
 
 function removeStation(i,j){
-  getVisibleData()[i].stations.splice(j,1);
+  getVisible()[i].stations.splice(j,1);
   render();
-  autoSave();
+  save();
 }
 
 function removeLine(i){
-  const visible=getVisibleData();
-  const realIndex=allData.indexOf(visible[i]);
-  allData.splice(realIndex,1);
+  const realIndex=lines.indexOf(getVisible()[i]);
+  lines.splice(realIndex,1);
   render();
-  autoSave();
+  save();
 }
 
 function addLine(){
-  allData.push({
+  lines.push({
     name:"新线路",
-    region: role==="region"?roleValue:"",
-    company: role==="company"?roleValue:"",
+    company:role==="company"?roleValue:"",
+    region:role==="region"?roleValue:"",
+    type:"公交",
     start:"06:00",
     end:"22:00",
+    color:"FFFFFF",
     stations:[]
   });
   render();
-  autoSave();
+  save();
 }
 
-async function autoSave(){
+async function save(){
+
+  const newText=lines.map(buildLine).join("\n");
+
   const res=await fetch(API,{
     method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      mode:"save",
-      content:JSON.stringify(allData,null,2)
-    })
+    body:JSON.stringify({mode:"save",content:newText})
   });
 
   if(!res.ok){
-    alert("自动保存失败！");
+    alert("保存失败！");
   }
 }
 
