@@ -1,47 +1,17 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>公交管理系统</title>
-
 <style>
-body{
-  font-family:system-ui;
-  background:#f5f5f5;
-  margin:0;
-  padding:20px;
-}
+body{font-family:system-ui;background:#f5f5f5;margin:0;padding:20px;}
 h2{font-weight:500}
-.card{
-  background:#fff;
-  border-radius:20px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.08);
-}
-button{
-  padding:8px 16px;
-  border:none;
-  border-radius:20px;
-  background:#6750A4;
-  color:#fff;
-  cursor:pointer;
-  margin:5px 5px 5px 0;
-}
+.card{background:#fff;border-radius:20px;padding:20px;margin-bottom:20px;box-shadow:0 6px 18px rgba(0,0,0,0.08);}
+button{padding:8px 16px;border:none;border-radius:20px;background:#6750A4;color:#fff;cursor:pointer;margin:5px 5px 5px 0;}
 button.delete{background:#B3261E}
-input,select{
-  width:100%;
-  padding:8px;
-  margin:6px 0;
-  border-radius:10px;
-  border:1px solid #ccc;
-}
-.station{
-  display:flex;
-  gap:6px;
-  margin-bottom:6px;
-}
+input,select{width:100%;padding:8px;margin:6px 0;border-radius:10px;border:1px solid #ccc;}
+.station{display:flex;gap:6px;margin-bottom:6px;}
 .station input{flex:1}
 .hidden{display:none}
 </style>
@@ -51,60 +21,57 @@ input,select{
 <h2>公交管理系统</h2>
 
 <div id="loginBox" class="card">
-  <input id="pwd" placeholder="输入管理员口令">
-  <button onclick="login()">登录</button>
+<input id="pwd" placeholder="输入管理员口令">
+<button onclick="login()">登录</button>
 </div>
 
 <div id="listPage" class="hidden">
-  <button onclick="addLine()">新增线路</button>
-  <div id="lineList"></div>
+<button onclick="addLine()">新增线路</button>
+<div id="lineList"></div>
 </div>
 
 <div id="editPage" class="hidden">
-  <button onclick="back()">返回</button>
-  <div class="card">
+<button onclick="back()">返回</button>
+<div class="card">
+<label>线路名称</label>
+<input id="edit_name">
 
-    <label>线路名称</label>
-    <input id="edit_name">
+<label>公司</label>
+<input id="edit_company">
 
-    <label>公司</label>
-    <input id="edit_company">
+<label>地区</label>
+<input id="edit_region">
 
-    <label>地区</label>
-    <input id="edit_region">
+<label>票价/服务信息</label>
+<input id="edit_price">
 
-    <label>票价/服务信息</label>
-    <input id="edit_price">
+<label>线路类型</label>
+<select id="edit_type">
+<option>公交</option>
+<option>地铁</option>
+<option>单轨</option>
+<option>铁路</option>
+<option>其他</option>
+</select>
 
-    <label>线路类型</label>
-    <select id="edit_type">
-      <option>公交</option>
-      <option>地铁</option>
-      <option>单轨</option>
-      <option>铁路</option>
-      <option>其他</option>
-    </select>
+<label>首班车</label>
+<input type="time" id="edit_start">
 
-    <label>首班车</label>
-    <input type="time" id="edit_start">
+<label>末班车</label>
+<input type="time" id="edit_end">
 
-    <label>末班车</label>
-    <input type="time" id="edit_end">
+<label>线路颜色</label>
+<input id="edit_color">
 
-    <label>线路颜色（可选）</label>
-    <input id="edit_color">
+<label>站点</label>
+<div id="stationBox"></div>
+<button onclick="addStation()">增加站点</button>
 
-    <label>站点</label>
-    <div id="stationBox"></div>
-    <button onclick="addStation()">增加站点</button>
-
-    <button onclick="saveEdit()">保存</button>
-
-  </div>
+<button onclick="saveEdit()">保存</button>
+</div>
 </div>
 
 <script>
-
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
 let rawLines=[];
@@ -113,213 +80,157 @@ let role="";
 let roleValue="";
 let editingIndex=null;
 
-/* 容错解析 */
 function parseLine(text){
-
-  const obj={raw:text};
-
-  obj.name = (text.match(/【(.*?)】/)||[])[1]||"";
-  obj.company = (text.match(/{(.*?)}/)||[])[1]||"";
-  obj.region = (text.match(/『(.*?)』/)||[])[1]||"";
-  obj.price = (text.match(/《(.*?)》/)||[])[1]||"";
-  obj.type = (text.match(/θ(.*?)θ/)||[])[1]||"公交";
-  obj.start = (text.match(/§(.*?)§/)||[])[1]||"06:00";
-  obj.end = (text.match(/@(.*?)@/)||[])[1]||"22:00";
-  obj.color = (text.match(/∮(.*?)∮/)||[])[1]||"";
-
-  const stationPart = text.split("】")[1]?.split("-{")[0]||"";
-  obj.stations = stationPart.split("-").filter(s=>s);
-
-  return obj;
+const obj={raw:text};
+obj.name=(text.match(/【(.*?)】/)||[])[1]||"";
+obj.company=(text.match(/{(.*?)}/)||[])[1]||"";
+obj.region=(text.match(/『(.*?)』/)||[])[1]||"";
+obj.price=(text.match(/《(.*?)》/)||[])[1]||"";
+obj.type=(text.match(/θ(.*?)θ/)||[])[1]||"公交";
+obj.start=(text.match(/§(.*?)§/)||[])[1]||"06:00";
+obj.end=(text.match(/@(.*?)@/)||[])[1]||"22:00";
+obj.color=(text.match(/∮(.*?)∮/)||[])[1]||"";
+const stationPart=text.split("】")[1]?.split("-{")[0]||"";
+obj.stations=stationPart.split("-").filter(s=>s);
+return obj;
 }
 
-/* 重建字符串 */
 function buildLine(l){
-
-  let base = `【${l.name}】${l.stations.join("-")}-{${l.company}}`;
-
-  if(l.price) base += `《${l.price}》`;
-  base += `『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@`;
-
-  if(l.color) base += `∮${l.color}∮`;
-
-  return base;
+let base=`【${l.name}】${l.stations.join("-")}-{${l.company}}`;
+if(l.price) base+=`《${l.price}》`;
+base+=`『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@`;
+if(l.color) base+=`∮${l.color}∮`;
+return base;
 }
 
 async function login(){
-
-  const password=document.getElementById("pwd").value;
-
-  const res=await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode:"login",password})
-  });
-
-  const data=await res.json();
-  if(!data.success){alert("口令错误");return;}
-
-  role=data.type;
-  roleValue=data.value||"";
-
-  document.getElementById("loginBox").classList.add("hidden");
-  document.getElementById("listPage").classList.remove("hidden");
-
-  loadData();
+const password=document.getElementById("pwd").value;
+const res=await fetch(API,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:"login",password})});
+const data=await res.json();
+if(!data.success){alert("口令错误");return;}
+role=data.type;
+roleValue=data.value||"";
+document.getElementById("loginBox").classList.add("hidden");
+document.getElementById("listPage").classList.remove("hidden");
+loadData();
 }
 
 async function loadData(){
-
-  const res=await fetch(API);
-  const txt=await res.text();
-
-  rawLines=txt.split("\n").filter(x=>x.trim());
-  lines=rawLines.map(parseLine);
-
-  renderList();
+const res=await fetch(API);
+const txt=await res.text();
+rawLines=txt.split("\n").filter(x=>x.trim());
+lines=rawLines.map(parseLine);
+renderList();
 }
 
 function getVisible(){
-  if(role==="super") return lines;
-  if(role==="region") return lines.filter(x=>x.region===roleValue);
-  if(role==="company") return lines.filter(x=>x.company===roleValue);
+if(role==="super") return lines;
+if(role==="region") return lines.filter(x=>x.region===roleValue);
+if(role==="company") return lines.filter(x=>x.company===roleValue);
 }
 
 function renderList(){
-
-  const box=document.getElementById("lineList");
-  box.innerHTML="";
-
-  getVisible().forEach((l,i)=>{
-
-    const first=l.stations[0]||"";
-    const last=l.stations[l.stations.length-1]||"";
-
-    const card=document.createElement("div");
-    card.className="card";
-
-    card.innerHTML=`
-      <b>${l.name}</b><br>
-      ${first} → ${last}<br>
-      ${l.company}<br>
-      <button onclick="editLine(${i})">修改</button>
-      <button class="delete" onclick="deleteLine(${i})">删除</button>
-    `;
-
-    box.appendChild(card);
-  });
+const box=document.getElementById("lineList");
+box.innerHTML="";
+getVisible().forEach((l,i)=>{
+const first=l.stations[0]||"";
+const last=l.stations[l.stations.length-1]||"";
+const card=document.createElement("div");
+card.className="card";
+card.innerHTML=`<b>${l.name}</b><br>${first} → ${last}<br>${l.company}<br>
+<button onclick="editLine(${i})">修改</button>
+<button class="delete" onclick="deleteLine(${i})">删除</button>`;
+box.appendChild(card);
+});
 }
 
 function editLine(i){
-
-  editingIndex = lines.indexOf(getVisible()[i]);
-  const l = lines[editingIndex];
-
-  document.getElementById("listPage").classList.add("hidden");
-  document.getElementById("editPage").classList.remove("hidden");
-
-  document.getElementById("edit_name").value=l.name;
-  document.getElementById("edit_company").value=l.company;
-  document.getElementById("edit_region").value=l.region;
-  document.getElementById("edit_price").value=l.price;
-  document.getElementById("edit_type").value=l.type;
-  document.getElementById("edit_start").value=l.start;
-  document.getElementById("edit_end").value=l.end;
-  document.getElementById("edit_color").value=l.color;
-
-  renderStations(l.stations);
+editingIndex=lines.indexOf(getVisible()[i]);
+const l=lines[editingIndex];
+document.getElementById("listPage").classList.add("hidden");
+document.getElementById("editPage").classList.remove("hidden");
+edit_name.value=l.name;
+edit_company.value=l.company;
+edit_region.value=l.region;
+edit_price.value=l.price;
+edit_type.value=l.type;
+edit_start.value=l.start;
+edit_end.value=l.end;
+edit_color.value=l.color;
+renderStations(l.stations);
 }
 
 function renderStations(stations){
-
-  const box=document.getElementById("stationBox");
-  box.innerHTML="";
-
-  stations.forEach((s,i)=>{
-    const div=document.createElement("div");
-    div.className="station";
-    div.innerHTML=`
-      <input value="${s}" onchange="lines[editingIndex].stations[${i}]=this.value">
-      <button class="delete" onclick="removeStation(${i})">X</button>
-    `;
-    box.appendChild(div);
-  });
+const box=document.getElementById("stationBox");
+box.innerHTML="";
+stations.forEach((s,i)=>{
+const div=document.createElement("div");
+div.className="station";
+div.innerHTML=`<input value="${s}" onchange="lines[editingIndex].stations[${i}]=this.value">
+<button class="delete" onclick="removeStation(${i})">X</button>`;
+box.appendChild(div);
+});
 }
 
 function addStation(){
-  lines[editingIndex].stations.push("新站点");
-  renderStations(lines[editingIndex].stations);
+lines[editingIndex].stations.push("新站点");
+renderStations(lines[editingIndex].stations);
 }
 
 function removeStation(i){
-  lines[editingIndex].stations.splice(i,1);
-  renderStations(lines[editingIndex].stations);
+lines[editingIndex].stations.splice(i,1);
+renderStations(lines[editingIndex].stations);
 }
 
-function deleteLine(i){
-
-  if(!confirm("确认删除该线路？")) return;
-
-  const realIndex=lines.indexOf(getVisible()[i]);
-  lines.splice(realIndex,1);
-  saveAll();
+async function deleteLine(i){
+if(!confirm("确认删除该线路？")) return;
+const realIndex=lines.indexOf(getVisible()[i]);
+await fetch(API,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:"delete",index:realIndex})});
+loadData();
 }
 
 function addLine(){
-
-  lines.push({
-    name:"新线路",
-    company:"",
-    region:"",
-    price:"",
-    type:"公交",
-    start:"06:00",
-    end:"22:00",
-    color:"",
-    stations:[]
-  });
-
-  renderList();
+editingIndex=null;
+document.getElementById("listPage").classList.add("hidden");
+document.getElementById("editPage").classList.remove("hidden");
+edit_name.value="";
+edit_company.value="";
+edit_region.value="";
+edit_price.value="";
+edit_type.value="公交";
+edit_start.value="06:00";
+edit_end.value="22:00";
+edit_color.value="";
+renderStations([]);
 }
 
-function saveEdit(){
+async function saveEdit(){
+const l={
+name:edit_name.value,
+company:edit_company.value,
+region:edit_region.value,
+price:edit_price.value,
+type:edit_type.value,
+start:edit_start.value,
+end:edit_end.value,
+color:edit_color.value,
+stations:lines[editingIndex]?.stations||[]
+};
+const lineText=buildLine(l);
 
-  const l=lines[editingIndex];
-
-  l.name=document.getElementById("edit_name").value;
-  l.company=document.getElementById("edit_company").value;
-  l.region=document.getElementById("edit_region").value;
-  l.price=document.getElementById("edit_price").value;
-  l.type=document.getElementById("edit_type").value;
-  l.start=document.getElementById("edit_start").value;
-  l.end=document.getElementById("edit_end").value;
-  l.color=document.getElementById("edit_color").value;
-
-  saveAll();
-  back();
+if(editingIndex===null){
+await fetch(API,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:"add",line:lineText})});
+}else{
+await fetch(API,{method:"POST",headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:"update",index:editingIndex,line:lineText})});
+}
+back();
+loadData();
 }
 
 function back(){
-  document.getElementById("editPage").classList.add("hidden");
-  document.getElementById("listPage").classList.remove("hidden");
-  renderList();
+document.getElementById("editPage").classList.add("hidden");
+document.getElementById("listPage").classList.remove("hidden");
 }
-
-async function saveAll(){
-
-  const text=lines.map(buildLine).join("\n");
-
-  const res=await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode:"save",content:text})
-  });
-
-  if(!res.ok){
-    alert("保存失败！");
-  }
-}
-
 </script>
 </body>
 </html>
