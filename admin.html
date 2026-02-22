@@ -4,13 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>公交管理系统</title>
+
 <style>
-body{font-family:system-ui;background:#f5f5f5;margin:0;padding:20px;}
-.card{background:#fff;border-radius:20px;padding:20px;margin-bottom:20px;box-shadow:0 6px 18px rgba(0,0,0,0.08);}
-button{padding:8px 16px;border:none;border-radius:20px;background:#6750A4;color:#fff;cursor:pointer;margin:5px 5px 5px 0;}
+body{
+  font-family:system-ui;
+  background:#f5f5f5;
+  margin:0;
+  padding:20px;
+}
+h2{font-weight:500}
+.card{
+  background:#fff;
+  border-radius:20px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+}
+button{
+  padding:8px 16px;
+  border:none;
+  border-radius:20px;
+  background:#6750A4;
+  color:#fff;
+  cursor:pointer;
+  margin:5px 5px 5px 0;
+}
 button.delete{background:#B3261E}
-input,select{width:100%;padding:8px;margin:6px 0;border-radius:10px;border:1px solid #ccc;}
-.station{display:flex;gap:6px;margin-bottom:6px;}
+input,select{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+  border-radius:10px;
+  border:1px solid #ccc;
+  box-sizing: border-box;
+}
+.station{
+  display:flex;
+  gap:6px;
+  margin-bottom:6px;
+}
 .station input{flex:1}
 .hidden{display:none}
 </style>
@@ -20,49 +52,64 @@ input,select{width:100%;padding:8px;margin:6px 0;border-radius:10px;border:1px s
 <h2>公交管理系统</h2>
 
 <div id="loginBox" class="card">
-  <input id="pwd" placeholder="输入管理员口令">
+  <input id="pwd" type="password" placeholder="输入管理员口令">
   <button onclick="login()">登录</button>
 </div>
 
 <div id="listPage" class="hidden">
   <button onclick="addLine()">新增线路</button>
+  <button style="background:#444;" onclick="location.reload()">刷新数据</button>
   <div id="lineList"></div>
 </div>
 
 <div id="editPage" class="hidden">
-  <button onclick="back()">返回</button>
+  <button onclick="back()">返回 (取消修改)</button>
   <div class="card">
-    <label>线路名称</label><input id="name">
-    <label>公司</label><input id="company">
-    <label>地区</label><input id="region">
-    <label>票价信息</label><input id="price">
 
-    <label>类型</label>
-    <select id="type">
+    <label>线路名称</label>
+    <input id="edit_name">
+
+    <label>公司</label>
+    <input id="edit_company">
+
+    <label>地区</label>
+    <input id="edit_region">
+
+    <label>票价/服务信息</label>
+    <input id="edit_price">
+
+    <label>线路类型</label>
+    <select id="edit_type">
       <option>公交</option>
       <option>地铁</option>
       <option>单轨</option>
       <option>铁路</option>
-      <option>快速</option>
       <option>其他</option>
     </select>
 
-    <label>首班车</label><input type="time" id="start">
-    <label>末班车</label><input type="time" id="end">
+    <label>首班车</label>
+    <input type="time" id="edit_start">
 
-    <label>颜色(可选)</label><input id="color">
+    <label>末班车</label>
+    <input type="time" id="edit_end">
+
+    <label>线路颜色（可选）</label>
+    <input id="edit_color" placeholder="如：#FF0000">
 
     <label>站点</label>
     <div id="stationBox"></div>
     <button onclick="addStation()">增加站点</button>
 
-    <button onclick="save()">保存</button>
+    <br><br>
+    <button id="saveBtn" onclick="saveEdit()">保存到服务器</button>
+
   </div>
 </div>
 
 <script>
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
+let rawLines=[];
 let lines=[];
 let role="";
 let roleValue="";
@@ -71,108 +118,168 @@ let editingIndex=null;
 /* 容错解析 */
 function parseLine(text){
   const obj={raw:text};
-  obj.name=(text.match(/【(.*?)】/)||[])[1]||"";
-  obj.company=(text.match(/{(.*?)}/)||[])[1]||"";
-  obj.region=(text.match(/『(.*?)』/)||[])[1]||"";
-  obj.price=(text.match(/《(.*?)》/)||[])[1]||"";
-  obj.type=(text.match(/θ(.*?)θ/)||[])[1]||"公交";
-  obj.start=(text.match(/§(.*?)§/)||[])[1]||"06:00";
-  obj.end=(text.match(/@(.*?)@/)||[])[1]||"22:00";
-  obj.color=(text.match(/∮(.*?)∮/)||[])[1]||"";
+  obj.name = (text.match(/【(.*?)】/)||[])[1]||"";
+  obj.company = (text.match(/{(.*?)}/)||[])[1]||"";
+  obj.region = (text.match(/『(.*?)』/)||[])[1]||"";
+  obj.price = (text.match(/《(.*?)》/)||[])[1]||"";
+  obj.type = (text.match(/θ(.*?)θ/)||[])[1]||"公交";
+  obj.start = (text.match(/§(.*?)§/)||[])[1]||"06:00";
+  obj.end = (text.match(/@(.*?)@/)||[])[1]||"22:00";
+  obj.color = (text.match(/∮(.*?)∮/)||[])[1]||"";
 
-  const stationPart=text.split("】")[1]?.split("-{")[0]||"";
-  obj.stations=stationPart.split("-").filter(s=>s.trim());
-
+  const stationPart = text.split("】")[1]?.split("-{")[0]||"";
+  obj.stations = stationPart.split("-").filter(s=>s);
   return obj;
 }
 
+/* 重建字符串 */
 function buildLine(l){
-  let s=`【${l.name}】${l.stations.join("-")}-`;
-  s+=`{${l.company}}`;
-  if(l.price)s+=`《${l.price}》`;
-  s+=`『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@`;
-  if(l.color)s+=`∮${l.color}∮`;
-  return s;
+  let base = `【${l.name}】${l.stations.join("-")}-{${l.company}}`;
+  if(l.price) base += `《${l.price}》`;
+  base += `『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@`;
+  if(l.color) base += `∮${l.color}∮`;
+  return base;
 }
 
 async function login(){
-  const r=await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode:"login",password:pwd.value})
-  });
-  const d=await r.json();
-  if(!d.success)return alert("口令错误");
-  role=d.type;
-  roleValue=d.value||"";
-  loginBox.classList.add("hidden");
-  listPage.classList.remove("hidden");
-  loadData();
+  const pwdInput=document.getElementById("pwd");
+  const password=pwdInput.value;
+  if(!password) return;
+
+  const btn = event.target;
+  btn.innerText = "登录中...";
+
+  try {
+    const res=await fetch(API,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:"login",password})
+    });
+    const data=await res.json();
+    if(!data.success){alert("口令错误");btn.innerText="登录";return;}
+
+    role=data.type;
+    roleValue=data.value||"";
+
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("listPage").classList.remove("hidden");
+
+    loadData();
+  } catch(e) {
+    alert("网络错误");
+    btn.innerText="登录";
+  }
 }
 
 async function loadData(){
-  const r=await fetch(API);
-  const txt=await r.text();
-  lines=txt.split("\n").filter(x=>x.trim()).map(parseLine);
+  const box=document.getElementById("lineList");
+  box.innerHTML="<p>数据加载中...</p >";
+  
+  const res=await fetch(API);
+  const txt=await res.text();
+
+  rawLines=txt.split("\n").filter(x=>x.trim());
+  lines=rawLines.map(parseLine);
   renderList();
 }
 
 function getVisible(){
-  if(role==="super")return lines;
-  if(role==="region")return lines.filter(x=>x.region===roleValue);
-  if(role==="company")return lines.filter(x=>x.company===roleValue);
+  if(role==="super") return lines;
+  if(role==="region") return lines.filter(x=>x.region===roleValue);
+  if(role==="company") return lines.filter(x=>x.company===roleValue);
+  return [];
 }
 
 function renderList(){
-  lineList.innerHTML="";
+  const box=document.getElementById("lineList");
+  box.innerHTML="";
+
   getVisible().forEach((l,i)=>{
-    const div=document.createElement("div");
-    div.className="card";
-    div.innerHTML=`
-      <b>${l.name}</b><br>
-      ${l.stations[0]||""} → ${l.stations[l.stations.length-1]||""}<br>
-      ${l.company}<br>
+    const first=l.stations[0]||"";
+    const last=l.stations[l.stations.length-1]||"";
+
+    const card=document.createElement("div");
+    card.className="card";
+    card.innerHTML=`
+      <b>${l.name}</b> (${l.type})<br>
+      ${first} → ${last}<br>
+      ${l.company} - ${l.region}<br>
       <button onclick="editLine(${i})">修改</button>
-      <button class="delete" onclick="deleteLine(${i})">删除</button>
+      <button class="delete" onclick="deleteLine(${i}, event)">删除</button>
     `;
-    lineList.appendChild(div);
+    box.appendChild(card);
   });
 }
 
 function editLine(i){
-  editingIndex=lines.indexOf(getVisible()[i]);
-  const l=lines[editingIndex];
-  listPage.classList.add("hidden");
-  editPage.classList.remove("hidden");
-  name.value=l.name;
-  company.value=l.company;
-  region.value=l.region;
-  price.value=l.price;
-  type.value=l.type;
-  start.value=l.start;
-  end.value=l.end;
-  color.value=l.color;
+  editingIndex = lines.indexOf(getVisible()[i]);
+  const l = lines[editingIndex];
+
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+
+  document.getElementById("edit_name").value=l.name;
+  document.getElementById("edit_company").value=l.company;
+  document.getElementById("edit_region").value=l.region;
+  document.getElementById("edit_price").value=l.price;
+  document.getElementById("edit_type").value=l.type;
+  document.getElementById("edit_start").value=l.start;
+  document.getElementById("edit_end").value=l.end;
+  document.getElementById("edit_color").value=l.color;
+
   renderStations(l.stations);
 }
 
-function renderStations(arr){
-  stationBox.innerHTML="";
-  arr.forEach((s,i)=>{
-    const d=document.createElement("div");
-    d.className="station";
-    d.innerHTML=`
+function addLine(){
+  const newLine = {
+    raw: "", // 空代表是新加的
+    name: "新线路",
+    company: role === "company" ? roleValue : "",
+    region: role === "region" ? roleValue : "",
+    price: "",
+    type: "公交",
+    start: "06:00",
+    end: "22:00",
+    color: "",
+    stations: ["新站点"]
+  };
+  
+  lines.push(newLine);
+  editingIndex = lines.length - 1;
+
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+
+  document.getElementById("edit_name").value=newLine.name;
+  document.getElementById("edit_company").value=newLine.company;
+  document.getElementById("edit_region").value=newLine.region;
+  document.getElementById("edit_price").value=newLine.price;
+  document.getElementById("edit_type").value=newLine.type;
+  document.getElementById("edit_start").value=newLine.start;
+  document.getElementById("edit_end").value=newLine.end;
+  document.getElementById("edit_color").value=newLine.color;
+
+  renderStations(newLine.stations);
+}
+
+function renderStations(stations){
+  const box=document.getElementById("stationBox");
+  box.innerHTML="";
+
+  stations.forEach((s,i)=>{
+    const div=document.createElement("div");
+    div.className="station";
+    div.innerHTML=`
       <input value="${s}" onchange="lines[editingIndex].stations[${i}]=this.value">
       <button class="delete" onclick="removeStation(${i})">X</button>
     `;
-    stationBox.appendChild(d);
+    box.appendChild(div);
   });
 }
 
 function addStation(){
-  if(editingIndex!==null){
-    lines[editingIndex].stations.push("新站点");
-    renderStations(lines[editingIndex].stations);
-  }
+  lines[editingIndex].stations.push("新站点");
+  renderStations(lines[editingIndex].stations);
 }
 
 function removeStation(i){
@@ -180,62 +287,83 @@ function removeStation(i){
   renderStations(lines[editingIndex].stations);
 }
 
-async function deleteLine(i){
-  if(!confirm("确认删除该线路？"))return;
-  const idx=lines.indexOf(getVisible()[i]);
-  await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode:"delete",index:idx})
-  });
-  loadData();
-}
-
-function addLine(){
-  editingIndex=null;
-  listPage.classList.add("hidden");
-  editPage.classList.remove("hidden");
-  name.value="";
-  company.value="";
-  region.value="";
-  price.value="";
-  type.value="公交";
-  start.value="06:00";
-  end.value="22:00";
-  color.value="";
-  stationBox.innerHTML="";
-}
-
-async function save(){
-  const obj={
-    name:name.value,
-    company:company.value,
-    region:region.value,
-    price:price.value,
-    type:type.value,
-    start:start.value,
-    end:end.value,
-    color:color.value,
-    stations:editingIndex!==null?lines[editingIndex].stations:[]
-  };
-
-  const line=buildLine(obj);
-
-  const mode=editingIndex===null?"add":"edit";
-
-  await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode,index:editingIndex,line})
-  });
-
-  back();
-  loadData();
-}
-
 function back(){
-  editPage.classList.add("hidden");
-  listPage.classList.remove("hidden");
+  // 如果是新增但没有保存，直接移除内存中的脏数据
+  if(editingIndex !== null && lines[editingIndex].raw === ""){
+    lines.splice(editingIndex, 1);
+  }
+  editingIndex = null;
+  document.getElementById("editPage").classList.add("hidden");
+  document.getElementById("listPage").classList.remove("hidden");
+  renderList();
+}
+
+async function deleteLine(i, e){
+  if(!confirm("确认删除该线路？操作将立即生效并同步至服务器！")) return;
+
+  const realIndex = lines.indexOf(getVisible()[i]);
+  const l = lines[realIndex];
+  
+  const btn = e.target;
+  const oldTxt = btn.innerText;
+  btn.innerText = "删除中...";
+
+  const ok = await saveToServer("delete", l.raw, "");
+  if(ok){
+    lines.splice(realIndex, 1);
+    renderList();
+  } else {
+    btn.innerText = oldTxt;
+  }
+}
+
+async function saveEdit(){
+  const l=lines[editingIndex];
+  const oldRaw = l.raw;
+
+  l.name=document.getElementById("edit_name").value;
+  l.company=document.getElementById("edit_company").value;
+  l.region=document.getElementById("edit_region").value;
+  l.price=document.getElementById("edit_price").value;
+  l.type=document.getElementById("edit_type").value;
+  l.start=document.getElementById("edit_start").value;
+  l.end=document.getElementById("edit_end").value;
+  l.color=document.getElementById("edit_color").value;
+
+  const newRaw = buildLine(l);
+  const action = oldRaw ? "update" : "add";
+
+  const btn = document.getElementById("saveBtn");
+  btn.innerText = "保存中...";
+
+  const ok = await saveToServer(action, oldRaw, newRaw);
+  if(ok){
+    l.raw = newRaw; // 更新本地记录
+    back();
+  } else {
+    btn.innerText = "保存到服务器";
+  }
+}
+
+// 增量保存 API
+async function saveToServer(action, oldRaw, newRaw){
+  try {
+    const res=await fetch(API,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mode:"save", action, oldRaw, newRaw})
+    });
+
+    if(!res.ok){
+      const errTxt = await res.text();
+      alert("保存失败: " + errTxt);
+      return false;
+    }
+    return true;
+  } catch(e) {
+    alert("网络错误: " + e.message);
+    return false;
+  }
 }
 </script>
 </body>
