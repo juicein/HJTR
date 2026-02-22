@@ -6,32 +6,31 @@
 <title>公交管理系统</title>
 
 <style>
-body{font-family:system-ui;background:#f6f6f6;padding:20px}
+body{font-family:system-ui;background:#f7f7f7;padding:16px}
+h2{font-weight:500}
 .card{
   background:#fff;
-  padding:20px;
-  border-radius:18px;
-  margin-bottom:20px;
-  box-shadow:0 6px 16px rgba(0,0,0,0.08);
+  margin-bottom:16px;
+  padding:16px;
+  border-radius:12px;
+  box-shadow:0 3px 8px rgba(0,0,0,0.08);
 }
 input,select{
   width:100%;
   padding:8px;
   margin:6px 0;
-  border-radius:8px;
+  border-radius:6px;
   border:1px solid #ccc;
 }
 button{
-  padding:8px 16px;
-  border:none;
-  border-radius:20px;
-  background:#6750A4;
-  color:white;
+  padding:8px 14px;
+  border:none;border-radius:20px;
+  background:#6750A4;color:white;
   cursor:pointer;
-  margin:5px 5px 5px 0;
+  margin:4px;
 }
-.delete{background:#B3261E}
-.station{display:flex;gap:6px;margin-bottom:5px}
+button.delete{background:#B3261E}
+.station{display:flex;gap:6px;margin-bottom:5px;}
 .station input{flex:1}
 </style>
 </head>
@@ -40,7 +39,7 @@ button{
 <h2>公交管理系统</h2>
 
 <div id="login" class="card">
-  <input id="pwd" placeholder="输入管理员口令">
+  <input id="pwd" placeholder="请输入管理员口令">
   <button onclick="login()">登录</button>
 </div>
 
@@ -60,22 +59,28 @@ let roleValue="";
 
 function parseLine(text){
 
-  const name=text.match(/【(.*?)】/)[1];
-  const company=text.match(/{(.*?)}/)[1];
-  const region=text.match(/『(.*?)』/)[1];
-  const type=text.match(/θ(.*?)θ/)[1];
-  const start=text.match(/§(.*?)§/)[1];
-  const end=text.match(/@(.*?)@/)[1];
-  const color=text.match(/∮(.*?)∮/)[1];
+  const name = text.match(/【(.+?)】/)?.[1] || "";
+  const company = text.match(/\{(.+?)\}/)?.[1] || "";
+  const region = text.match(/『(.+?)』/)?.[1] || "";
+  const type = text.match(/θ(.+?)θ/)?.[1] || "";
+  const start = text.match(/§(.+?)§/)?.[1] || "";
+  const end = text.match(/@(.+?)@/)?.[1] || "";
+  const color = text.match(/∮(.+?)∮/)?.[1] || "";
 
-  const stationPart=text.split("】")[1].split("-{")[0];
-  const stations=stationPart.split("-").filter(s=>s);
+  const stationStr = text.split(/】/)[1] || "";
+  const stations = stationStr.split("-").filter(x=>x && !x.includes("{"));
 
-  return {name,company,region,type,start,end,color,stations};
+  return {text,name,company,region,type,start,end,color,stations};
 }
 
 function buildLine(l){
-  return `【${l.name}】${l.stations.join("-")}-{${l.company}}《》『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@∮${l.color}∮`;
+  let s = `【${l.name}】${l.stations.join("-")}-{${l.company}}`;
+  if(l.region) s += `『${l.region}』`;
+  if(l.type) s += `θ${l.type}θ`;
+  if(l.start) s += `§${l.start}§`;
+  if(l.end) s += `@${l.end}@`;
+  if(l.color) s += `∮${l.color}∮`;
+  return s;
 }
 
 async function login(){
@@ -104,41 +109,47 @@ async function load(){
   const res=await fetch(API);
   rawText=await res.text();
 
-  const arr=rawText.split("\n").filter(x=>x.trim());
+  const arr = rawText.split(/[\n\r]+/).filter(x=>x.trim());
   lines=arr.map(parseLine);
 
   render();
 }
 
 function getVisible(){
-  if(role==="super")return lines;
-  if(role==="region")return lines.filter(x=>x.region===roleValue);
-  if(role==="company")return lines.filter(x=>x.company===roleValue);
+  if(role==="super") return lines;
+  if(role==="region") return lines.filter(x=>x.region===roleValue);
+  if(role==="company") return lines.filter(x=>x.company===roleValue);
+  return [];
 }
 
 function render(){
 
-  const container=document.getElementById("list");
-  container.innerHTML="";
+  document.getElementById("list").innerHTML="";
 
   getVisible().forEach((l,i)=>{
-
     const card=document.createElement("div");
     card.className="card";
 
     card.innerHTML=`
-    <input value="${l.name}" onchange="l.name=this.value;save()">
-    <input value="${l.company}" onchange="l.company=this.value;save()">
-    <input value="${l.region}" onchange="l.region=this.value;save()">
-    <input value="${l.type}" onchange="l.type=this.value;save()">
-    首班车:<input type="time" value="${l.start}" onchange="l.start=this.value;save()">
-    末班车:<input type="time" value="${l.end}" onchange="l.end=this.value;save()">
-    <div id="st-${i}"></div>
-    <button onclick="addStation(${i})">增加站点</button>
-    <button class="delete" onclick="removeLine(${i})">删除线路</button>
+      <input value="${l.name}" onchange="l.name=this.value;save()">
+      <input value="${l.company}" onchange="l.company=this.value;save()">
+      <input value="${l.region}" onchange="l.region=this.value;save()">
+      类型:
+      <select onchange="l.type=this.value;save()">
+        <option>${l.type}</option>
+        <option>公交</option>
+        <option>地铁</option>
+        <option>铁路</option>
+        <option>单轨</option>
+      </select>
+      首班车:<input type="time" value="${l.start}" onchange="l.start=this.value;save()">
+      末班车:<input type="time" value="${l.end}" onchange="l.end=this.value;save()">
+      <div id="st-${i}"></div>
+      <button onclick="addStation(${i})">增加站点</button>
+      <button class="delete" onclick="removeLine(${i})">删除线路</button>
     `;
 
-    container.appendChild(card);
+    document.getElementById("list").appendChild(card);
     renderStations(i);
   });
 }
@@ -157,6 +168,21 @@ function renderStations(i){
   });
 }
 
+function addLine(){
+  lines.push({
+    name:"新线路",
+    company:"",
+    region:"",
+    type:"公交",
+    start:"06:00",
+    end:"22:00",
+    color:"",
+    stations:[]
+  });
+  render();
+  save();
+}
+
 function addStation(i){
   getVisible()[i].stations.push("新站点");
   render();
@@ -170,42 +196,24 @@ function removeStation(i,j){
 }
 
 function removeLine(i){
-  const realIndex=lines.indexOf(getVisible()[i]);
-  lines.splice(realIndex,1);
-  render();
-  save();
-}
-
-function addLine(){
-  lines.push({
-    name:"新线路",
-    company:role==="company"?roleValue:"",
-    region:role==="region"?roleValue:"",
-    type:"公交",
-    start:"06:00",
-    end:"22:00",
-    color:"FFFFFF",
-    stations:[]
-  });
+  const v=getVisible();
+  const real=lines.indexOf(v[i]);
+  lines.splice(real,1);
   render();
   save();
 }
 
 async function save(){
-
-  const newText=lines.map(buildLine).join("\n");
-
+  const text=lines.map(buildLine).join("\n");
   const res=await fetch(API,{
     method:"POST",
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({mode:"save",content:newText})
+    body:JSON.stringify({mode:"save",content:text})
   });
-
-  if(!res.ok){
-    alert("保存失败！");
-  }
+  if(!res.ok) alert("保存失败！");
 }
 
 </script>
+
 </body>
 </html>
