@@ -1,166 +1,89 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8" />
-<title>公交数据管理</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+export default {
+  async fetch(request, env) {
 
-<style>
-body{margin:0;font-family:system-ui;background:#f4f7fb}
-header{background:#006495;color:#fff;padding:14px;display:flex;justify-content:space-between}
-main{max-width:1200px;margin:20px auto;padding:0 16px}
-textarea{width:100%;height:60vh;border-radius:10px;padding:12px;font-family:monospace}
-.card{background:#fff;padding:12px;margin-bottom:10px;border-radius:8px}
-button{background:#006495;color:#fff;border:none;padding:6px 12px;border-radius:6px;margin-right:6px}
-input{padding:6px;margin-right:6px}
-</style>
-</head>
+    const GITHUB_TOKEN = env.GITHUB_TOKEN;
+    const OWNER = "juicein";
+    const REPO = "HJTR";
+    const FILE_PATH = "data/bus_data.txt";
 
-<body>
-<header>
-公交管理后台
-</header>
+    if (request.method === "GET") {
+      const r = await fetch(
+        `https://raw.githubusercontent.com/${OWNER}/${REPO}/main/${FILE_PATH}`
+      );
+      return new Response(await r.text(), {
+        headers: { "Content-Type": "text/plain;charset=UTF-8" }
+      });
+    }
 
-<main>
+    if (request.method === "POST") {
 
-<div id="loginBox">
-<input id="user" placeholder="管理员名称">
-<input id="pass" type="password" placeholder="密码">
-<button onclick="login()">登录</button>
-<div id="loginMsg"></div>
-</div>
+      const body = await request.json();
+      const { content, username, password } = body;
 
-<div id="panel" hidden>
+      const authText = await env.PASSWORDS.get("auth");
+      const auth = JSON.parse(authText);
 
-<button onclick="setMode('visual')">可视化</button>
-<button onclick="setMode('text')">文本</button>
+      let role = null;
+      let scope = null;
 
-<textarea id="editor"></textarea>
-<div id="visual" hidden></div>
+      // 超级管理员
+      if (auth.super[username] === password) {
+        role = "super";
+      }
 
-<button onclick="save()">保存</button>
-<div id="status"></div>
+      // 地区管理员
+      if (!role && auth.region[username] === password) {
+        role = "region";
+        scope = username;
+      }
 
-</div>
+      // 公司管理员
+      if (!role && auth.company[username] === password) {
+        role = "company";
+        scope = username;
+      }
 
-</main>
+      if (!role) {
+        return new Response("账号或密码错误", { status: 403 });
+      }
 
-<script>
-const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev/";
-const RAW="https://haojin.guanmu233.cn/data/bus_data.txt";
+      // 获取原文件 sha
+      const fileRes = await fetch(
+        `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+        {
+          headers: {
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github+json"
+          }
+        }
+      );
 
-let username="";
-let password="";
-let role="";
-let scope="";
-let mode="visual";
+      const fileData = await fileRes.json();
 
-const editor=document.getElementById("editor");
-const visual=document.getElementById("visual");
+      // 更新文件
+      const updateRes = await fetch(
+        `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github+json"
+          },
+          body: JSON.stringify({
+            message: "admin update bus_data",
+            content: btoa(unescape(encodeURIComponent(content))),
+            sha: fileData.sha
+          })
+        }
+      );
 
-async function login(){
-  username=user.value.trim();
-  password=pass.value.trim();
+      if (!updateRes.ok) {
+        return new Response("GitHub 更新失败", { status: 500 });
+      }
 
-  if(!username||!password){
-    loginMsg.textContent="请输入账号密码";
-    return;
+      return new Response("保存成功");
+    }
+
+    return new Response("Method Not Allowed", { status: 405 });
   }
-
-  const r=await fetch(API,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({content:"",username,password})
-  });
-
-  if(r.status===403){
-    loginMsg.textContent="账号或密码错误";
-    return;
-  }
-
-  loginBox.hidden=true;
-  panel.hidden=false;
-
-  load();
-}
-
-async function load(){
-  const r=await fetch(RAW);
-  editor.value=await r.text();
-  renderVisual();
-}
-
-function parseLines(txt){
-  return txt.split("\n").filter(x=>x.includes("【"));
-}
-
-function getCompany(line){
-  return line.match(/\{(.+?)\}/)?.[1]||"";
-}
-
-function renderVisual(){
-  visual.innerHTML="";
-  let lines=parseLines(editor.value);
-
-  lines.forEach((line,i)=>{
-    const company=getCompany(line);
-
-    if(role==="company" && company!==username) return;
-
-    const div=document.createElement("div");
-    div.className="card";
-    div.innerHTML=`
-      ${line}<br>
-      <button onclick="editLine(${i})">修改</button>
-      <button onclick="deleteLine(${i})">删除</button>
-    `;
-    visual.appendChild(div);
-  });
-}
-
-function editLine(i){
-  let lines=parseLines(editor.value);
-  const newLine=prompt("修改线路",lines[i]);
-  if(newLine){
-    lines[i]=newLine;
-    editor.value=lines.join("\n");
-    renderVisual();
-  }
-}
-
-function deleteLine(i){
-  let lines=parseLines(editor.value);
-  lines.splice(i,1);
-  editor.value=lines.join("\n");
-  renderVisual();
-}
-
-async function save(){
-  status.textContent="保存中...";
-  const r=await fetch(API,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json"},
-    body:JSON.stringify({
-      content:editor.value,
-      username,
-      password
-    })
-  });
-
-  status.textContent=await r.text();
-}
-
-function setMode(m){
-  mode=m;
-  if(m==="visual"){
-    editor.hidden=true;
-    visual.hidden=false;
-    renderVisual();
-  }else{
-    editor.hidden=false;
-    visual.hidden=true;
-  }
-}
-</script>
-</body>
-</html>
+};
