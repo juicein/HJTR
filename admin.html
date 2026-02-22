@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<title>公交数据 Wiki 编辑器</title>
+<title>公交 Wiki 编辑器</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -10,10 +10,10 @@
 body{margin:0;font-family:system-ui;background:#f4f7fb}
 header{background:var(--p);color:#fff;padding:14px 18px;display:flex;justify-content:space-between}
 main{max-width:1200px;margin:20px auto;padding:0 16px}
-textarea{width:100%;height:65vh;padding:14px;border-radius:10px;border:1px solid #ccc;font-family:monospace}
+textarea{width:100%;height:60vh;padding:14px;border-radius:10px;border:1px solid #ccc;font-family:monospace}
 #visual .card{background:#fff;padding:12px;border-radius:10px;margin-bottom:10px}
-button{background:var(--p);color:#fff;border:none;padding:8px 14px;border-radius:8px}
-input{padding:6px;margin-right:6px}
+button{background:var(--p);color:#fff;border:none;padding:6px 12px;border-radius:6px;margin-right:6px;margin-top:6px}
+input{padding:6px;margin:4px 4px 4px 0}
 #status{margin-top:8px;color:#666}
 </style>
 </head>
@@ -30,10 +30,12 @@ input{padding:6px;margin-right:6px}
 <div id="loginMsg"></div>
 </div>
 
-<div id="editorBox" hidden>
+<div id="panel" hidden>
+
 <div>
 <button onclick="setMode('text')">文本模式</button>
 <button onclick="setMode('visual')">可视化模式</button>
+<button onclick="addLine()">新增线路</button>
 </div>
 
 <textarea id="editor"></textarea>
@@ -41,18 +43,15 @@ input{padding:6px;margin-right:6px}
 
 <button onclick="save()">保存</button>
 <div id="status"></div>
+
 </div>
 
 </main>
 
 <script>
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev/";
-const RAW="https://haojin.guanmu233.cn/data/bus_data.txt";
-
-let username="";
-let password="";
-let role="";
-let mode="text";
+let username="",password="",role="";
+let lines=[];
 
 const editor=document.getElementById("editor");
 const visual=document.getElementById("visual");
@@ -61,7 +60,6 @@ const status=document.getElementById("status");
 async function login(){
   username=user.value.trim();
   password=pass.value.trim();
-
   if(!username||!password){
     loginMsg.textContent="请输入账号密码";
     return;
@@ -83,39 +81,40 @@ async function login(){
   else role="company";
 
   loginBox.hidden=true;
-  editorBox.hidden=false;
+  panel.hidden=false;
 
   load();
 }
 
 async function load(){
-  const r=await fetch(RAW);
-  editor.value=await r.text();
+  const r=await fetch(API);
+  const txt=await r.text();
+  editor.value=txt;
+  parseToArray(txt);
 }
 
-function parseLines(txt){
-  return txt.split("\n").filter(x=>x.includes("【"));
+function parseToArray(txt){
+  lines = txt.split("\n").filter(x=>x.trim()!=="");
 }
 
 function getCompany(line){
   return line.match(/\{(.+?)\}/)?.[1]||"";
 }
-
 function getRegion(line){
   return line.match(/『(.+?)』/)?.[1]||"";
 }
 
+function filterLine(line){
+  if(role==="super") return true;
+  if(role==="region") return getRegion(line)===username;
+  if(role==="company") return getCompany(line)===username;
+  return false;
+}
+
 function renderVisual(){
   visual.innerHTML="";
-  let lines=parseLines(editor.value);
-
   lines.forEach((line,i)=>{
-
-    const company=getCompany(line);
-    const region=getRegion(line);
-
-    if(role==="company" && company!==username) return;
-    if(role==="region" && region!==username) return;
+    if(!filterLine(line)) return;
 
     const div=document.createElement("div");
     div.className="card";
@@ -129,20 +128,31 @@ function renderVisual(){
 }
 
 function editLine(i){
-  let lines=parseLines(editor.value);
   const n=prompt("修改线路",lines[i]);
   if(n){
     lines[i]=n;
-    editor.value=lines.join("\n");
+    syncText();
     renderVisual();
   }
 }
 
 function deleteLine(i){
-  let lines=parseLines(editor.value);
   lines.splice(i,1);
-  editor.value=lines.join("\n");
+  syncText();
   renderVisual();
+}
+
+function addLine(){
+  const n=prompt("新增线路（完整格式）");
+  if(n){
+    lines.push(n);
+    syncText();
+    renderVisual();
+  }
+}
+
+function syncText(){
+  editor.value=lines.join("\n");
 }
 
 async function save(){
@@ -156,12 +166,10 @@ async function save(){
       password
     })
   });
-
   status.textContent=await r.text();
 }
 
 function setMode(m){
-  mode=m;
   if(m==="visual"){
     editor.hidden=true;
     visual.hidden=false;
