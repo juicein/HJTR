@@ -16,21 +16,24 @@ header{
   justify-content:space-between;
   align-items:center;
 }
-main{ max-width:1200px;margin:20px auto;padding:0 16px; }
-textarea{
-  width:100%;height:60vh;padding:14px;border-radius:10px;
-  border:1px solid #ccc;font-family:monospace;
-}
+main{ max-width:1000px;margin:20px auto;padding:0 16px; }
 .card{
   background:#fff;padding:14px;border-radius:10px;
   margin-bottom:12px;box-shadow:0 2px 6px rgba(0,0,0,.05);
 }
 button{
   background:var(--p);color:#fff;border:none;
-  padding:6px 12px;border-radius:8px;margin-right:6px;
+  padding:8px 14px;border-radius:8px;margin-right:6px;
 }
-#loginBox{margin:30px auto;max-width:400px;}
-input{width:100%;padding:10px;margin-bottom:10px;}
+input{
+  width:100%;padding:10px;margin-bottom:10px;
+  border-radius:8px;border:1px solid #ccc;
+}
+textarea{
+  width:100%;height:60vh;padding:14px;
+  border-radius:10px;border:1px solid #ccc;
+  font-family:monospace;
+}
 #status{margin-top:10px;color:#666}
 </style>
 </head>
@@ -45,15 +48,15 @@ input{width:100%;padding:10px;margin-bottom:10px;}
 
 <div id="loginBox">
   <h3>管理员登录</h3>
-  <input id="name" placeholder="名称">
-  <input id="pwd" type="password" placeholder="密码">
-  <button onclick="login()">登录</button>
+  <input id="login_name" placeholder="名称">
+  <input id="login_pwd" type="password" placeholder="密码">
+  <button id="loginBtn">登录</button>
   <div id="loginMsg"></div>
 </div>
 
 <div id="panel" hidden>
-  <button onclick="addLine()">新增线路</button>
-  <button onclick="save()">保存修改</button>
+  <button id="addBtn">新增线路</button>
+  <button id="saveBtn">保存修改</button>
   <textarea id="editor"></textarea>
   <div id="visual"></div>
   <div id="status"></div>
@@ -64,41 +67,76 @@ input{width:100%;padding:10px;margin-bottom:10px;}
 <script>
 
 const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
+
 let role=null;
 let roleName=null;
 let rawData="";
 
+const loginBtn=document.getElementById("loginBtn");
+const loginMsg=document.getElementById("loginMsg");
+const loginBox=document.getElementById("loginBox");
+const panel=document.getElementById("panel");
+const who=document.getElementById("who");
 const editor=document.getElementById("editor");
 const visual=document.getElementById("visual");
+const status=document.getElementById("status");
 
 function parseLines(txt){
   return txt.split("\n").filter(x=>x.includes("【"));
 }
-
 function getCompany(s){ return s.match(/\{(.+?)\}/)?.[1]||""; }
 function getRegion(s){ return s.match(/『(.+?)』/)?.[1]||""; }
 function getName(s){ return s.match(/【(.+?)】/)?.[1]||""; }
 
-async function login(){
-  const n=name.value.trim();
-  const p=pwd.value.trim();
-  const res=await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:"login",name:n,password:p})
-  });
-  const r=await res.json();
-  if(!r.ok){
-    loginMsg.innerText=r.msg;
+loginBtn.onclick=async function(){
+
+  loginMsg.innerText="";
+
+  const n=document.getElementById("login_name").value.trim();
+  const p=document.getElementById("login_pwd").value.trim();
+
+  if(!n || !p){
+    loginMsg.innerText="名称或密码不能为空";
     return;
   }
-  role=r.role;
-  roleName=r.name;
-  document.getElementById("who").innerText=role+"："+roleName;
-  loginBox.hidden=true;
-  panel.hidden=false;
-  load();
-}
+
+  try{
+    const res=await fetch(API,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:"login",
+        name:n,
+        password:p
+      })
+    });
+
+    if(!res.ok){
+      loginMsg.innerText="服务器连接失败："+res.status;
+      return;
+    }
+
+    const r=await res.json();
+
+    if(!r.ok){
+      loginMsg.innerText=r.msg;   // 会显示具体错误
+      return;
+    }
+
+    role=r.role;
+    roleName=r.name;
+
+    who.innerText="当前身份："+role+" / "+roleName;
+
+    loginBox.hidden=true;
+    panel.hidden=false;
+
+    await load();
+
+  }catch(e){
+    loginMsg.innerText="无法连接API："+e.message;
+  }
+};
 
 async function load(){
   const res=await fetch(API);
@@ -108,12 +146,15 @@ async function load(){
 
 function filterRender(){
   let lines=parseLines(rawData);
+
   if(role==="company"){
     lines=lines.filter(x=>getCompany(x)===roleName);
   }
+
   if(role==="region"){
     lines=lines.filter(x=>getRegion(x)===roleName);
   }
+
   editor.value=lines.join("\n");
   renderVisual();
 }
@@ -126,15 +167,10 @@ function renderVisual(){
     div.innerHTML=`
       <b>${getName(l)}</b><br>
       公司：${getCompany(l)} ｜ 地区：${getRegion(l)}<br>
-      <button onclick="edit(${i})">修改</button>
       <button onclick="del(${i})">删除</button>
     `;
     visual.appendChild(div);
   });
-}
-
-function edit(i){
-  alert("直接在上方文本框修改后保存即可");
 }
 
 function del(i){
@@ -144,26 +180,30 @@ function del(i){
   renderVisual();
 }
 
-function addLine(){
+document.getElementById("addBtn").onclick=function(){
   editor.value+="\n【新线路】站点1-站点2-{公司}《票价1元》『地区』θ公交θ§6:00§@22:00@∮FFFFFF∮";
   renderVisual();
-}
+};
 
-async function save(){
+document.getElementById("saveBtn").onclick=async function(){
   status.innerText="保存中...";
-  const res=await fetch(API,{
-    method:"POST",
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      action:"save",
-      content:editor.value,
-      role,
-      roleName
-    })
-  });
-  const r=await res.json();
-  status.innerText=r.msg;
-}
+  try{
+    const res=await fetch(API,{
+      method:"POST",
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        action:"save",
+        content:editor.value,
+        role,
+        roleName
+      })
+    });
+    const r=await res.json();
+    status.innerText=r.msg;
+  }catch(e){
+    status.innerText="保存失败："+e.message;
+  }
+};
 
 </script>
 </body>
