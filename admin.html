@@ -3,48 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>公交管理系统</title>
+<title>公交管理系统 M3</title>
 
 <style>
-body{
-  font-family:system-ui;
-  background:#f5f5f5;
-  margin:0;
-  padding:20px;
+/* Material 3 Expressive 色彩系统 */
+:root {
+  --md-sys-color-primary: #006495;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #cbe6ff;
+  --md-sys-color-on-primary-container: #001e30;
+  --md-sys-color-surface: #fdfcff;
+  --md-sys-color-surface-container: #f0f4f8;
+  --md-sys-color-outline: #72777f;
+  --highlight-orange: #ff6d00;
+  
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: 1px solid rgba(0, 0, 0, 0.05);
+  --text-main: #1a1c1e;
+  --text-sub: #44474e;
 }
-h2{font-weight:500}
-.card{
-  background:#fff;
-  border-radius:20px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:0 6px 18px rgba(0,0,0,0.08);
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-surface: #1a1c1e;
+    --md-sys-color-surface-container: #202429;
+    --md-sys-color-on-primary-container: #ffffff;
+    --md-sys-color-primary-container: #004c73;
+    --md-sys-color-primary: #93cae4;
+    --md-sys-color-outline: #8c9199;
+    
+    --glass-bg: rgba(30, 30, 30, 0.75);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --text-main: #e2e2e2;
+    --text-sub: #c4c7c5;
+  }
 }
-button{
-  padding:8px 16px;
-  border:none;
-  border-radius:20px;
-  background:#6750A4;
-  color:#fff;
-  cursor:pointer;
-  margin:5px 5px 5px 0;
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--md-sys-color-surface-container);
+  color: var(--text-main);
+  margin: 0;
+  padding: 20px;
+  line-height: 1.5;
 }
-button.delete{background:#B3261E}
-input,select{
-  width:100%;
-  padding:8px;
-  margin:6px 0;
-  border-radius:10px;
-  border:1px solid #ccc;
+
+h2 { font-weight: 600; color: var(--md-sys-color-primary); }
+
+.card {
+  background: var(--glass-bg);
+  border: var(--glass-border);
+  border-radius: 24px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 24px;
+  background: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-weight: 500;
+  cursor: pointer;
+  margin: 6px 6px 6px 0;
+  transition: all 0.2s ease;
+}
+button:hover { opacity: 0.9; transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+
+button.delete { background: #ba1a1a; color: #ffffff; }
+button.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+
+input, select {
+  width: 100%;
+  padding: 12px 16px;
+  margin: 8px 0 16px 0;
+  border-radius: 16px;
+  border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface);
+  color: var(--text-main);
   box-sizing: border-box;
+  font-size: 15px;
+  transition: border-color 0.2s;
 }
-.station{
-  display:flex;
-  gap:6px;
-  margin-bottom:6px;
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
 }
-.station input{flex:1}
-.hidden{display:none}
+label { font-size: 14px; color: var(--text-sub); font-weight: 500; }
+
+/* 站点拖拽样式 */
+.station {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  background: var(--md-sys-color-surface);
+  padding: 6px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--md-sys-color-outline);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.station.dragging { opacity: 0.5; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.station input { margin: 0; border: none; background: transparent; flex: 1; padding: 6px; border-radius: 0; box-shadow: none; }
+.station input:focus { box-shadow: none; border-bottom: 2px solid var(--md-sys-color-primary); }
+.drag-handle { cursor: grab; color: var(--md-sys-color-outline); font-size: 18px; user-select: none; padding: 0 4px; }
+.drag-handle:active { cursor: grabbing; }
+
+/* 过滤器/搜索区 */
+.tools-bar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.filter-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.chip {
+  background: transparent;
+  color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-primary);
+  border-radius: 16px;
+  padding: 6px 16px;
+  white-space: nowrap;
+}
+.chip.active { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
+
+.hidden { display: none; }
+
+/* 优化列表卡片 */
+.line-item { padding-bottom: 16px; border-bottom: 1px solid var(--md-sys-color-outline); margin-bottom: 16px; }
+.line-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.line-title { font-size: 18px; font-weight: 600; color: var(--highlight-orange); margin-bottom: 4px; }
+.line-desc { color: var(--text-sub); font-size: 14px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -53,71 +143,96 @@ input,select{
 
 <div id="loginBox" class="card">
   <input id="pwd" type="password" placeholder="输入管理员口令">
-  <button onclick="login()">登录</button>
+  <button onclick="login()">登录 / 验证</button>
 </div>
 
 <div id="listPage" class="hidden">
-  <button onclick="addLine()">新增线路</button>
-  <button style="background:#444;" onclick="location.reload()">刷新数据</button>
-  <div id="lineList"></div>
+  <div class="card tools-bar">
+    <input id="searchInput" placeholder="🔍 搜索线路名称或站点..." oninput="renderList()">
+    <div class="filter-chips">
+      <button class="chip active" onclick="setFilter('all', this)">全部</button>
+      <button class="chip" onclick="setFilter('metro', this)">地铁/轨道</button>
+      <button class="chip" onclick="setFilter('bus', this)">公交/BRT</button>
+      <button class="chip" onclick="setFilter('rail', this)">铁路/高铁</button>
+    </div>
+    <div style="margin-top: 8px;">
+      <button onclick="addLine()">+ 新增线路</button>
+      <button class="secondary" onclick="loadData()">🔄 刷新云端数据</button>
+    </div>
+  </div>
+  <div class="card" id="lineList"></div>
 </div>
 
 <div id="editPage" class="hidden">
-  <button onclick="back()">返回 (取消修改)</button>
+  <button class="secondary" onclick="back()">← 返回 (取消修改)</button>
   <div class="card">
-
     <label>线路名称</label>
     <input id="edit_name">
 
-    <label>公司</label>
+    <label>归属公司</label>
     <input id="edit_company">
 
-    <label>地区</label>
+    <label>运营地区</label>
     <input id="edit_region">
 
-    <label>票价/服务信息</label>
+    <label>票价 / 服务信息</label>
     <input id="edit_price">
 
-    <label>线路类型</label>
+    <label>线路分类</label>
     <select id="edit_type">
       <option>公交</option>
+      <option>BRT</option>
       <option>地铁</option>
       <option>单轨</option>
+      <option>高铁</option>
       <option>铁路</option>
       <option>其他</option>
     </select>
 
-    <label>首班车</label>
-    <input type="time" id="edit_start">
+    <div style="display:flex; gap:12px;">
+      <div style="flex:1">
+        <label>首班车</label>
+        <input type="time" id="edit_start">
+      </div>
+      <div style="flex:1">
+        <label>末班车</label>
+        <input type="time" id="edit_end">
+      </div>
+    </div>
 
-    <label>末班车</label>
-    <input type="time" id="edit_end">
+    <label>标识颜色（十六进制，如：#FF0000）</label>
+    <input id="edit_color" placeholder="非必填">
 
-    <label>线路颜色（可选）</label>
-    <input id="edit_color" placeholder="如：#FF0000">
+    <label>站点排列 (可长按 ☰ 拖拽排序)</label>
+    <div id="stationBox" style="margin-top:10px;"></div>
+    <button class="secondary" onclick="addStationAtEnd()">+ 在末尾追加站点</button>
 
-    <label>站点</label>
-    <div id="stationBox"></div>
-    <button onclick="addStation()">增加站点</button>
-
-    <br><br>
-    <button id="saveBtn" onclick="saveEdit()">保存到服务器</button>
-
+    <div style="margin-top:24px; border-top:1px solid var(--md-sys-color-outline); padding-top:16px;">
+      <button id="saveBtn" style="width:100%; padding:14px; border-radius:16px; font-size:16px;" onclick="saveEdit()">
+        云端保存
+      </button>
+    </div>
   </div>
 </div>
 
 <script>
-const API="https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
+const API = "https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev";
 
-let rawLines=[];
-let lines=[];
-let role="";
-let roleValue="";
-let editingIndex=null;
+let rawLines = [];
+let lines = [];
+let role = "";
+let roleValue = "";
+let editingIndex = null;
+let currentFilter = 'all';
 
-/* 容错解析 */
+// 页面加载时自动读取记住的密码
+window.onload = () => {
+  const savedPwd = localStorage.getItem("bus_admin_pwd");
+  if(savedPwd) document.getElementById("pwd").value = savedPwd;
+}
+
 function parseLine(text){
-  const obj={raw:text};
+  const obj = { raw: text };
   obj.name = (text.match(/【(.*?)】/)||[])[1]||"";
   obj.company = (text.match(/{(.*?)}/)||[])[1]||"";
   obj.region = (text.match(/『(.*?)』/)||[])[1]||"";
@@ -126,13 +241,11 @@ function parseLine(text){
   obj.start = (text.match(/§(.*?)§/)||[])[1]||"06:00";
   obj.end = (text.match(/@(.*?)@/)||[])[1]||"22:00";
   obj.color = (text.match(/∮(.*?)∮/)||[])[1]||"";
-
   const stationPart = text.split("】")[1]?.split("-{")[0]||"";
-  obj.stations = stationPart.split("-").filter(s=>s);
+  obj.stations = stationPart.split("-").filter(s => s);
   return obj;
 }
 
-/* 重建字符串 */
 function buildLine(l){
   let base = `【${l.name}】${l.stations.join("-")}-{${l.company}}`;
   if(l.price) base += `《${l.price}》`;
@@ -142,106 +255,166 @@ function buildLine(l){
 }
 
 async function login(){
-  const pwdInput=document.getElementById("pwd");
-  const password=pwdInput.value;
+  const pwdInput = document.getElementById("pwd");
+  const password = pwdInput.value.trim();
   if(!password) return;
 
   const btn = event.target;
-  btn.innerText = "登录中...";
+  const originalText = btn.innerText;
+  btn.innerText = "验证中...";
 
   try {
-    const res=await fetch(API,{
-      method:"POST",
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mode:"login",password})
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "login", password })
     });
-    const data=await res.json();
-    if(!data.success){alert("口令错误");btn.innerText="登录";return;}
+    const data = await res.json();
+    if(!data.success){
+      alert("口令错误或权限不足");
+      btn.innerText = originalText;
+      return;
+    }
 
-    role=data.type;
-    roleValue=data.value||"";
+    // 登录成功，记住密码
+    localStorage.setItem("bus_admin_pwd", password);
+    
+    role = data.type;
+    roleValue = data.value || "";
 
     document.getElementById("loginBox").classList.add("hidden");
     document.getElementById("listPage").classList.remove("hidden");
 
     loadData();
   } catch(e) {
-    alert("网络错误");
-    btn.innerText="登录";
+    alert("网络连接异常，请检查网络或Worker服务");
+    btn.innerText = originalText;
   }
 }
 
 async function loadData(){
-  const box=document.getElementById("lineList");
-  box.innerHTML="<p>数据加载中...</p >";
+  const box = document.getElementById("lineList");
+  box.innerHTML = "<p style='text-align:center;'>📡 正在同步云端数据...</p>";
   
-  const res=await fetch(API);
-  const txt=await res.text();
+  try {
+    const res = await fetch(API);
+    const txt = await res.text();
+    rawLines = txt.split("\n").filter(x => x.trim());
+    lines = rawLines.map(parseLine);
+    renderList();
+  } catch(e) {
+    box.innerHTML = "<p style='color:red; text-align:center;'>获取数据失败，请重试。</p>";
+  }
+}
 
-  rawLines=txt.split("\n").filter(x=>x.trim());
-  lines=rawLines.map(parseLine);
+function setFilter(type, btnEl) {
+  currentFilter = type;
+  document.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+  btnEl.classList.add('active');
   renderList();
 }
 
-function getVisible(){
-  if(role==="super") return lines;
-  if(role==="region") return lines.filter(x=>x.region===roleValue);
-  if(role==="company") return lines.filter(x=>x.company===roleValue);
-  return [];
+// 权限+搜索+标签 三重过滤
+function getVisibleLines(){
+  let filtered = lines;
+  
+  // 1. 权限过滤
+  if(role === "region") filtered = filtered.filter(x => x.region === roleValue);
+  if(role === "company") filtered = filtered.filter(x => x.company === roleValue);
+
+  // 2. 标签分类过滤
+  if(currentFilter === 'metro') {
+    filtered = filtered.filter(x => ['地铁', '单轨', '轨道'].includes(x.type));
+  } else if(currentFilter === 'bus') {
+    filtered = filtered.filter(x => ['公交', 'brt', 'BRT'].includes(x.type));
+  } else if(currentFilter === 'rail') {
+    filtered = filtered.filter(x => ['铁路', '高铁', '城际'].includes(x.type));
+  }
+
+  // 3. 搜索过滤
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  if(q) {
+    filtered = filtered.filter(x => 
+      x.name.toLowerCase().includes(q) || 
+      x.stations.join("").toLowerCase().includes(q)
+    );
+  }
+
+  return filtered;
 }
 
 function renderList(){
-  const box=document.getElementById("lineList");
-  box.innerHTML="";
+  const box = document.getElementById("lineList");
+  box.innerHTML = "";
+  const visible = getVisibleLines();
 
-  getVisible().forEach((l,i)=>{
-    const first=l.stations[0]||"";
-    const last=l.stations[l.stations.length-1]||"";
+  if(visible.length === 0) {
+    box.innerHTML = "<p style='text-align:center; color:var(--text-sub);'>没有找到匹配的线路</p>";
+    return;
+  }
 
-    const card=document.createElement("div");
-    card.className="card";
-    card.innerHTML=`
-      <b>${l.name}</b> (${l.type})<br>
-      ${first} → ${last}<br>
-      ${l.company} - ${l.region}<br>
-      <button onclick="editLine(${i})">修改</button>
-      <button class="delete" onclick="deleteLine(${i}, event)">删除</button>
+  visible.forEach(l => {
+    // 获取在总数据池中的真实索引，防止增删改串线
+    const realIndex = lines.indexOf(l);
+    const first = l.stations[0] || "起点";
+    const last = l.stations[l.stations.length-1] || "终点";
+
+    const div = document.createElement("div");
+    div.className = "line-item";
+    div.innerHTML = `
+      <div class="line-title">${l.name} <span style="font-size:12px; background:var(--md-sys-color-primary-container); color:var(--md-sys-color-on-primary-container); padding:2px 8px; border-radius:8px;">${l.type}</span></div>
+      <div class="line-desc">
+        🛣️ ${first} ⇄ ${last} <br>
+        🏢 ${l.company} (${l.region}) · 🕒 ${l.start} - ${l.end}
+      </div>
+      <div>
+        <button class="secondary" onclick="editLine(${realIndex})">✏️ 修改</button>
+        <button class="delete" onclick="deleteLine(${realIndex}, event)">🗑️ 删除</button>
+      </div>
     `;
-    box.appendChild(card);
+    box.appendChild(div);
   });
 }
 
-function editLine(i){
-  editingIndex = lines.indexOf(getVisible()[i]);
+function editLine(realIndex){
+  editingIndex = realIndex;
   const l = lines[editingIndex];
 
   document.getElementById("listPage").classList.add("hidden");
   document.getElementById("editPage").classList.remove("hidden");
 
-  document.getElementById("edit_name").value=l.name;
-  document.getElementById("edit_company").value=l.company;
-  document.getElementById("edit_region").value=l.region;
-  document.getElementById("edit_price").value=l.price;
-  document.getElementById("edit_type").value=l.type;
-  document.getElementById("edit_start").value=l.start;
-  document.getElementById("edit_end").value=l.end;
-  document.getElementById("edit_color").value=l.color;
+  document.getElementById("edit_name").value = l.name;
+  document.getElementById("edit_company").value = l.company;
+  document.getElementById("edit_region").value = l.region;
+  document.getElementById("edit_price").value = l.price;
+  
+  // 处理下拉框赋值容错
+  const typeSelect = document.getElementById("edit_type");
+  if([...typeSelect.options].some(opt => opt.value === l.type)) {
+    typeSelect.value = l.type;
+  } else {
+    typeSelect.value = "其他"; 
+  }
 
-  renderStations(l.stations);
+  document.getElementById("edit_start").value = l.start;
+  document.getElementById("edit_end").value = l.end;
+  document.getElementById("edit_color").value = l.color;
+
+  renderStations();
 }
 
 function addLine(){
   const newLine = {
-    raw: "", // 空代表是新加的
+    raw: "", 
     name: "新线路",
     company: role === "company" ? roleValue : "",
     region: role === "region" ? roleValue : "",
     price: "",
-    type: "公交",
+    type: currentFilter === 'metro' ? '地铁' : (currentFilter === 'rail' ? '高铁' : '公交'),
     start: "06:00",
     end: "22:00",
     color: "",
-    stations: ["新站点"]
+    stations: ["始发站", "终点站"]
   };
   
   lines.push(newLine);
@@ -250,60 +423,98 @@ function addLine(){
   document.getElementById("listPage").classList.add("hidden");
   document.getElementById("editPage").classList.remove("hidden");
 
-  document.getElementById("edit_name").value=newLine.name;
-  document.getElementById("edit_company").value=newLine.company;
-  document.getElementById("edit_region").value=newLine.region;
-  document.getElementById("edit_price").value=newLine.price;
-  document.getElementById("edit_type").value=newLine.type;
-  document.getElementById("edit_start").value=newLine.start;
-  document.getElementById("edit_end").value=newLine.end;
-  document.getElementById("edit_color").value=newLine.color;
+  document.getElementById("edit_name").value = newLine.name;
+  document.getElementById("edit_company").value = newLine.company;
+  document.getElementById("edit_region").value = newLine.region;
+  document.getElementById("edit_price").value = newLine.price;
+  document.getElementById("edit_type").value = newLine.type;
+  document.getElementById("edit_start").value = newLine.start;
+  document.getElementById("edit_end").value = newLine.end;
+  document.getElementById("edit_color").value = newLine.color;
 
-  renderStations(newLine.stations);
+  renderStations();
 }
 
-function renderStations(stations){
-  const box=document.getElementById("stationBox");
-  box.innerHTML="";
+/* ================= 拖拽与站点交互逻辑 ================= */
+let dragSrcIndex = null;
 
-  stations.forEach((s,i)=>{
-    const div=document.createElement("div");
-    div.className="station";
-    div.innerHTML=`
-      <input value="${s}" onchange="lines[editingIndex].stations[${i}]=this.value">
-      <button class="delete" onclick="removeStation(${i})">X</button>
+function renderStations(){
+  const box = document.getElementById("stationBox");
+  box.innerHTML = "";
+  const currentStations = lines[editingIndex].stations;
+
+  currentStations.forEach((s, i) => {
+    const div = document.createElement("div");
+    div.className = "station";
+    div.draggable = true;
+
+    // 拖拽事件绑定
+    div.ondragstart = (e) => {
+      dragSrcIndex = i;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => div.classList.add("dragging"), 0);
+    };
+    div.ondragend = () => {
+      div.classList.remove("dragging");
+    };
+    div.ondragover = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    };
+    div.ondrop = (e) => {
+      e.preventDefault();
+      if(dragSrcIndex === null || dragSrcIndex === i) return;
+      
+      // 数组元素位移交换
+      const movedItem = currentStations.splice(dragSrcIndex, 1)[0];
+      currentStations.splice(i, 0, movedItem);
+      renderStations(); // 重新渲染
+    };
+
+    div.innerHTML = `
+      <span class="drag-handle">☰</span>
+      <input value="${s}" onchange="lines[editingIndex].stations[${i}]=this.value" placeholder="站点名称">
+      <button class="secondary" style="padding:6px 12px; margin:0; font-size:16px;" title="在此站后方插入" onclick="insertStationAfter(${i})">＋</button>
+      <button class="delete" style="padding:6px 12px; margin:0;" title="删除" onclick="removeStation(${i})">✕</button>
     `;
     box.appendChild(div);
   });
 }
 
-function addStation(){
+function addStationAtEnd(){
   lines[editingIndex].stations.push("新站点");
-  renderStations(lines[editingIndex].stations);
+  renderStations();
 }
 
-function removeStation(i){
-  lines[editingIndex].stations.splice(i,1);
-  renderStations(lines[editingIndex].stations);
+function insertStationAfter(index){
+  lines[editingIndex].stations.splice(index + 1, 0, "新站点");
+  renderStations();
 }
+
+function removeStation(index){
+  lines[editingIndex].stations.splice(index, 1);
+  renderStations();
+}
+
+/* ======================================================= */
 
 function back(){
-  // 如果是新增但没有保存，直接移除内存中的脏数据
   if(editingIndex !== null && lines[editingIndex].raw === ""){
-    lines.splice(editingIndex, 1);
+    lines.splice(editingIndex, 1); // 如果是新增取消，抛弃空数据
   }
   editingIndex = null;
+  // 核心修复：清理掉可能被污染的保存按钮状态
+  document.getElementById("saveBtn").innerText = "云端保存";
+  
   document.getElementById("editPage").classList.add("hidden");
   document.getElementById("listPage").classList.remove("hidden");
   renderList();
 }
 
-async function deleteLine(i, e){
-  if(!confirm("确认删除该线路？操作将立即生效并同步至服务器！")) return;
+async function deleteLine(realIndex, e){
+  if(!confirm("⚠️ 确认删除该线路吗？此操作将立即在云端生效。")) return;
 
-  const realIndex = lines.indexOf(getVisible()[i]);
   const l = lines[realIndex];
-  
   const btn = e.target;
   const oldTxt = btn.innerText;
   btn.innerText = "删除中...";
@@ -318,50 +529,62 @@ async function deleteLine(i, e){
 }
 
 async function saveEdit(){
-  const l=lines[editingIndex];
+  const l = lines[editingIndex];
   const oldRaw = l.raw;
 
-  l.name=document.getElementById("edit_name").value;
-  l.company=document.getElementById("edit_company").value;
-  l.region=document.getElementById("edit_region").value;
-  l.price=document.getElementById("edit_price").value;
-  l.type=document.getElementById("edit_type").value;
-  l.start=document.getElementById("edit_start").value;
-  l.end=document.getElementById("edit_end").value;
-  l.color=document.getElementById("edit_color").value;
+  l.name = document.getElementById("edit_name").value.trim();
+  l.company = document.getElementById("edit_company").value.trim();
+  l.region = document.getElementById("edit_region").value.trim();
+  l.price = document.getElementById("edit_price").value.trim();
+  l.type = document.getElementById("edit_type").value;
+  l.start = document.getElementById("edit_start").value;
+  l.end = document.getElementById("edit_end").value;
+  l.color = document.getElementById("edit_color").value.trim();
+
+  // 清除空站点
+  l.stations = l.stations.map(s => s.trim()).filter(s => s);
+
+  if(!l.name || l.stations.length === 0){
+    alert("请至少填写线路名称及一个站点。");
+    return;
+  }
 
   const newRaw = buildLine(l);
   const action = oldRaw ? "update" : "add";
 
   const btn = document.getElementById("saveBtn");
-  btn.innerText = "保存中...";
+  btn.innerText = "正在同步至云端...";
+  btn.disabled = true;
 
   const ok = await saveToServer(action, oldRaw, newRaw);
+  
+  // 核心修复：无论成败，必须把按钮状态复原，防止下次进来还是“保存中”
+  btn.innerText = "云端保存";
+  btn.disabled = false;
+
   if(ok){
-    l.raw = newRaw; // 更新本地记录
-    back();
-  } else {
-    btn.innerText = "保存到服务器";
+    l.raw = newRaw; 
+    back(); // 返回列表
   }
 }
 
-// 增量保存 API
+// 增量保存 API 通信
 async function saveToServer(action, oldRaw, newRaw){
   try {
-    const res=await fetch(API,{
-      method:"POST",
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mode:"save", action, oldRaw, newRaw})
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "save", action, oldRaw, newRaw })
     });
 
     if(!res.ok){
       const errTxt = await res.text();
-      alert("保存失败: " + errTxt);
+      alert("云端保存失败: " + errTxt);
       return false;
     }
     return true;
   } catch(e) {
-    alert("网络错误: " + e.message);
+    alert("网络请求失败，请检查连接或代理配置: " + e.message);
     return false;
   }
 }
