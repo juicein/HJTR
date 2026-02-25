@@ -916,3 +916,41 @@ function showToast(msg) {
 
 // Start
 init();
+
+
+
+
+
+
+
+
+
+
+
+
+/* --- 5. URL 路由处理 --- */
+function handleRouting() {
+  const urlParams = new URLSearchParams(window.location.search);
+  
+  // 1. 详情搜索: ?search=LineName
+  const searchLine = urlParams.get('search');
+  if (searchLine) {
+    const line = appState.lines.find(l => l.name === searchLine);
+    if (line) openDetail(line);
+    return;
+  }
+
+  // 2. 出行规划: ?planning=StationName
+  const planStart = urlParams.get('planning');
+  if (planStart) {
+    switchView('planner');
+    document.getElementById('plan-start').value = planStart;
+    // 如果有终点 ?end=...
+    const planEnd = urlParams.get('end');
+    if (planEnd) {
+      document.getElementById('plan-end').value = planEnd;
+      findRoutes();
+    }
+  }
+}
+
