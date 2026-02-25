@@ -96,7 +96,7 @@ function parseLines(rawText) {
     const isRubber = line.includes("θ胶轮θ");
     const isMetroRaw = line.includes("θ地铁θ");
     const isBRT = line.includes("θBRTθ");
-    const isRailRaw = line.includes("θ铁路θ") || name.includes("城际") || name.includes("高铁");
+    const isRailRaw = line.includes("θ铁路θ")/* || name.includes("城际") || name.includes("高铁")*/;
     const color = line.match(/∮([0-9A-Fa-f]{6,8})∮/)?.[1];
 
     const isMetro = isMetroRaw || isMonorail || isRubber; 
@@ -279,7 +279,7 @@ function checkOperatingTime(startTime, endTime) {
 
 /* 1. 全能规划逻辑 */
 async function findRoute() {
-  // --- 需求3：必须选择地区 ---
+  // --- 需求必须选择地区 ---
   if (appState.selectedCity === 'all') {
     showToast("请先点击右上角选择具体地区");
     // 自动打开地区菜单
@@ -889,16 +889,16 @@ function subscribePushReal() {
      bodyStr += ` -> ${seg.lineName}`;
      // 如果不是最后一段，显示换乘站
      if (i < currentSegments.length - 1) {
-         bodyStr += ` -> ${seg.endStation}`;
+         bodyStr += ` → ${seg.endStation}`;
      }
   });
-  bodyStr += ` -> 到达 ${currentSegments[currentSegments.length-1].endStation}`;
+  bodyStr += ` → 到达 ${currentSegments[currentSegments.length-1].endStation}`;
 
   Notification.requestPermission().then(permission => {
     if (permission === 'granted') {
        new Notification('行程提醒已开启', { 
            body: bodyStr,
-           icon: '/icons/bus.png' // 可选，如果有图标的话
+           icon: '/icons/icon.png' // 可选，如果有图标的话
        });
        showToast("提醒已开启，请查看通知栏");
     } else {
