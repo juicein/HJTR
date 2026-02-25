@@ -886,7 +886,7 @@ function subscribePushReal() {
   // --- 需求2：构造详细通知内容 ---
   let bodyStr = `从 ${currentSegments[0].startStation} 出发`;
   currentSegments.forEach((seg, i) => {
-     bodyStr += ` -> ${seg.lineName}`;
+     bodyStr += ` → ${seg.lineName}`;
      // 如果不是最后一段，显示换乘站
      if (i < currentSegments.length - 1) {
          bodyStr += ` → ${seg.endStation}`;
