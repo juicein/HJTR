@@ -2,10 +2,9 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>公交管理系统 M3 Expressive</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>公交管理系统 M3</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
 <style>
 /* Material 3 Expressive 色彩系统 */
@@ -17,12 +16,12 @@
   --md-sys-color-surface: #fdfcff;
   --md-sys-color-surface-container: #f0f4f8;
   --md-sys-color-outline: #72777f;  
-  --highlight-orange: #ff6d00;
-  
   --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: 1px solid rgba(0, 0, 0, 0.05);
   --text-main: #1a1c1e;
   --text-sub: #44474e;
+  --danger-color: #ba1a1a;
+  --danger-on-color: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -33,11 +32,12 @@
     --md-sys-color-primary-container: #006495;
     --md-sys-color-primary: #93cae4;
     --md-sys-color-outline: #8c9199;
-    
     --glass-bg: rgba(30, 30, 30, 0.75);
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
     --text-main: #e2e2e2;
     --text-sub: #c4c7c5;
+    --danger-color: #ffb4ab;
+    --danger-on-color: #690005;
   }
 }
 
@@ -46,232 +46,309 @@ body {
   background: var(--md-sys-color-surface-container);
   color: var(--text-main);
   margin: 0;
-  padding: 20px;
+  padding: 0;
   line-height: 1.5;
+  padding-top: 72px; /* 给 Topbar 留出空间 */
 }
 
-h2 { font-weight: 600; color: var(--md-sys-color-primary); display: flex; align-items: center; gap: 8px; }
+/* MD3 Top App Bar */
+.top-app-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
 
-/* Material Symbols 基础设置 */
-.material-symbols-rounded {
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+.topbar-left, .topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-app-bar h1 {
   font-size: 20px;
-  vertical-align: middle;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-main);
+}
+
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  transition: background 0.2s;
+}
+
+.icon-btn:hover {
+  background: var(--md-sys-color-surface-container);
+}
+
+.topbar-select {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+.container {
+  padding: 16px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .card {
   background: var(--glass-bg);
   border: var(--glass-border);
-  border-radius: 28px;
+  border-radius: 24px;
   padding: 24px;
   margin-bottom: 20px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.04);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
 }
 
-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
+/* 按钮通用样式 */
+button.action-btn {
   padding: 10px 20px;
   border: none;
-  border-radius: 100px; /* M3 标准圆角 */
+  border-radius: 24px;
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
   font-weight: 500;
   cursor: pointer;
-  margin: 6px 6px 6px 0;
-  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
 }
-button:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-button:active { transform: translateY(0); box-shadow: none; }
+button.action-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+button.action-btn:active { transform: translateY(0); }
+button.action-btn.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+button.action-btn.delete { background: var(--danger-color); color: var(--danger-on-color); }
 
-button.delete { background: #ba1a1a; color: #ffffff; }
-button.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
-
-button.icon-btn {
-  padding: 8px;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  margin: 0;
-}
-
-input, select {
+/* 输入框规范 */
+.input-group { margin-bottom: 16px; }
+input:not([type="color"]), select {
   width: 100%;
   padding: 14px 16px;
-  margin: 8px 0 16px 0;
+  margin-top: 6px;
   border-radius: 16px;
   border: 1px solid var(--md-sys-color-outline);
   background: var(--md-sys-color-surface);
   color: var(--text-main);
   box-sizing: border-box;
   font-size: 15px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
 input:focus, select:focus {
   outline: none;
   border-color: var(--md-sys-color-primary);
   box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
 }
-label { font-size: 14px; color: var(--text-sub); font-weight: 600; }
+label { font-size: 14px; color: var(--text-sub); font-weight: 500; display: block; }
 
-/* 站点拖拽样式优化 */
+/* 站点拖拽样式 (移动端强化) */
 .station {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
   background: var(--md-sys-color-surface);
-  padding: 6px 12px;
+  padding: 4px 8px;
   border-radius: 16px;
   border: 1px solid var(--md-sys-color-outline);
-  transition: transform 0.1s, box-shadow 0.2s;
-  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s, filter 0.2s;
 }
+/* 虚化图层效果 */
 .station.dragging { 
-  opacity: 0.8; 
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15); 
-  border-color: var(--md-sys-color-primary);
-  z-index: 100;
+  opacity: 0.6; 
+  filter: blur(0.5px);
+  transform: scale(0.98);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+  z-index: 10;
 }
-.station input { margin: 0; border: none; background: transparent; flex: 1; padding: 6px; border-radius: 0; box-shadow: none; }
+.station input { margin: 0; border: none; background: transparent; flex: 1; padding: 10px; border-radius: 0; box-shadow: none; }
 .station input:focus { box-shadow: none; border-bottom: 2px solid var(--md-sys-color-primary); }
-
+/* 关键点：禁用 handle 默认的触摸行为，方便脚本接管 */
 .drag-handle { 
   cursor: grab; 
   color: var(--md-sys-color-outline); 
-  font-size: 24px; 
-  user-select: none; 
-  -webkit-user-select: none;
-  touch-action: none; /* 阻止移动端触摸滚动 */
-  padding: 8px 4px; 
+  padding: 10px 4px; 
+  user-select: none;
+  touch-action: none; 
 }
-.drag-handle:active { cursor: grabbing; color: var(--md-sys-color-primary); }
+.drag-handle:active { cursor: grabbing; }
 
-/* 过滤器/搜索区 */
+/* 颜色选择器包裹层 */
+.color-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+input[type="color"] {
+  -webkit-appearance: none;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  cursor: pointer;
+  padding: 0;
+  background: none;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: 1px solid var(--md-sys-color-outline); border-radius: 12px; }
+
+/* 过滤器区 */
 .tools-bar { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
-.search-row { display: flex; gap: 12px; align-items: center; }
-.search-row input { margin: 0; }
-.search-row select { margin: 0; width: auto; flex-shrink: 0; }
-
-.filter-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+.filter-chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.filter-chips::-webkit-scrollbar { display: none; }
 .chip {
   background: transparent;
   color: var(--md-sys-color-primary);
   border: 1px solid var(--md-sys-color-primary);
+  border-radius: 16px;
   padding: 6px 16px;
   white-space: nowrap;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 .chip.active { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); }
 
 .hidden { display: none !important; }
 
 /* 列表卡片 */
-.line-item { padding-bottom: 16px; border-bottom: 1px solid var(--md-sys-color-outline); margin-bottom: 16px; }
+.line-item { padding-bottom: 16px; border-bottom: 1px solid var(--md-sys-color-surface-container); margin-bottom: 16px; }
 .line-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.line-title { font-size: 18px; font-weight: 600; color: var(--highlight-orange); margin-bottom: 4px; display: flex; align-items: center; gap: 8px;}
-.line-desc { color: var(--text-sub); font-size: 14px; margin-bottom: 12px; line-height: 1.6; }
-
-/* 颜色选择器组件 */
-.color-picker-wrapper { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
-.color-picker-wrapper input[type="text"] { margin: 0; flex: 1; }
-.color-picker-btn { 
-  width: 48px; height: 48px; 
-  padding: 0; border: none; 
-  border-radius: 12px; 
-  cursor: pointer; 
-  background: transparent; 
-  overflow: hidden;
-}
-.color-picker-btn::-webkit-color-swatch-wrapper { padding: 0; }
-.color-picker-btn::-webkit-color-swatch { border: 2px solid var(--md-sys-color-outline); border-radius: 12px; }
+.line-title { font-size: 18px; font-weight: 600; color: var(--md-sys-color-primary); margin-bottom: 4px; display:flex; align-items:center; gap:8px;}
+.line-desc { color: var(--text-sub); font-size: 14px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
 
-<h2><span class="material-symbols-rounded" style="font-size:28px;">directions_bus</span> 公交管理系统</h2>
-
-<div id="loginBox" class="card">
-  <input id="pwd" type="password" placeholder="输入管理员口令">
-  <button onclick="login()"><span class="material-symbols-rounded">login</span> 登录 / 验证</button>
-</div>
-
-<div id="listPage" class="hidden">
-  <div class="card tools-bar">
-    <div class="search-row">
-      <input id="searchInput" placeholder="搜索线路或站点..." oninput="renderList()">
-      <select id="companyFilter" onchange="renderList()">
-        <option value="">所有公司</option>
-      </select>
-    </div>
-    <div class="filter-chips">
-      <button class="chip active" onclick="setFilter('all', this)">全部</button>
-      <button class="chip" onclick="setFilter('metro', this)">地铁/轨道</button>
-      <button class="chip" onclick="setFilter('bus', this)">公交/BRT</button>
-      <button class="chip" onclick="setFilter('rail', this)">铁路/高铁</button>
-    </div>
-    <div style="margin-top: 8px;">
-      <button onclick="addLine()"><span class="material-symbols-rounded">add</span> 新增线路</button>
-      <button class="secondary" onclick="loadData()"><span class="material-symbols-rounded">sync</span> 刷新云端数据</button>
-    </div>
+<header class="top-app-bar hidden" id="topBar">
+  <div class="topbar-left">
+    <button class="icon-btn hidden" id="backBtn" onclick="back()"><span class="material-symbols-outlined">arrow_back</span></button>
+    <h1 id="pageTitle">公交管理系统</h1>
   </div>
-  <div class="card" id="lineList"></div>
-</div>
-
-<div id="editPage" class="hidden">
-  <button class="secondary" onclick="back()"><span class="material-symbols-rounded">arrow_back</span> 返回 (取消修改)</button>
-  <div class="card">
-    <label>线路名称</label>
-    <input id="edit_name">
-
-    <label>归属公司</label>
-    <input id="edit_company">
-
-    <label>运营地区</label>
-    <input id="edit_region">
-
-    <label>票价 / 服务信息</label>
-    <input id="edit_price">
-
-    <label>线路分类</label>
-    <select id="edit_type">
-      <option>公交</option>
-      <option>BRT</option>
-      <option>地铁</option>
-      <option>单轨</option>
-      <option>高铁</option>
-      <option>铁路</option>
-      <option>其他</option>
+  <div class="topbar-right" id="topbarActions">
+    <select id="companyFilter" class="topbar-select hidden" onchange="renderList()">
+      <option value="all">🏢 全公司</option>
     </select>
+    <button class="icon-btn" onclick="addLine()" title="新增线路"><span class="material-symbols-outlined">add</span></button>
+    <button class="icon-btn" onclick="loadData()" title="刷新"><span class="material-symbols-outlined">refresh</span></button>
+  </div>
+</header>
 
-    <div style="display:flex; gap:12px;">
-      <div style="flex:1">
-        <label>首班车</label>
-        <input type="time" id="edit_start">
-      </div>
-      <div style="flex:1">
-        <label>末班车</label>
-        <input type="time" id="edit_end">
+<div class="container">
+  <div id="loginBox" class="card">
+    <h2 style="margin-top:0; color:var(--md-sys-color-primary);">身份验证</h2>
+    <input id="pwd" type="password" placeholder="输入管理员口令">
+    <button class="action-btn" onclick="login()" style="width:100%; justify-content:center;">登录系统</button>
+  </div>
+
+  <div id="listPage" class="hidden">
+    <div class="card tools-bar" style="padding: 16px;">
+      <input id="searchInput" placeholder="🔍 搜索线路名称或站点..." oninput="renderList()" style="margin:0;">
+      <div class="filter-chips">
+        <div class="chip active" onclick="setFilter('all', this)">全部</div>
+        <div class="chip" onclick="setFilter('metro', this)">地铁/轨道</div>
+        <div class="chip" onclick="setFilter('bus', this)">公交/BRT</div>
+        <div class="chip" onclick="setFilter('rail', this)">铁路/高铁</div>
       </div>
     </div>
+    <div class="card" id="lineList"></div>
+  </div>
 
-    <label>标识颜色（十六进制）</label>
-    <div class="color-picker-wrapper">
-      <input id="edit_color" placeholder="非必填 (如: #FF0000)">
-      <input type="color" id="edit_color_picker" class="color-picker-btn">
-    </div>
+  <div id="editPage" class="hidden">
+    <div class="card">
+      <div class="input-group">
+        <label>线路名称</label>
+        <input id="edit_name">
+      </div>
 
-    <label>站点排列 <span style="font-weight:normal; font-size:12px;">(长按 ☰ 图标可拖拽排序)</span></label>
-    <div id="stationBox" style="margin-top:10px;"></div>
-    <button class="secondary" onclick="addStationAtEnd()"><span class="material-symbols-rounded">playlist_add</span> 在末尾追加站点</button>
+      <div style="display:flex; gap:12px;">
+        <div class="input-group" style="flex:1">
+          <label>归属公司</label>
+          <input id="edit_company">
+        </div>
+        <div class="input-group" style="flex:1">
+          <label>运营地区</label>
+          <input id="edit_region">
+        </div>
+      </div>
 
-    <div style="margin-top:24px; border-top:1px solid var(--md-sys-color-outline); padding-top:16px;">
-      <button id="saveBtn" style="width:100%; padding:14px; border-radius:100px; font-size:16px;" onclick="saveEdit()">
-        <span class="material-symbols-rounded">cloud_upload</span> 云端保存
-      </button>
+      <div style="display:flex; gap:12px;">
+        <div class="input-group" style="flex:1">
+          <label>票价信息</label>
+          <input id="edit_price">
+        </div>
+        <div class="input-group" style="flex:1">
+          <label>线路分类</label>
+          <select id="edit_type">
+            <option>公交</option><option>BRT</option><option>地铁</option>
+            <option>单轨</option><option>高铁</option><option>铁路</option><option>其他</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:12px;">
+        <div class="input-group" style="flex:1">
+          <label>首班车</label>
+          <input type="time" id="edit_start">
+        </div>
+        <div class="input-group" style="flex:1">
+          <label>末班车</label>
+          <input type="time" id="edit_end">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>标识颜色</label>
+        <div class="color-input-wrapper">
+          <input type="color" id="edit_color_picker" oninput="document.getElementById('edit_color').value = this.value.toUpperCase()">
+          <input id="edit_color" placeholder="HEX代码，如：#FF0000" oninput="document.getElementById('edit_color_picker').value = this.value" style="margin:0;">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>站点排列 <span style="font-weight:normal; font-size:12px;">(长按 ☰ 拖拽调整顺序)</span></label>
+        <div id="stationBox" style="margin-top:10px;"></div>
+        <button class="action-btn secondary" onclick="addStationAtEnd()" style="margin-top:8px; width:100%; justify-content:center;">
+          <span class="material-symbols-outlined" style="font-size:18px;">add</span> 在末尾追加站点
+        </button>
+      </div>
+
+      <div style="margin-top:24px; border-top:1px solid var(--md-sys-color-surface-container); padding-top:24px;">
+        <button id="saveBtn" class="action-btn" style="width:100%; padding:14px; font-size:16px; justify-content:center;" onclick="saveEdit()">
+          <span class="material-symbols-outlined">cloud_upload</span> 云端保存
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -289,20 +366,6 @@ let currentFilter = 'all';
 window.onload = () => {
   const savedPwd = localStorage.getItem("bus_admin_pwd");
   if(savedPwd) document.getElementById("pwd").value = savedPwd;
-  initColorPickerSync();
-}
-
-// 初始化颜色联动
-function initColorPickerSync() {
-  document.getElementById('edit_color_picker').addEventListener('input', (e) => {
-    document.getElementById('edit_color').value = e.target.value.toUpperCase();
-  });
-  document.getElementById('edit_color').addEventListener('input', (e) => {
-    const val = e.target.value;
-    if(/^#[0-9A-F]{6}$/i.test(val)) {
-      document.getElementById('edit_color_picker').value = val;
-    }
-  });
 }
 
 function parseLine(text){
@@ -314,7 +377,7 @@ function parseLine(text){
   obj.type = (text.match(/θ(.*?)θ/)||[])[1]||"公交";
   obj.start = (text.match(/§(.*?)§/)||[])[1]||"06:00";
   obj.end = (text.match(/@(.*?)@/)||[])[1]||"22:00";
-  obj.color = (text.match(/∮(.*?)∮/)||[])[1]||"";
+  obj.color = (text.match(/∮(.*?)∮/)||[])[1]||"#006495"; // 给个默认色防报错
   const stationPart = text.split("】")[1]?.split("-{")[0]||"";
   obj.stations = stationPart.split("-").filter(s => s);
   return obj;
@@ -324,7 +387,7 @@ function buildLine(l){
   let base = `【${l.name}】${l.stations.join("-")}-{${l.company}}`;
   if(l.price) base += `《${l.price}》`;
   base += `『${l.region}』θ${l.type}θ§${l.start}§@${l.end}@`;
-  if(l.color) base += `∮${l.color}∮`;
+  if(l.color && l.color !== "#006495") base += `∮${l.color}∮`;
   return base;
 }
 
@@ -335,7 +398,7 @@ async function login(){
 
   const btn = event.target;
   const originalText = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-rounded">hourglass_empty</span> 验证中...`;
+  btn.innerHTML = `<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">hourglass_empty</span> 验证中...`;
 
   try {
     const res = await fetch(API, {
@@ -356,6 +419,7 @@ async function login(){
 
     document.getElementById("loginBox").classList.add("hidden");
     document.getElementById("listPage").classList.remove("hidden");
+    document.getElementById("topBar").classList.remove("hidden"); // 显示导航栏
 
     loadData();
   } catch(e) {
@@ -366,7 +430,7 @@ async function login(){
 
 async function loadData(){
   const box = document.getElementById("lineList");
-  box.innerHTML = `<p style="text-align:center; color:var(--text-sub);"><span class="material-symbols-rounded" style="font-size:32px; display:block; margin:0 auto 8px;">cloud_sync</span>正在同步云端数据...</p>`;
+  box.innerHTML = "<p style='text-align:center;'>📡 正在同步云端数据...</p>";
   
   try {
     const res = await fetch(API);
@@ -374,32 +438,29 @@ async function loadData(){
     rawLines = txt.split("\n").filter(x => x.trim());
     lines = rawLines.map(parseLine);
     
-    updateCompanyFilter();
+    // 生成公司筛选器
+    populateCompanyFilter();
+    
     renderList();
   } catch(e) {
-    box.innerHTML = `<p style="color:red; text-align:center;">获取数据失败，请重试。</p>`;
+    box.innerHTML = "<p style='color:var(--danger-color); text-align:center;'>获取数据失败，请重试。</p>";
   }
 }
 
-// 动态提取并更新公司筛选下拉框
-function updateCompanyFilter() {
-  const select = document.getElementById("companyFilter");
-  const currentVal = select.value;
+function populateCompanyFilter() {
+  const companySelect = document.getElementById("companyFilter");
+  if(role === "company") {
+    companySelect.classList.add("hidden"); // 公司权限只看自己的，隐藏下拉框
+    return;
+  }
   
-  // 仅在拥有权限的当前数据集中提取公司名
-  let availableLines = lines;
-  if(role === "region") availableLines = availableLines.filter(x => x.region === roleValue);
-  if(role === "company") availableLines = availableLines.filter(x => x.company === roleValue);
-  
-  const comps = new Set(availableLines.map(l => l.company).filter(Boolean));
-  
-  select.innerHTML = '<option value="">所有公司</option>';
-  comps.forEach(c => {
-    select.innerHTML += `<option value="${c}">${c}</option>`;
-  });
-  
-  // 保持之前的选择（如果还存在）
-  if(comps.has(currentVal)) select.value = currentVal;
+  // 提取唯一公司名
+  const companies = [...new Set(lines.map(l => l.company).filter(c => c))];
+  if(companies.length > 0) {
+    companySelect.classList.remove("hidden");
+    companySelect.innerHTML = `<option value="all">🏢 全公司</option>` + 
+      companies.map(c => `<option value="${c}">${c}</option>`).join("");
+  }
 }
 
 function setFilter(type, btnEl) {
@@ -415,19 +476,15 @@ function getVisibleLines(){
   if(role === "region") filtered = filtered.filter(x => x.region === roleValue);
   if(role === "company") filtered = filtered.filter(x => x.company === roleValue);
 
-  // 公司筛选器
-  const compFilter = document.getElementById("companyFilter").value;
-  if(compFilter) {
-    filtered = filtered.filter(x => x.company === compFilter);
+  // Topbar 公司过滤
+  const selectedCompany = document.getElementById("companyFilter").value;
+  if(selectedCompany && selectedCompany !== "all") {
+    filtered = filtered.filter(x => x.company === selectedCompany);
   }
 
-  if(currentFilter === 'metro') {
-    filtered = filtered.filter(x => ['地铁', '单轨', '轨道'].includes(x.type));
-  } else if(currentFilter === 'bus') {
-    filtered = filtered.filter(x => ['公交', 'brt', 'BRT'].includes(x.type));
-  } else if(currentFilter === 'rail') {
-    filtered = filtered.filter(x => ['铁路', '高铁', '城际'].includes(x.type));
-  }
+  if(currentFilter === 'metro') filtered = filtered.filter(x => ['地铁', '单轨', '轨道'].includes(x.type));
+  else if(currentFilter === 'bus') filtered = filtered.filter(x => ['公交', 'brt', 'BRT'].includes(x.type));
+  else if(currentFilter === 'rail') filtered = filtered.filter(x => ['铁路', '高铁', '城际'].includes(x.type));
 
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
   if(q) {
@@ -454,25 +511,34 @@ function renderList(){
     const realIndex = lines.indexOf(l);
     const first = l.stations[0] || "起点";
     const last = l.stations[l.stations.length-1] || "终点";
+    const lineIcon = ['地铁','单轨'].includes(l.type) ? 'subway' : (['铁路','高铁'].includes(l.type) ? 'train' : 'directions_bus');
 
     const div = document.createElement("div");
     div.className = "line-item";
     div.innerHTML = `
       <div class="line-title">
+        <span class="material-symbols-outlined" style="color:${l.color || 'var(--md-sys-color-primary)'}">${lineIcon}</span> 
         ${l.name} 
-        <span style="font-size:12px; font-weight:normal; background:var(--md-sys-color-primary-container); color:var(--md-sys-color-on-primary-container); padding:2px 8px; border-radius:8px;">${l.type}</span>
+        <span style="font-size:12px; background:var(--md-sys-color-primary-container); color:var(--md-sys-color-on-primary-container); padding:2px 8px; border-radius:8px; font-weight:normal;">${l.type}</span>
       </div>
       <div class="line-desc">
-        <span class="material-symbols-rounded" style="font-size:16px;">route</span> ${first} ⇄ ${last} <br>
-        <span class="material-symbols-rounded" style="font-size:16px;">domain</span> ${l.company} (${l.region}) · <span class="material-symbols-rounded" style="font-size:16px;">schedule</span> ${l.start} - ${l.end}
+        🛣️ ${first} ⇄ ${last} <br>
+        🏢 ${l.company} (${l.region}) · 🕒 ${l.start} - ${l.end}
       </div>
-      <div>
-        <button class="secondary" onclick="editLine(${realIndex})"><span class="material-symbols-rounded">edit</span> 修改</button>
-        <button class="delete" onclick="deleteLine(${realIndex}, event)"><span class="material-symbols-rounded">delete</span> 删除</button>
+      <div style="display:flex; gap:8px;">
+        <button class="action-btn secondary" onclick="editLine(${realIndex})"><span class="material-symbols-outlined" style="font-size:18px;">edit</span> 修改</button>
+        <button class="action-btn delete" onclick="deleteLine(${realIndex}, event)"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> 删除</button>
       </div>
     `;
     box.appendChild(div);
   });
+}
+
+// 切换顶栏状态
+function toggleTopbarMode(isEdit) {
+  document.getElementById("backBtn").classList.toggle("hidden", !isEdit);
+  document.getElementById("topbarActions").classList.toggle("hidden", isEdit);
+  document.getElementById("pageTitle").innerText = isEdit ? "编辑线路" : "公交管理系统";
 }
 
 function editLine(realIndex){
@@ -481,6 +547,7 @@ function editLine(realIndex){
 
   document.getElementById("listPage").classList.add("hidden");
   document.getElementById("editPage").classList.remove("hidden");
+  toggleTopbarMode(true);
 
   document.getElementById("edit_name").value = l.name;
   document.getElementById("edit_company").value = l.company;
@@ -488,38 +555,25 @@ function editLine(realIndex){
   document.getElementById("edit_price").value = l.price;
   
   const typeSelect = document.getElementById("edit_type");
-  if([...typeSelect.options].some(opt => opt.value === l.type)) {
-    typeSelect.value = l.type;
-  } else {
-    typeSelect.value = "其他"; 
-  }
+  typeSelect.value = [...typeSelect.options].some(opt => opt.value === l.type) ? l.type : "其他"; 
 
   document.getElementById("edit_start").value = l.start;
   document.getElementById("edit_end").value = l.end;
   
-  // 设置颜色并同步到调色板
-  document.getElementById("edit_color").value = l.color;
-  const picker = document.getElementById("edit_color_picker");
-  if(/^#[0-9A-F]{6}$/i.test(l.color)) {
-    picker.value = l.color;
-  } else {
-    picker.value = "#006495"; // 默认M3主色
-  }
+  const hexColor = l.color || "#006495";
+  document.getElementById("edit_color").value = hexColor;
+  document.getElementById("edit_color_picker").value = isValidHex(hexColor) ? hexColor : "#006495";
 
   renderStations();
 }
 
 function addLine(){
   const newLine = {
-    raw: "", 
-    name: "新线路",
-    company: document.getElementById("companyFilter").value || (role === "company" ? roleValue : ""),
+    raw: "", name: "新线路",
+    company: role === "company" ? roleValue : "",
     region: role === "region" ? roleValue : "",
-    price: "",
-    type: currentFilter === 'metro' ? '地铁' : (currentFilter === 'rail' ? '高铁' : '公交'),
-    start: "06:00",
-    end: "22:00",
-    color: "",
+    price: "", type: currentFilter === 'metro' ? '地铁' : (currentFilter === 'rail' ? '高铁' : '公交'),
+    start: "06:00", end: "22:00", color: "#006495",
     stations: ["始发站", "终点站"]
   };
   
@@ -528,6 +582,7 @@ function addLine(){
 
   document.getElementById("listPage").classList.add("hidden");
   document.getElementById("editPage").classList.remove("hidden");
+  toggleTopbarMode(true);
 
   document.getElementById("edit_name").value = newLine.name;
   document.getElementById("edit_company").value = newLine.company;
@@ -537,59 +592,16 @@ function addLine(){
   document.getElementById("edit_start").value = newLine.start;
   document.getElementById("edit_end").value = newLine.end;
   document.getElementById("edit_color").value = newLine.color;
-  document.getElementById("edit_color_picker").value = "#006495";
+  document.getElementById("edit_color_picker").value = newLine.color;
 
   renderStations();
 }
 
-/* ================= 移动端/桌面端统一防误触长按拖拽 ================= */
-// 全局拖拽状态管理器
-const dragState = { el: null, isDragging: false, timer: null };
-
-// 全局监听：移动和结束
-window.addEventListener('touchmove', handleGlobalMove, {passive: false});
-window.addEventListener('touchend', handleGlobalEnd);
-window.addEventListener('touchcancel', handleGlobalEnd);
-window.addEventListener('mousemove', handleGlobalMove);
-window.addEventListener('mouseup', handleGlobalEnd);
-
-function handleGlobalMove(e) {
-  if(!dragState.isDragging || !dragState.el) return;
-  e.preventDefault(); // 阻止滚动
-  
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  
-  // 动态寻址并交换DOM顺序
-  const target = document.elementFromPoint(clientX, clientY);
-  if (target) {
-     const targetRow = target.closest('.station');
-     if (targetRow && targetRow !== dragState.el) {
-        const rect = targetRow.getBoundingClientRect();
-        const mid = rect.top + rect.height / 2;
-        if (clientY < mid) {
-           targetRow.parentNode.insertBefore(dragState.el, targetRow);
-        } else {
-           targetRow.parentNode.insertBefore(dragState.el, targetRow.nextSibling);
-        }
-     }
-  }
+function isValidHex(hex) {
+  return /^#[0-9A-F]{6}$/i.test(hex);
 }
 
-function handleGlobalEnd(e) {
-  if(dragState.timer) clearTimeout(dragState.timer);
-  if(dragState.isDragging && dragState.el) {
-     dragState.isDragging = false;
-     dragState.el.classList.remove('dragging');
-     
-     // 从DOM层级反向写回数据数组
-     const inputs = document.querySelectorAll('#stationBox .station input');
-     lines[editingIndex].stations = Array.from(inputs).map(inp => inp.value);
-     renderStations(); // 重绘以绑定最新下标
-  }
-  dragState.el = null;
-}
-
+/* ================= 拖拽与站点交互逻辑 (PC + 移动端兼容) ================= */
 function renderStations(){
   const box = document.getElementById("stationBox");
   box.innerHTML = "";
@@ -599,62 +611,109 @@ function renderStations(){
     const div = document.createElement("div");
     div.className = "station";
     div.innerHTML = `
-      <span class="material-symbols-rounded drag-handle" title="长按拖拽">drag_handle</span>
+      <span class="material-symbols-outlined drag-handle">menu</span>
       <input value="${s}" onchange="lines[editingIndex].stations[${i}]=this.value" placeholder="站点名称">
-      <button class="secondary icon-btn" title="在此站后方插入" onclick="insertStationAfter(${i})">
-        <span class="material-symbols-rounded">add</span>
-      </button>
-      <button class="delete icon-btn" title="删除" onclick="removeStation(${i})">
-        <span class="material-symbols-rounded">close</span>
-      </button>
+      <button class="icon-btn" style="color:var(--md-sys-color-primary);" title="插入站" onclick="insertStationAfter(${i})"><span class="material-symbols-outlined">add_circle</span></button>
+      <button class="icon-btn" style="color:var(--danger-color);" title="删除" onclick="removeStation(${i})"><span class="material-symbols-outlined">cancel</span></button>
     `;
     box.appendChild(div);
-
-    // 为当前站点的拖拽手柄单独绑定触发器 (长按300ms)
-    const handle = div.querySelector('.drag-handle');
-    const startDragTimer = (e) => {
-      // 防止影响输入框：仅当点在手柄上才触发
-      if(e.type === 'mousedown') e.preventDefault(); 
-      dragState.el = div;
-      dragState.timer = setTimeout(() => {
-        dragState.isDragging = true;
-        div.classList.add('dragging');
-        // 移动设备触觉反馈
-        if(navigator.vibrate) navigator.vibrate(40);
-      }, 300); // 长按时间
-    };
-
-    handle.addEventListener('touchstart', startDragTimer, {passive: false});
-    handle.addEventListener('mousedown', startDragTimer);
+    bindDragEvents(div, i);
   });
 }
 
-function addStationAtEnd(){
-  lines[editingIndex].stations.push("新站点");
-  renderStations();
+function bindDragEvents(div, index) {
+  const handle = div.querySelector('.drag-handle');
+  
+  // -- 移动端 Touch 长按拖拽逻辑 --
+  let pressTimer;
+  let isDragging = false;
+
+  handle.addEventListener('touchstart', (e) => {
+    pressTimer = setTimeout(() => {
+      isDragging = true;
+      div.classList.add("dragging");
+      // 触发轻微震动反馈（如果设备支持）
+      if(navigator.vibrate) navigator.vibrate(50);
+    }, 300); // 300ms 长按触发
+  }, {passive: true});
+
+  handle.addEventListener('touchmove', (e) => {
+    if(!isDragging) { clearTimeout(pressTimer); return; }
+    e.preventDefault(); // 拖拽时阻止页面滚动
+    
+    const touch = e.touches[0];
+    const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+    const targetStation = targetEl?.closest('.station');
+    
+    if(targetStation && targetStation !== div) {
+      // 实时 DOM 互换位置
+      const box = document.getElementById("stationBox");
+      const children = Array.from(box.children);
+      const fromIdx = children.indexOf(div);
+      const toIdx = children.indexOf(targetStation);
+      
+      if(fromIdx < toIdx) targetStation.after(div);
+      else targetStation.before(div);
+    }
+  }, {passive: false});
+
+  handle.addEventListener('touchend', (e) => {
+    clearTimeout(pressTimer);
+    if(isDragging) {
+      isDragging = false;
+      div.classList.remove("dragging");
+      syncStationsFromDOM(); // 松手时同步数组
+    }
+  });
+
+  // -- PC 端原生 Drag 逻辑 --
+  handle.draggable = true;
+  let dragSrcEl = null;
+  
+  handle.ondragstart = (e) => {
+    dragSrcEl = div;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => div.classList.add("dragging"), 0);
+  };
+  div.ondragend = () => div.classList.remove("dragging");
+  div.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+  div.ondrop = (e) => {
+    e.preventDefault();
+    if(dragSrcEl && dragSrcEl !== div) {
+       const box = document.getElementById("stationBox");
+       const children = Array.from(box.children);
+       const fromIdx = children.indexOf(dragSrcEl);
+       const toIdx = children.indexOf(div);
+       if(fromIdx < toIdx) div.after(dragSrcEl);
+       else div.before(dragSrcEl);
+       syncStationsFromDOM();
+    }
+  };
 }
 
-function insertStationAfter(index){
-  lines[editingIndex].stations.splice(index + 1, 0, "新站点");
-  renderStations();
+// 统一DOM和数组状态并重绘
+function syncStationsFromDOM() {
+  const inputs = document.getElementById("stationBox").querySelectorAll('input');
+  lines[editingIndex].stations = Array.from(inputs).map(inp => inp.value);
+  renderStations(); 
 }
 
-function removeStation(index){
-  lines[editingIndex].stations.splice(index, 1);
-  renderStations();
-}
+function addStationAtEnd(){ lines[editingIndex].stations.push("新站点"); renderStations(); }
+function insertStationAfter(index){ lines[editingIndex].stations.splice(index + 1, 0, "新站点"); renderStations(); }
+function removeStation(index){ lines[editingIndex].stations.splice(index, 1); renderStations(); }
 
 /* ======================================================= */
 
 function back(){
   if(editingIndex !== null && lines[editingIndex].raw === ""){
-    lines.splice(editingIndex, 1);
+    lines.splice(editingIndex, 1); 
   }
   editingIndex = null;
-  document.getElementById("saveBtn").innerHTML = `<span class="material-symbols-rounded">cloud_upload</span> 云端保存`;
+  document.getElementById("saveBtn").innerHTML = `<span class="material-symbols-outlined">cloud_upload</span> 云端保存`;
   
   document.getElementById("editPage").classList.add("hidden");
   document.getElementById("listPage").classList.remove("hidden");
+  toggleTopbarMode(false);
   renderList();
 }
 
@@ -662,17 +721,16 @@ async function deleteLine(realIndex, e){
   if(!confirm("⚠️ 确认删除该线路吗？此操作将立即在云端生效。")) return;
 
   const l = lines[realIndex];
-  const btn = e.target;
-  const oldTxt = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-rounded">hourglass_empty</span> 删除中...`;
+  const btn = e.target.closest('.action-btn');
+  const oldHtml = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">hourglass_empty</span> 删除中`;
 
   const ok = await saveToServer("delete", l.raw, "");
   if(ok){
     lines.splice(realIndex, 1);
-    updateCompanyFilter(); // 更新公司筛选项
     renderList();
   } else {
-    btn.innerHTML = oldTxt;
+    btn.innerHTML = oldHtml;
   }
 }
 
@@ -700,18 +758,17 @@ async function saveEdit(){
   const action = oldRaw ? "update" : "add";
 
   const btn = document.getElementById("saveBtn");
-  btn.innerHTML = `<span class="material-symbols-rounded">sync</span> 正在同步至云端...`;
+  btn.innerHTML = `<span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">sync</span> 同步至云端...`;
   btn.disabled = true;
 
   const ok = await saveToServer(action, oldRaw, newRaw);
   
-  btn.innerHTML = `<span class="material-symbols-rounded">cloud_upload</span> 云端保存`;
+  btn.innerHTML = `<span class="material-symbols-outlined">cloud_upload</span> 云端保存`;
   btn.disabled = false;
 
   if(ok){
     l.raw = newRaw; 
-    updateCompanyFilter(); // 防止修改了公司名，重新构建筛选器
-    back(); 
+    back();
   }
 }
 
@@ -722,7 +779,6 @@ async function saveToServer(action, oldRaw, newRaw){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: "save", action, oldRaw, newRaw })
     });
-
     if(!res.ok){
       const errTxt = await res.text();
       alert("云端保存失败: " + errTxt);
@@ -730,10 +786,15 @@ async function saveToServer(action, oldRaw, newRaw){
     }
     return true;
   } catch(e) {
-    alert("网络请求失败，请检查连接或代理配置: " + e.message);
+    alert("网络请求失败: " + e.message);
     return false;
   }
 }
 </script>
+
+<style>
+/* 加载动画补充 */
+@keyframes spin { 100% { transform: rotate(360deg); } }
+</style>
 </body>
 </html>
