@@ -208,6 +208,16 @@
     "runways": 1
   },
   {
+"name": "玛丽湖",
+"code": "MLH",
+"lat": 9.5428,
+"lng": 100.0227,
+"aliases": ["潮涌"],
+"level": "2B",
+"ICAO": "VTSM",
+"runways": 1
+},
+  {
     "name": "南谷",
     "code": "NGN",
     "lat": 31.49865,
