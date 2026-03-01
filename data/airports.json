@@ -355,6 +355,15 @@
     "level": "4E",
     "runways": 1
   },
+  {
+   "name": "青淮梦之屿",
+   "code": "QHM",
+   "lat": 32.44,
+   "lng": 119.66,
+   "aliases": ["青淮"],
+   "level": "4E",
+   "runways": 1
+ },
 {
     "name": "鸭城云琴",
     "code": "YQA",
