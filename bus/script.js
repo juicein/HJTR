@@ -109,7 +109,7 @@ function parseLines(rawText) {
     else if (isRubber) iconType = 'commute'; 
     else if (isMetroRaw) iconType = 'subway';
     else if (isBRT) iconType = 'directions_bus'; 
-    else if (isFerry) iconType = 'ferry'; 
+    else if (isFerry) iconType = 'directions_boat'; 
 
     const stationPart = line.replace(/^【.*?】/, "").split("-{")[0];
     const rawStations = stationPart.split("-").filter(s => s && s.trim());
