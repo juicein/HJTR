@@ -96,6 +96,7 @@ function parseLines(rawText) {
     const isRubber = line.includes("θ胶轮θ");
     const isMetroRaw = line.includes("θ地铁θ");
     const isBRT = line.includes("θBRTθ");
+    const isFerry = line.includes("θ轮渡θ");
     const isRailRaw = line.includes("θ铁路θ")/* || name.includes("城际") || name.includes("高铁")*/;
     const color = line.match(/∮([0-9A-Fa-f]{6,8})∮/)?.[1];
 
@@ -108,6 +109,7 @@ function parseLines(rawText) {
     else if (isRubber) iconType = 'commute'; 
     else if (isMetroRaw) iconType = 'subway';
     else if (isBRT) iconType = 'directions_bus'; 
+    else if (isFerry) iconType = 'ferry'; 
 
     const stationPart = line.replace(/^【.*?】/, "").split("-{")[0];
     const rawStations = stationPart.split("-").filter(s => s && s.trim());
