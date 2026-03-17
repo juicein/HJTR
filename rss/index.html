@@ -9,13 +9,14 @@
 
 <body>
 
+<!-- 顶部 -->
 <div class="topbar">
   <div class="title">RSS</div>
   <button onclick="openManager()">订阅</button>
 </div>
 
 <!-- 分类栏 -->
-<div id="tabs" class="tabs"></div>
+<div class="tabs" id="tabs"></div>
 
 <!-- 信息流 -->
 <div id="feed" class="feed"></div>
@@ -29,16 +30,16 @@
     <h3>管理订阅</h3>
 
     <div class="input-row">
-      <input id="rssInput" placeholder="输入 RSS 地址">
+      <input id="rssInput" placeholder="RSS地址">
+      <input id="rssName" placeholder="分类名（可选）">
       <button onclick="addFeed()">添加</button>
     </div>
 
     <div id="feedList"></div>
-
     <button class="close" onclick="closeManager()">关闭</button>
   </div>
 </div>
 
-<script src="../rss/app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
