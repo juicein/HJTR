@@ -1,19 +1,77 @@
-/* 分类栏 */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont;
+  background: #f2f2f7;
+}
+
+/* 顶部 */
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  padding: 15px;
+  background: white;
+  font-weight: bold;
+}
+
+/* 分类 */
 .tabs {
   display: flex;
   overflow-x: auto;
   background: white;
+  padding: 5px;
 }
 
 .tab {
-  padding: 10px 15px;
+  padding: 8px 12px;
+  margin-right: 8px;
+  border-radius: 20px;
+  background: #eee;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .tab.active {
-  font-weight: bold;
-  border-bottom: 2px solid black;
+  background: black;
+  color: white;
+}
+
+/* 信息流 */
+.feed {
+  padding: 10px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* 电脑布局 */
+@media (min-width: 768px) {
+  .feed {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.cover {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.title {
+  padding: 10px;
+  font-weight: 600;
+}
+
+.meta {
+  padding: 0 10px 10px;
+  font-size: 12px;
+  color: gray;
 }
 
 /* 详情页 */
@@ -24,8 +82,8 @@
   width: 100%;
   height: 100%;
   background: white;
-  overflow: auto;
-  padding: 15px;
+  overflow-y: auto;
+  padding: 20px;
   z-index: 10;
 }
 
@@ -34,9 +92,44 @@
   border-radius: 10px;
 }
 
-.back {
-  margin-bottom: 10px;
-  display: inline-block;
-  cursor: pointer;
-  color: blue;
+/* 弹层 */
+.manager {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.4);
+}
+
+.hidden {
+  display: none;
+}
+
+.panel {
+  background: white;
+  margin: 50px 15px;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.input-row {
+  display: flex;
+  gap: 5px;
+}
+
+input {
+  flex: 1;
+  padding: 10px;
+}
+
+button {
+  padding: 10px;
+  background: black;
+  color: white;
+  border: none;
+}
+
+.feed-item {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
 }
