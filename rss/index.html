@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>RSS 订阅器</title>
+<style>
+body {
+  font-family: -apple-system;
+  background: #f2f2f7;
+  margin: 0;
+}
+
+.header {
+  padding: 15px;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.input-box {
+  display: flex;
+  padding: 10px;
+}
+
+input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+}
+
+button {
+  margin-left: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  background: black;
+  color: white;
+}
+
+.feed {
+  padding: 10px;
+}
+
+.card {
+  background: white;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.title {
+  padding: 10px;
+  font-weight: bold;
+}
+
+.meta {
+  padding: 0 10px 10px;
+  font-size: 12px;
+  color: gray;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">RSS 订阅</div>
+
+<div class="input-box">
+  <input id="rssInput" placeholder="输入 RSS 地址">
+  <button onclick="addFeed()">添加</button>
+</div>
+
+<div id="feed" class="feed"></div>
+
+<script>
+let feeds = JSON.parse(localStorage.getItem("feeds") || "[]");
+
+// ➕ 添加订阅
+function addFeed() {
+  const url = document.getElementById("rssInput").value.trim();
+  if (!url) return;
+
+  feeds.push(url);
+  localStorage.setItem("feeds", JSON.stringify(feeds));
+
+  document.getElementById("rssInput").value = "";
+  loadFeeds();
+}
+
+// 📡 加载所有 RSS
+async function loadFeeds() {
+  let all = [];
+
+  for (let url of feeds) {
+    try {
+      const res = await fetch(
+        "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url)
+      );
+      const data = await res.json();
+
+      data.items.forEach(item => {
+        all.push({
+          title: item.title,
+          date: new Date(item.pubDate),
+          source: data.feed.title,
+          link: item.link
+        });
+      });
+
+    } catch (e) {
+      console.log("加载失败:", url);
+    }
+  }
+
+  // 🔥 时间排序
+  all.sort((a, b) => b.date - a.date);
+
+  render(all);
+}
+
+// 📰 渲染
+function render(list) {
+  const feed = document.getElementById("feed");
+  feed.innerHTML = "";
+
+  list.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    div.innerHTML = `
+      <div class="title">${item.title}</div>
+      <div class="meta">${item.source} · ${item.date.toLocaleString()}</div>
+    `;
+
+    div.onclick = () => window.open(item.link);
+    feed.appendChild(div);
+  });
+}
+
+// 初始化
+loadFeeds();
+</script>
+
+</body>
+</html>
