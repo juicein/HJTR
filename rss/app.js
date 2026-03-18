@@ -1,7 +1,9 @@
 let feeds = JSON.parse(localStorage.getItem("feeds") || "[]");
+let readList = JSON.parse(localStorage.getItem("read") || "[]");
 let currentTab = "全部";
 
 init();
+setInterval(loadFeeds, 300000); // 自动刷新 5分钟
 
 function init() {
   renderTabs();
@@ -9,135 +11,105 @@ function init() {
   loadFeeds();
 }
 
-/* =========================
-   📡 加载
-========================= */
+/* 图片提取 */
+function extractImage(item) {
+  if (item.thumbnail) return item.thumbnail;
+  let m = (item.description || "").match(/<img.*?src="(.*?)"/);
+  return m ? m[1] : "";
+}
+
+/* 加载 */
 async function loadFeeds() {
   let all = [];
 
   for (let f of feeds) {
     try {
-      const res = await fetch(
+      let res = await fetch(
         "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(f.url)
       );
-      const data = await res.json();
+      let data = await res.json();
 
-      data.items.forEach(item => {
+      data.items.forEach(i => {
         all.push({
-          title: item.title,
-          content: item.description,
-          image: item.thumbnail,
-          date: new Date(item.pubDate),
+          title: i.title,
+          content: i.description,
+          image: extractImage(i),
+          date: new Date(i.pubDate),
           source: data.feed.title,
-          link: item.link,
-          category: f.category || "默认"
+          link: i.link,
+          category: f.category || "默认",
+          id: i.link
         });
       });
 
-    } catch (e) {}
+    } catch(e){}
   }
 
-  all.sort((a, b) => b.date - a.date);
-
+  all.sort((a,b)=>b.date-a.date);
   window.ALL = all;
   render(all);
 }
 
-/* =========================
-   📰 渲染
-========================= */
+/* 渲染 */
 function render(list) {
   const feed = document.getElementById("feed");
   feed.innerHTML = "";
 
-  let show = list;
+  let show = currentTab==="全部" ? list : list.filter(i=>i.category===currentTab);
 
-  if (currentTab !== "全部") {
-    show = list.filter(i => i.category === currentTab);
-  }
+  show.forEach(item=>{
+    let read = readList.includes(item.id);
 
-  show.forEach(item => {
-    const div = document.createElement("div");
-    div.className = "card";
+    let div = document.createElement("div");
+    div.className = "card " + (read ? "read" : "");
 
     div.innerHTML = `
-      ${item.image ? `<img src="${item.image}" class="cover">` : ""}
+      ${item.image ? `<div class="cover-wrap"><img src="${item.image}" class="cover"></div>`:""}
       <div class="title">${item.title}</div>
       <div class="meta">${item.source}</div>
     `;
 
-    div.onclick = () => openArticle(item);
+    div.onclick = ()=>{
+      // 标记已读
+      if(!readList.includes(item.id)){
+        readList.push(item.id);
+        localStorage.setItem("read", JSON.stringify(readList));
+      }
+
+      localStorage.setItem("currentArticle", JSON.stringify(item));
+      location.href = "article.html";
+    };
+
     feed.appendChild(div);
   });
 }
 
-/* =========================
-   📖 详情页
-========================= */
-function openArticle(item) {
-  const el = document.getElementById("article");
-
-  el.innerHTML = `
-    <button onclick="closeArticle()">返回</button>
-    <h2>${item.title}</h2>
-    <p>${item.source} · ${item.date.toLocaleString()}</p>
-    ${item.image ? `<img src="${item.image}">` : ""}
-    <div>${item.content}</div>
-    <br>
-    <a href="${item.link}" target="_blank">阅读原文</a>
-  `;
-
-  el.classList.remove("hidden");
-}
-
-function closeArticle() {
-  document.getElementById("article").classList.add("hidden");
-}
-
-/* =========================
-   📂 分类
-========================= */
-function renderTabs() {
-  const tabs = document.getElementById("tabs");
-
-  let cats = ["全部"];
-  feeds.forEach(f => {
-    if (f.category && !cats.includes(f.category)) {
-      cats.push(f.category);
-    }
+/* 分类 */
+function renderTabs(){
+  let tabs=document.getElementById("tabs");
+  let cats=["全部"];
+  feeds.forEach(f=>{
+    if(f.category && !cats.includes(f.category)) cats.push(f.category);
   });
 
-  tabs.innerHTML = "";
-
-  cats.forEach(c => {
-    const div = document.createElement("div");
-    div.className = "tab " + (c === currentTab ? "active" : "");
-    div.innerText = c;
-
-    div.onclick = () => {
-      currentTab = c;
-      renderTabs();
-      render(window.ALL || []);
-    };
-
-    tabs.appendChild(div);
+  tabs.innerHTML="";
+  cats.forEach(c=>{
+    let d=document.createElement("div");
+    d.className="tab "+(c===currentTab?"active":"");
+    d.innerText=c;
+    d.onclick=()=>{currentTab=c;renderTabs();render(window.ALL||[]);}
+    tabs.appendChild(d);
   });
 }
 
-/* =========================
-   ➕ 添加
-========================= */
-function addFeed() {
-  const url = document.getElementById("rssInput").value.trim();
-  const name = document.getElementById("rssName").value.trim();
+/* 订阅 */
+function addFeed(){
+  let url=document.getElementById("rssInput").value.trim();
+  let cat=document.getElementById("rssCat").value.trim();
 
-  if (!url) return;
+  if(!url) return;
 
-  feeds.push({
-    url: url,
-    category: name || "默认"
-  });
-
+  feeds.push({url, category:cat||"默认"});
   localStorage.setItem("feeds", JSON.stringify(feeds));
 
   renderTabs();
@@ -145,43 +117,25 @@ function addFeed() {
   loadFeeds();
 }
 
-/* =========================
-   ❌ 删除
-========================= */
-function removeFeed(i) {
-  feeds.splice(i, 1);
+/* 删除 */
+function removeFeed(i){
+  feeds.splice(i,1);
   localStorage.setItem("feeds", JSON.stringify(feeds));
-
   renderTabs();
   renderFeedList();
   loadFeeds();
 }
 
-/* =========================
-   📋 管理
-========================= */
-function renderFeedList() {
-  const list = document.getElementById("feedList");
-  list.innerHTML = "";
-
-  feeds.forEach((f, i) => {
-    const div = document.createElement("div");
-    div.className = "feed-item";
-
-    div.innerHTML = `
-      <span>${f.url} (${f.category})</span>
-      <button onclick="removeFeed(${i})">删</button>
-    `;
-
-    list.appendChild(div);
+function renderFeedList(){
+  let list=document.getElementById("feedList");
+  list.innerHTML="";
+  feeds.forEach((f,i)=>{
+    let d=document.createElement("div");
+    d.innerHTML = `${f.url} (${f.category}) <button onclick="removeFeed(${i})">删</button>`;
+    list.appendChild(d);
   });
 }
 
 /* UI */
-function openManager() {
-  document.getElementById("manager").classList.remove("hidden");
-}
-
-function closeManager() {
-  document.getElementById("manager").classList.add("hidden");
-}
+function openManager(){document.getElementById("manager").classList.remove("hidden")}
+function closeManager(){document.getElementById("manager").classList.add("hidden")}
