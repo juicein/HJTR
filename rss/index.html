@@ -10,24 +10,22 @@
 <body>
 
 <div class="topbar">
-  <div class="title">RSS</div>
+  <div>Today</div>
   <button onclick="openManager()">订阅</button>
 </div>
 
 <div id="tabs" class="tabs"></div>
-
 <div id="feed" class="feed"></div>
 
+<!-- 订阅管理 -->
 <div id="manager" class="manager hidden">
   <div class="panel">
-    <h3>订阅管理</h3>
-
+    <h3>订阅</h3>
     <div class="input-row">
       <input id="rssInput" placeholder="RSS地址">
-      <input id="rssCat" placeholder="分类">
+      <input id="rssName" placeholder="分类">
       <button onclick="addFeed()">添加</button>
     </div>
-
     <div id="feedList"></div>
     <button onclick="closeManager()">关闭</button>
   </div>
