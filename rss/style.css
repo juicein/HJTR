@@ -9,8 +9,10 @@ body {
   display: flex;
   justify-content: space-between;
   padding: 15px;
-  font-weight: bold;
   background: white;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 /* 分类 */
@@ -18,12 +20,11 @@ body {
   display: flex;
   overflow-x: auto;
   background: white;
-  padding: 5px;
 }
 
 .tab {
   padding: 8px 14px;
-  margin-right: 8px;
+  margin: 5px;
   border-radius: 20px;
   background: #eee;
 }
@@ -37,22 +38,31 @@ body {
 .feed {
   padding: 10px;
   display: grid;
-  grid-template-columns: 1fr;
   gap: 14px;
 }
 
+/* 平板 */
 @media (min-width: 768px) {
   .feed {
     grid-template-columns: 1fr 1fr;
   }
 }
 
-/* 卡片 */
+/* 卡片动画 */
 .card {
   background: white;
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+  transform: translateY(20px);
+  opacity: 0;
+  animation: fadeIn 0.5s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* 图片 */
@@ -72,13 +82,12 @@ body {
   opacity: 0.6;
 }
 
-/* 标题 */
+/* 文本 */
 .title {
   padding: 10px;
   font-weight: 600;
 }
 
-/* 时间 */
 .meta {
   padding: 0 10px 10px;
   font-size: 12px;
@@ -96,12 +105,15 @@ body {
   border-radius: 10px;
 }
 
-/* 弹层 */
+/* 🔥 修复点击问题 */
 .manager {
   position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.4);
+  background: rgba(0,0,0,0.5);
+  z-index: 999;
 }
 
 .hidden {
@@ -113,4 +125,21 @@ body {
   margin: 50px 15px;
   padding: 15px;
   border-radius: 12px;
+}
+
+input {
+  padding: 10px;
+  flex: 1;
+}
+
+.input-row {
+  display: flex;
+  gap: 5px;
+}
+
+button {
+  padding: 10px;
+  background: black;
+  color: white;
+  border: none;
 }
