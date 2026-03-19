@@ -11,21 +11,26 @@
 
 <div class="topbar">
   <div>Today</div>
-  <button onclick="openManager()">订阅</button>
+  <div>
+    <button onclick="toggleRecommend()">推荐</button>
+    <button onclick="openManager()">订阅</button>
+  </div>
 </div>
 
 <div id="tabs" class="tabs"></div>
 <div id="feed" class="feed"></div>
 
-<!-- 订阅管理 -->
+<!-- 管理 -->
 <div id="manager" class="manager hidden">
   <div class="panel">
     <h3>订阅</h3>
+
     <div class="input-row">
       <input id="rssInput" placeholder="RSS地址">
       <input id="rssName" placeholder="分类">
       <button onclick="addFeed()">添加</button>
     </div>
+
     <div id="feedList"></div>
     <button onclick="closeManager()">关闭</button>
   </div>
