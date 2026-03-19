@@ -9,8 +9,8 @@ body {
   display: flex;
   justify-content: space-between;
   padding: 15px;
-  background: white;
   font-weight: bold;
+  background: white;
 }
 
 /* 分类 */
@@ -22,7 +22,7 @@ body {
 }
 
 .tab {
-  padding: 8px 12px;
+  padding: 8px 14px;
   margin-right: 8px;
   border-radius: 20px;
   background: #eee;
@@ -38,7 +38,7 @@ body {
   padding: 10px;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 @media (min-width: 768px) {
@@ -47,20 +47,15 @@ body {
   }
 }
 
-@media (min-width: 1024px) {
-  .feed {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-}
-
 /* 卡片 */
 .card {
   background: white;
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
 }
 
-/* 图片适配 */
+/* 图片 */
 .cover-wrap {
   aspect-ratio: 16/9;
   background: #ddd;
@@ -73,7 +68,7 @@ body {
 }
 
 /* 已读 */
-.read {
+.card.read {
   opacity: 0.6;
 }
 
@@ -83,6 +78,7 @@ body {
   font-weight: 600;
 }
 
+/* 时间 */
 .meta {
   padding: 0 10px 10px;
   font-size: 12px;
@@ -90,20 +86,14 @@ body {
 }
 
 /* 详情页 */
-.article-container {
+.article-page {
   padding: 15px;
-  max-width: 800px;
-  margin: auto;
+  background: white;
 }
 
-.article-container img {
+.article-page img {
   width: 100%;
   border-radius: 10px;
-}
-
-.content img {
-  max-width: 100%;
-  height: auto;
 }
 
 /* 弹层 */
@@ -114,15 +104,13 @@ body {
   background: rgba(0,0,0,0.4);
 }
 
-.hidden { display:none; }
+.hidden {
+  display: none;
+}
 
 .panel {
   background: white;
   margin: 50px 15px;
   padding: 15px;
-}
-
-.input-row {
-  display: flex;
-  gap: 5px;
+  border-radius: 12px;
 }
