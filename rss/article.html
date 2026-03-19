@@ -3,28 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>阅读</title>
+<title>文章</title>
 <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<div class="article-page" id="article"></div>
+<div class="article-page">
+  <button onclick="history.back()">← 返回</button>
+  <div id="article"></div>
+</div>
 
-<script>
-const data = JSON.parse(localStorage.getItem("currentArticle") || "{}");
-
-document.getElementById("article").innerHTML = `
-  <div class="article-container">
-    <a href="index.html">← 返回</a>
-    <h1>${data.title || ""}</h1>
-    <p class="meta">${data.source || ""}</p>
-    ${data.image ? `<img src="${data.image}">` : ""}
-    <div class="content">${data.content || ""}</div>
-    <a href="${data.link}" target="_blank">阅读原文</a>
-  </div>
-`;
-</script>
-
+<script src="app.js"></script>
 </body>
 </html>
