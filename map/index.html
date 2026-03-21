@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Minecraft Map</title>
+<title>Minecraft BE Map</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -18,61 +18,57 @@ html,body { margin:0; height:100%; }
 
 <script>
 
-// =============================
-// ✅ GitHub Pages路径
-// =============================
-const BASE = "https://juicein.github.io/HJTR/map";
+// ==============================
+// 🔥 你的 GitHub 路径（必须对）
+// ==============================
+const BASE = "https://juicein.github.io/HJTR/map/tiles";
 
-// =============================
-// ✅ 你的真实zoom范围
-// =============================
-const MIN_ZOOM_REAL = -6;
-const MAX_ZOOM_REAL = 0;
+// ==============================
+// 🔥 关键：zoom 映射（核心修复）
+// ==============================
+// 你的范围：-6 → 0
+const MIN_NATIVE_ZOOM = -6;
+const MAX_NATIVE_ZOOM = 0;
 
-// 👉 转换成 Leaflet 用的
+// 转换成 Leaflet：
 const MIN_ZOOM = 0;
-const MAX_ZOOM = Math.abs(MIN_ZOOM_REAL);
+const MAX_ZOOM = MAX_NATIVE_ZOOM - MIN_NATIVE_ZOOM; 
+// = 6
 
-// =============================
-// ✅ 偏移量（核心）
-// 👉 让负坐标变正
-// =============================
-const OFFSET = 10; 
-// ⚠️ 这里可以调大（比如 20 / 50）
-// 只要覆盖你最大负数即可
+// ==============================
+// 地图大小（先随便给大一点）
+// ==============================
+const MAP_SIZE = 16384;
 
-// =============================
+// ==============================
 // 初始化地图
-// =============================
+// ==============================
 const map = L.map('map', {
   crs: L.CRS.Simple,
   minZoom: MIN_ZOOM,
   maxZoom: MAX_ZOOM,
 });
 
-// 地图范围（必须够大）
-const MAP_SIZE = 8192;
-const bounds = [[0,0],[MAP_SIZE, MAP_SIZE]];
+const bounds = [[-MAP_SIZE, -MAP_SIZE], [MAP_SIZE, MAP_SIZE]];
 map.fitBounds(bounds);
 
-// =============================
-// 🔥 核心转换逻辑
-// =============================
-const layer = L.tileLayer('', {
+// ==============================
+// 🔥 核心 TileLayer（完全适配负坐标）
+// ==============================
+const tileLayer = L.tileLayer('', {
   tileSize: 256,
   noWrap: true,
   bounds: bounds,
 
   getTileUrl: function(coords) {
 
-    // Leaflet zoom → 真实 zoom
-    const realZ = MAX_ZOOM_REAL - coords.z;
+    // Leaflet zoom → 转换回你的 zoom
+    const realZ = coords.z + MIN_NATIVE_ZOOM;
 
-    // 偏移坐标
-    const realX = coords.x - OFFSET;
-    const realY = coords.y - OFFSET;
+    const x = coords.x;
+    const y = coords.y;
 
-    const url = `${BASE}/tiles/zoom.${realZ}/${realX}/${realY}/tile.${realX}.${realY}.webp`;
+    const url = `${BASE}/zoom.${realZ}/${x}/${y}/tile.${x}.${y}.webp`;
 
     console.log("请求:", url);
 
@@ -80,29 +76,26 @@ const layer = L.tileLayer('', {
   }
 });
 
-layer.addTo(map);
+tileLayer.addTo(map);
 
-// =============================
-// ❌ 错误调试
-// =============================
-layer.on('tileerror', e => {
-  console.error("❌ 加载失败:", e.coords);
+// ==============================
+// ❌ 错误监听（调试用）
+// ==============================
+tileLayer.on('tileerror', function(e) {
+  console.error("❌ Tile加载失败:", e.coords);
 });
 
-// =============================
+// ==============================
 // 点击查看坐标
-// =============================
+// ==============================
 map.on('click', e => {
-  console.log("点击:", e.latlng);
+  console.log("坐标:", e.latlng);
 });
 
-// =============================
-// 测试点
-// =============================
-L.marker([2000,2000])
-  .addTo(map)
-  .bindPopup("测试点")
-  .openPopup();
+// ==============================
+// 测试标记（负坐标）
+// ==============================
+L.marker([0,0]).addTo(map).bindPopup("中心点").openPopup();
 
 </script>
 </body>
