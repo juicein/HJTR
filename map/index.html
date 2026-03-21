@@ -1,156 +1,113 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Minecraft Map Engine</title>
-
-<style>
-html,body {
-  margin:0;
-  height:100%;
-  overflow:hidden;
-  background:#000;
-}
-
-#map {
-  width:100%;
-  height:100%;
-  position:relative;
-  cursor:grab;
-}
-
-.tile {
-  position:absolute;
-  width:256px;
-  height:256px;
-  image-rendering: pixelated;
-}
-
-</style>
-</head>
-
-<body>
-
-<div id="map"></div>
-
-<script>
-
 // ==========================
 // ⚙️ 配置
 // ==========================
 const TILE_SIZE = 256;
-
-// 👉 切换地图类型
 const MODE = "unmined"; // "dynmap"
 
-// 👉 Unmined zoom范围
 const MIN_ZOOM = -6;
 const MAX_ZOOM = 0;
 
-// ==========================
-// 🌍 状态
-// ==========================
-let map = document.getElementById("map");
+const container = document.querySelector(".tile-container");
 
+// ==========================
+// 🌍 状态（兼容你原变量）
+// ==========================
 let state = {
-  zoom: -1,
-  x: 0,
-  y: 0,
-  dragging: false,
-  lastX: 0,
-  lastY: 0
+  centerX: 0,
+  centerZ: 0,
+  zoom: zoomLevel || -1
 };
 
 // ==========================
-// 🧠 坐标 → tile
+// 🧠 获取 Tile URL（双格式支持）
 // ==========================
 function getTileURL(z, x, y) {
 
   if (MODE === "unmined") {
-    return `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
+    return `/map/tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
   }
 
   if (MODE === "dynmap") {
-    let chunkX = Math.floor(x / 32);
-    let chunkY = Math.floor(y / 32);
-    return `./tiles/world/flat/${chunkX}_${chunkY}/${x}_${y}.png`;
+    const chunkX = Math.floor(x / 32);
+    const chunkY = Math.floor(y / 32);
+    return `/map/tiles/world/flat/${chunkX}_${chunkY}/${x}_${y}.png`;
   }
 
 }
 
 // ==========================
-// 🧠 渲染 tiles
+// 🧠 渲染 Tile（核心）
 // ==========================
-function render() {
+function renderTiles() {
 
-  map.innerHTML = "";
+  container.innerHTML = "";
 
-  const width = window.innerWidth;
-  const height = window.innerHeight;
+  const width = container.clientWidth;
+  const height = container.clientHeight;
 
   const tilesX = Math.ceil(width / TILE_SIZE) + 2;
-  const tilesY = Math.ceil(height / TILE_SIZE) + 2;
+  const tilesZ = Math.ceil(height / TILE_SIZE) + 2;
 
-  const startX = Math.floor(state.x / TILE_SIZE);
-  const startY = Math.floor(state.y / TILE_SIZE);
+  const startTileX = Math.floor(state.centerX / TILE_SIZE);
+  const startTileZ = Math.floor(state.centerZ / TILE_SIZE);
 
-  for (let dx = -1; dx < tilesX; dx++) {
-    for (let dy = -1; dy < tilesY; dy++) {
+  for (let dx = -tilesX; dx < tilesX; dx++) {
+    for (let dz = -tilesZ; dz < tilesZ; dz++) {
 
-      let tx = startX + dx;
-      let ty = startY + dy;
+      const tileX = startTileX + dx;
+      const tileZ = startTileZ + dz;
 
-      let img = document.createElement("img");
+      const img = document.createElement("img");
       img.className = "tile";
 
-      img.style.left = (tx * TILE_SIZE - state.x) + "px";
-      img.style.top  = (ty * TILE_SIZE - state.y) + "px";
+      const screenX = (tileX * TILE_SIZE - state.centerX + width / 2);
+      const screenZ = (tileZ * TILE_SIZE - state.centerZ + height / 2);
 
-      img.src = getTileURL(state.zoom, tx, ty);
+      img.style.left = screenX + "px";
+      img.style.top  = screenZ + "px";
 
-      // ❗ 不存在就隐藏
+      img.src = getTileURL(state.zoom, tileX, tileZ);
+
       img.onerror = () => img.remove();
 
-      map.appendChild(img);
+      container.appendChild(img);
     }
   }
 }
 
 // ==========================
-// 🖱️ 拖动
+// 🖱️ 拖动（兼容你变量）
 // ==========================
-map.onmousedown = (e) => {
-  state.dragging = true;
-  map.style.cursor = "grabbing";
-  state.lastX = e.clientX;
-  state.lastY = e.clientY;
-};
+container.addEventListener("mousedown", (e) => {
+  isDragging = true;
+  dragStartClientX = e.clientX;
+  dragStartClientY = e.clientY;
 
-window.onmouseup = () => {
-  state.dragging = false;
-  map.style.cursor = "grab";
-};
+  dragStartX = state.centerX;
+  dragStartZ = state.centerZ;
+});
 
-window.onmousemove = (e) => {
+window.addEventListener("mouseup", () => {
+  isDragging = false;
+});
 
-  if (!state.dragging) return;
+window.addEventListener("mousemove", (e) => {
 
-  let dx = e.clientX - state.lastX;
-  let dy = e.clientY - state.lastY;
+  if (!isDragging) return;
 
-  state.x -= dx;
-  state.y -= dy;
+  const dx = e.clientX - dragStartClientX;
+  const dz = e.clientY - dragStartClientY;
 
-  state.lastX = e.clientX;
-  state.lastY = e.clientY;
+  state.centerX = dragStartX - dx;
+  state.centerZ = dragStartZ - dz;
 
-  render();
-};
+  renderTiles();
+});
 
 // ==========================
-// 🔍 缩放（核心）
+// 🔍 滚轮缩放（核心）
 // ==========================
-map.onwheel = (e) => {
+container.addEventListener("wheel", (e) => {
 
   let oldZoom = state.zoom;
 
@@ -160,27 +117,63 @@ map.onwheel = (e) => {
     state.zoom--;
   }
 
-  // 限制范围
   state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, state.zoom));
 
-  // 缩放比例
   let scale = Math.pow(2, state.zoom - oldZoom);
 
-  // 👇 关键：缩放中心保持
-  state.x = state.x * scale;
-  state.y = state.y * scale;
+  state.centerX *= scale;
+  state.centerZ *= scale;
 
-  render();
-};
+  zoomLevel = state.zoom; // 同步你的变量
+
+  renderTiles();
+});
+
+// ==========================
+// 📱 双指缩放（你已有变量）
+// ==========================
+container.addEventListener("touchstart", (e) => {
+
+  if (e.touches.length === 2) {
+    isZooming = true;
+
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+
+    initialPinchDistance = Math.sqrt(dx*dx + dy*dy);
+    initialZoomLevel = state.zoom;
+  }
+});
+
+container.addEventListener("touchmove", (e) => {
+
+  if (!isZooming || e.touches.length !== 2) return;
+
+  const dx = e.touches[0].clientX - e.touches[1].clientX;
+  const dy = e.touches[0].clientY - e.touches[1].clientY;
+
+  currentPinchDistance = Math.sqrt(dx*dx + dy*dy);
+
+  let delta = (currentPinchDistance - initialPinchDistance) / 200;
+
+  let newZoom = Math.round(initialZoomLevel + delta);
+
+  newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+
+  if (newZoom !== state.zoom) {
+    state.zoom = newZoom;
+    renderTiles();
+  }
+
+});
+
+container.addEventListener("touchend", () => {
+  isZooming = false;
+});
 
 // ==========================
 // 🚀 初始化
 // ==========================
-render();
+renderTiles();
 
-window.onresize = render;
-
-</script>
-
-</body>
-</html>
+window.addEventListener("resize", renderTiles);
