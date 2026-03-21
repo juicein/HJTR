@@ -18,72 +18,91 @@ html,body { margin:0; height:100%; }
 
 <script>
 
-// ============================
-// ✅ 自动获取正确路径（关键修复）
-// ============================
-const BASE = location.origin + "/HJTR/map";
+// =============================
+// ✅ GitHub Pages路径
+// =============================
+const BASE = "https://juicein.github.io/HJTR/map";
 
-// ============================
-// 配置（根据你实际改）
-// ============================
-const MAX_ZOOM = 2; // ⚠️ 看你有几个 zoom.x 文件夹
+// =============================
+// ✅ 你的真实zoom范围
+// =============================
+const MIN_ZOOM_REAL = -6;
+const MAX_ZOOM_REAL = 0;
+
+// 👉 转换成 Leaflet 用的
 const MIN_ZOOM = 0;
-const MAP_SIZE = 8192;
+const MAX_ZOOM = Math.abs(MIN_ZOOM_REAL);
 
-// ============================
-// 初始化
-// ============================
+// =============================
+// ✅ 偏移量（核心）
+// 👉 让负坐标变正
+// =============================
+const OFFSET = 10; 
+// ⚠️ 这里可以调大（比如 20 / 50）
+// 只要覆盖你最大负数即可
+
+// =============================
+// 初始化地图
+// =============================
 const map = L.map('map', {
   crs: L.CRS.Simple,
   minZoom: MIN_ZOOM,
   maxZoom: MAX_ZOOM,
 });
 
+// 地图范围（必须够大）
+const MAP_SIZE = 8192;
 const bounds = [[0,0],[MAP_SIZE, MAP_SIZE]];
 map.fitBounds(bounds);
 
-// ============================
-// 🔥 核心 TileLayer（完全匹配你的结构）
-// ============================
-const tileLayer = L.tileLayer('', {
+// =============================
+// 🔥 核心转换逻辑
+// =============================
+const layer = L.tileLayer('', {
   tileSize: 256,
   noWrap: true,
   bounds: bounds,
 
   getTileUrl: function(coords) {
 
-    const z = coords.z;
-    const x = coords.x;
-    const y = coords.y;
+    // Leaflet zoom → 真实 zoom
+    const realZ = MAX_ZOOM_REAL - coords.z;
 
-    const url = `${BASE}/tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
+    // 偏移坐标
+    const realX = coords.x - OFFSET;
+    const realY = coords.y - OFFSET;
 
-    console.log("请求:", url); // 👈 调试用
+    const url = `${BASE}/tiles/zoom.${realZ}/${realX}/${realY}/tile.${realX}.${realY}.webp`;
+
+    console.log("请求:", url);
 
     return url;
   }
 });
 
-tileLayer.addTo(map);
+layer.addTo(map);
 
-// ============================
-// ❌ 错误监听（关键）
-// ============================
-tileLayer.on('tileerror', function(e) {
-  console.error("❌ Tile加载失败:", e.coords);
+// =============================
+// ❌ 错误调试
+// =============================
+layer.on('tileerror', e => {
+  console.error("❌ 加载失败:", e.coords);
 });
 
-// ============================
+// =============================
 // 点击查看坐标
-// ============================
+// =============================
 map.on('click', e => {
-  console.log("坐标:", e.latlng);
+  console.log("点击:", e.latlng);
 });
 
-// ============================
-// 测试标记
-// ============================
-L.marker([4000,4000]).addTo(map).bindPopup("测试点");
+// =============================
+// 测试点
+// =============================
+L.marker([2000,2000])
+  .addTo(map)
+  .bindPopup("测试点")
+  .openPopup();
 
 </script>
 </body>
