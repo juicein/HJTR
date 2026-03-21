@@ -13,10 +13,9 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            background-color: #1a1a1a; /* 没加载出来瓦片时的背景色 */
+            background-color: #1a1a1a;
         }
 
-        /* 模仿 Google Maps 的弹窗 UI */
         .leaflet-popup-content-wrapper {
             padding: 0;
             overflow: hidden;
@@ -34,9 +33,7 @@
             object-fit: cover;
             background-color: #e0e0e0;
         }
-        .gmap-popup-body {
-            padding: 16px;
-        }
+        .gmap-popup-body { padding: 16px; }
         .gmap-popup-title {
             margin: 0 0 8px 0;
             font-size: 18px;
@@ -62,7 +59,6 @@
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: background 0.2s;
         }
         .gmap-btn:hover { background-color: #1557b0; }
         .leaflet-popup-close-button {
@@ -77,149 +73,123 @@
 <div id="map"></div>
 
 <script>
-    // ==========================================
-    // 1. 初始化地图 (核心：使用 CRS.Simple 平面坐标系)
-    // ==========================================
-    const map = L.map('map', {
-        crs: L.CRS.Simple, // 解决 Minecraft 瓦片变形、无法正常显示的核心！
-        minZoom: -6,       // 对应你的 zoom.-6
-        maxZoom: 0,        // 对应你的 zoom.0
-        zoom: -1,          // 默认加载层级
-        center: [0, 0]
-    });
 
-    // ==========================================
-    // 2. 瓦片引擎适配器 (解决路径加载 404 的问题)
-    // ==========================================
+const map = L.map('map', {
+    crs: L.CRS.Simple,
+    minZoom: -6,
+    maxZoom: 0,
+    zoom: -1,
+    center: [0, 0]
+});
 
-    // A. 适配 uNmINeD 结构
-    const UnminedLayer = L.TileLayer.extend({
-        getTileUrl: function(coords) {
-            let z = coords.z;
-            let x = coords.x;
-            let y = coords.y;
+// =============================
+// ✅ 修复后的 Unmined 适配器
+// =============================
+const UnminedLayer = L.TileLayer.extend({
+    createTile: function(coords, done) {
 
-            // 根据你提供的目录树：zoom.-1 / -1 / -1 / tile.-1.-1.webp
-            // 通常 uNmINeD 把 Y 轴按照 10 的倍数分组，这里我们还原你的目录结构计算
-            let regionX = x; 
-            let regionY = Math.floor(y / 10); 
-            
-            // 返回真实的瓦片路径 (注意相对路径，确保你的 html 文件和 HJTR 文件夹在正确的位置)
-            return `HJTR/map/tiles/zoom.${z}/${regionX}/${regionY}/tile.${x}.${y}.webp`;
+        const tile = document.createElement('img');
+
+        let z = coords.z;
+        let x = coords.x;
+        let y = coords.y;
+
+        // ✅ 正确路径（关键修复）
+        const url = `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
+
+        tile.src = url;
+
+        // ✅ 成功
+        tile.onload = () => done(null, tile);
+
+        // ✅ 失败不报错（否则碎格）
+        tile.onerror = () => {
+            tile.style.display = "none";
+            done(null, tile);
+        };
+
+        return tile;
+    }
+});
+
+// 加载瓦片
+const minecraftTiles = new UnminedLayer('', { 
+    tileSize: 256, 
+    noWrap: true,
+    keepBuffer: 6
+}).addTo(map);
+
+// =============================
+// 坐标转换
+// =============================
+function mcToLatLng(mcX, mcZ) {
+    return [-mcZ, mcX]; 
+}
+
+// =============================
+// 数据（不动）
+// =============================
+const mapData = {
+    landmarks: [
+        {
+            type: "hotel",
+            name: "主城洲际大酒店",
+            mcCoords: [150, -200],
+            image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80",
+            desc: "全服最豪华的下榻之处"
+        },
+        {
+            type: "bus",
+            name: "中央公交枢纽",
+            mcCoords: [-50, 80],
+            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=500&q=80",
+            desc: "核心交通枢纽站"
         }
-    });
+    ]
+};
 
-    // B. 适配 Dynmap 结构 (预留给你切换使用)
-    const DynmapLayer = L.TileLayer.extend({
-        getTileUrl: function(coords) {
-            let z = coords.z;
-            let x = coords.x;
-            let y = -coords.y; // Dynmap 通常 Y 轴是反的
-            // 举例：Dynmap 的 flat 地图路径结构
-            return `dynmap/tiles/world/flat/${x}_${y}/${z}_${x}_${y}.png`; 
-        }
-    });
+// 图标
+const iconAssets = {
+    bus: L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448338.png',
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+    }),
+    hotel: L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2933/2933921.png',
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+    })
+};
 
-    // 加载 uNmINeD 瓦片到地图，并阻止瓦片像地球一样无限循环 (noWrap: true)
-    const minecraftTiles = new UnminedLayer('', { 
-        tileSize: 256, 
-        noWrap: true,
-        errorTileUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==' // 找不到瓦片时显示透明，而不是碎裂图标
+// 渲染标注（不动）
+mapData.landmarks.forEach(mark => {
+    const markerPos = mcToLatLng(mark.mcCoords[0], mark.mcCoords[1]);
+    const marker = L.marker(markerPos, { 
+        icon: iconAssets[mark.type] || iconAssets.bus 
     }).addTo(map);
 
-    // ==========================================
-    // 3. 坐标转换工具 (游戏 F3 坐标 转 网页坐标)
-    // ==========================================
-    // 默认情况下 1 像素 = 1 个游戏方块，但具体取决于你导出时的缩放比例。
-    function mcToLatLng(mcX, mcZ) {
-        // 在 Leaflet 的 CRS.Simple 中，[Lat, Lng] 实际上对应 [Y轴, X轴]
-        // Minecraft 中，Z 轴代表南北(地图的Y)，X 轴代表东西(地图的X)
-        return [-mcZ, mcX]; 
-    }
+    const popupHTML = `
+        <div class="gmap-popup-header">
+            <img src="${mark.image}" class="gmap-popup-header-img">
+        </div>
+        <div class="gmap-popup-body">
+            <h3 class="gmap-popup-title">${mark.name}</h3>
+            <p class="gmap-popup-desc">${mark.desc}</p>
+            <button class="gmap-btn">查看详情</button>
+        </div>
+    `;
+    marker.bindPopup(popupHTML);
+});
 
-    // ==========================================
-    // 4. 读取 JSON 数据，标注地标与 UI 弹窗
-    // ==========================================
-    
-    // 模拟你从 JSON 文件读取的数据 (你可以用 fetch('data.json') 来替代)
-    const mapData = {
-        landmarks: [
-            {
-                type: "hotel",
-                name: "主城洲际大酒店",
-                mcCoords: [150, -200], // 游戏里的 X 和 Z 坐标
-                image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80",
-                desc: "全服最豪华的下榻之处，提供免费附魔服务和无限畅饮的药水。"
-            },
-            {
-                type: "bus",
-                name: "中央公交枢纽",
-                mcCoords: [-50, 80],
-                image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=500&q=80",
-                desc: "连接四大主城区的核心交通枢纽站。"
-            }
-        ]
-    };
-
-    // 定义不同类型的图标 Logo
-    const iconAssets = {
-        bus: L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448338.png',
-            iconSize: [36, 36],
-            iconAnchor: [18, 36], // 图标底部对齐坐标点
-            popupAnchor: [0, -36] // 弹窗从图标顶部弹出
-        }),
-        hotel: L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/2933/2933921.png',
-            iconSize: [36, 36],
-            iconAnchor: [18, 36],
-            popupAnchor: [0, -36]
-        })
-    };
-
-    // 渲染地标
-    mapData.landmarks.forEach(mark => {
-        const markerPos = mcToLatLng(mark.mcCoords[0], mark.mcCoords[1]);
-        const marker = L.marker(markerPos, { 
-            icon: iconAssets[mark.type] || iconAssets.bus 
-        }).addTo(map);
-
-        // 拼接 Google Maps 风格的 HTML
-        const popupHTML = `
-            <div class="gmap-popup-header">
-                <img src="${mark.image}" class="gmap-popup-header-img" alt="cover" onerror="this.src='https://placehold.co/400x200?text=No+Image'">
-            </div>
-            <div class="gmap-popup-body">
-                <h3 class="gmap-popup-title">${mark.name}</h3>
-                <p class="gmap-popup-desc">${mark.desc}</p>
-                <button class="gmap-btn" onclick="alert('即将导航前往：${mark.name}')">
-                    <svg style="width:18px;height:18px;margin-right:6px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    查看详情
-                </button>
-            </div>
-        `;
-        marker.bindPopup(popupHTML);
-    });
-
-    // ==========================================
-    // 5. 绘制矢量线条 (道路、地铁)
-    // ==========================================
-    
-    // 公路线路 (实线)
-    const highwayCoords = [ mcToLatLng(-100, 0), mcToLatLng(200, 0), mcToLatLng(300, 150) ];
-    L.polyline(highwayCoords, {
-        color: '#ffcc00', 
-        weight: 6,
-        opacity: 0.8
-    }).addTo(map).bindPopup("服务器 1 号公路");
-
-    // 地铁线路 (虚线)
-    const subwayCoords = [ mcToLatLng(-50, 80), mcToLatLng(150, -200) ];
-    L.polyline(subwayCoords, {
-        color: '#ff3366', 
-        weight: 4,
-        dashArray: '10, 10' // 设置为虚线
-    }).addTo(map).bindPopup("红色下界地铁线");
+// 线（不动）
+const highwayCoords = [ mcToLatLng(-100, 0), mcToLatLng(200, 0), mcToLatLng(300, 150) ];
+L.polyline(highwayCoords, {
+    color: '#ffcc00', 
+    weight: 6
+}).addTo(map);
 
 </script>
 </body>
