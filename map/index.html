@@ -1,195 +1,165 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minecraft Web Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<meta charset="UTF-8">
+<title>MC Map Engine</title>
 
-    <style>
-        body, html, #map {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            background-color: #1a1a1a;
-        }
+<style>
+html,body {
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+}
 
-        .leaflet-popup-content-wrapper {
-            padding: 0;
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .leaflet-popup-content {
-            margin: 0;
-            width: 280px !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        .gmap-popup-header-img {
-            width: 100%;
-            height: 140px;
-            object-fit: cover;
-            background-color: #e0e0e0;
-        }
-        .gmap-popup-body { padding: 16px; }
-        .gmap-popup-title {
-            margin: 0 0 8px 0;
-            font-size: 18px;
-            font-weight: 600;
-            color: #202124;
-        }
-        .gmap-popup-desc {
-            margin: 0 0 16px 0;
-            font-size: 14px;
-            color: #5f6368;
-            line-height: 1.5;
-        }
-        .gmap-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 10px;
-            background-color: #1a73e8;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-        }
-        .gmap-btn:hover { background-color: #1557b0; }
-        .leaflet-popup-close-button {
-            color: white !important;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-            padding: 8px !important;
-        }
-    </style>
+#map {
+  width:100%;
+  height:100%;
+  position:relative;
+  cursor:grab;
+}
+
+.tile {
+  position:absolute;
+  width:256px;
+  height:256px;
+  image-rendering: pixelated;
+}
+</style>
 </head>
-<body>
 
+<body>
 <div id="map"></div>
 
 <script>
 
-const map = L.map('map', {
-    crs: L.CRS.Simple,
-    minZoom: -6,
-    maxZoom: 0,
-    zoom: -1,
-    center: [0, 0]
-});
+// =============================
+// 🔥 配置区
+// =============================
+
+// 模式切换：unmined / dynmap
+const MODE = "unmined";
+
+// Unmined路径
+const UNMINED_BASE = "./tiles";
+
+// Dynmap路径
+const DYNMAP_BASE = "./dynmap/tiles/world/flat";
 
 // =============================
-// ✅ 修复后的 Unmined 适配器
+// 地图状态
 // =============================
-const UnminedLayer = L.TileLayer.extend({
-    createTile: function(coords, done) {
+let zoom = -2;          // 当前缩放
+let tileSize = 256;
+let centerX = 0;        // 世界坐标
+let centerY = 0;
 
-        const tile = document.createElement('img');
-
-        let z = coords.z;
-        let x = coords.x;
-        let y = coords.y;
-
-        // ✅ 正确路径（关键修复）
-        const url = `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
-
-        tile.src = url;
-
-        // ✅ 成功
-        tile.onload = () => done(null, tile);
-
-        // ✅ 失败不报错（否则碎格）
-        tile.onerror = () => {
-            tile.style.display = "none";
-            done(null, tile);
-        };
-
-        return tile;
-    }
-});
-
-// 加载瓦片
-const minecraftTiles = new UnminedLayer('', { 
-    tileSize: 256, 
-    noWrap: true,
-    keepBuffer: 6
-}).addTo(map);
+const map = document.getElementById("map");
 
 // =============================
-// 坐标转换
+// 🔥 核心：获取tile URL
 // =============================
-function mcToLatLng(mcX, mcZ) {
-    return [-mcZ, mcX]; 
+function getTileURL(z, x, y) {
+
+  if (MODE === "unmined") {
+    return `${UNMINED_BASE}/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
+  }
+
+  if (MODE === "dynmap") {
+    return `${DYNMAP_BASE}/${x}_${y}/${z}_${x}_${y}.png`;
+  }
 }
 
 // =============================
-// 数据（不动）
+// 渲染瓦片（核心）
 // =============================
-const mapData = {
-    landmarks: [
-        {
-            type: "hotel",
-            name: "主城洲际大酒店",
-            mcCoords: [150, -200],
-            image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=500&q=80",
-            desc: "全服最豪华的下榻之处"
-        },
-        {
-            type: "bus",
-            name: "中央公交枢纽",
-            mcCoords: [-50, 80],
-            image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=500&q=80",
-            desc: "核心交通枢纽站"
-        }
-    ]
-};
+function render() {
 
-// 图标
-const iconAssets = {
-    bus: L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448338.png',
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
-    }),
-    hotel: L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2933/2933921.png',
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
-    })
-};
+  map.innerHTML = "";
 
-// 渲染标注（不动）
-mapData.landmarks.forEach(mark => {
-    const markerPos = mcToLatLng(mark.mcCoords[0], mark.mcCoords[1]);
-    const marker = L.marker(markerPos, { 
-        icon: iconAssets[mark.type] || iconAssets.bus 
-    }).addTo(map);
+  const rect = map.getBoundingClientRect();
 
-    const popupHTML = `
-        <div class="gmap-popup-header">
-            <img src="${mark.image}" class="gmap-popup-header-img">
-        </div>
-        <div class="gmap-popup-body">
-            <h3 class="gmap-popup-title">${mark.name}</h3>
-            <p class="gmap-popup-desc">${mark.desc}</p>
-            <button class="gmap-btn">查看详情</button>
-        </div>
-    `;
-    marker.bindPopup(popupHTML);
+  const tilesX = Math.ceil(rect.width / tileSize) + 2;
+  const tilesY = Math.ceil(rect.height / tileSize) + 2;
+
+  const startX = Math.floor(centerX / tileSize) - Math.floor(tilesX/2);
+  const startY = Math.floor(centerY / tileSize) - Math.floor(tilesY/2);
+
+  for (let dx = 0; dx < tilesX; dx++) {
+    for (let dy = 0; dy < tilesY; dy++) {
+
+      const x = startX + dx;
+      const y = startY + dy;
+
+      const img = document.createElement("img");
+      img.className = "tile";
+
+      img.style.left = (dx * tileSize - (centerX % tileSize)) + "px";
+      img.style.top  = (dy * tileSize - (centerY % tileSize)) + "px";
+
+      img.src = getTileURL(zoom, x, y);
+
+      // ❗ 不存在就隐藏（不会碎格）
+      img.onerror = () => img.style.display = "none";
+
+      map.appendChild(img);
+    }
+  }
+}
+
+// =============================
+// 拖动（像 Google Maps）
+// =============================
+let dragging = false;
+let lastX, lastY;
+
+map.addEventListener("mousedown", e => {
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
+  map.style.cursor = "grabbing";
 });
 
-// 线（不动）
-const highwayCoords = [ mcToLatLng(-100, 0), mcToLatLng(200, 0), mcToLatLng(300, 150) ];
-L.polyline(highwayCoords, {
-    color: '#ffcc00', 
-    weight: 6
-}).addTo(map);
+window.addEventListener("mouseup", () => {
+  dragging = false;
+  map.style.cursor = "grab";
+});
+
+window.addEventListener("mousemove", e => {
+  if (!dragging) return;
+
+  const dx = e.clientX - lastX;
+  const dy = e.clientY - lastY;
+
+  centerX -= dx;
+  centerY -= dy;
+
+  lastX = e.clientX;
+  lastY = e.clientY;
+
+  render();
+});
+
+// =============================
+// 缩放（滚轮）
+// =============================
+map.addEventListener("wheel", e => {
+
+  e.preventDefault();
+
+  if (e.deltaY < 0) zoom++;
+  else zoom--;
+
+  // 限制范围（根据你数据）
+  zoom = Math.max(-6, Math.min(0, zoom));
+
+  render();
+});
+
+// =============================
+// 初始化
+// =============================
+render();
 
 </script>
 </body>
