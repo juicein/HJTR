@@ -9,7 +9,7 @@
 
 <style>
 html,body { margin:0; height:100%; }
-#map { width:100%; height:100%; background:#000; }
+#map { width:100%; height:100%; background:#111; }
 </style>
 </head>
 
@@ -18,14 +18,18 @@ html,body { margin:0; height:100%; }
 
 <script>
 // =============================
-// 配置区（你只需要改这里）
+// 🔥 自动识别 GitHub Pages 路径
 // =============================
-const MAP_SIZE = 8192;   // 地图大小（不确定可以先用这个）
-const MAX_ZOOM = 6;
-const MIN_ZOOM = 0;
+const BASE_PATH = location.pathname.includes("/map")
+  ? "/HJTR/map"
+  : "";
 
-// 模式切换：unmined / dynmap
-const MODE = "unmined";  
+// =============================
+// 🔧 配置
+// =============================
+const MAX_ZOOM = 4;  // ⚠️ 改成你实际zoom数量
+const MIN_ZOOM = 0;
+const MAP_SIZE = 8192;
 
 // =============================
 // 初始化地图
@@ -36,14 +40,17 @@ const map = L.map('map', {
   maxZoom: MAX_ZOOM,
 });
 
-// 范围
-const bounds = [[0,0], [MAP_SIZE, MAP_SIZE]];
+// 地图范围
+const bounds = [[0,0],[MAP_SIZE, MAP_SIZE]];
 map.fitBounds(bounds);
 
 // =============================
-// 自定义 TileLayer（核心）
+// 🔥 核心：自定义路径（修复版）
 // =============================
-L.TileLayer.Custom = L.TileLayer.extend({
+const layer = L.tileLayer('', {
+  tileSize: 256,
+  noWrap: true,
+  bounds: bounds,
 
   getTileUrl: function(coords) {
 
@@ -51,50 +58,35 @@ L.TileLayer.Custom = L.TileLayer.extend({
     const x = coords.x;
     const y = coords.y;
 
-    // =========================
-    // 1️⃣ Unmined结构
-    // =========================
-    if (MODE === "unmined") {
-      return `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
-    }
-
-    // =========================
-    // 2️⃣ Dynmap结构
-    // =========================
-    if (MODE === "dynmap") {
-      // dynmap常见格式
-      // tiles/world/flat/0_0/0_0.png
-      const chunkX = Math.floor(x / 32);
-      const chunkY = Math.floor(y / 32);
-
-      return `./tiles/world/flat/${chunkX}_${chunkY}/${x}_${y}.png`;
-    }
-
+    // 👇 关键路径（已修复）
+    return `${BASE_PATH}/tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
   }
 
 });
 
-// 添加图层
-new L.TileLayer.Custom('', {
-  tileSize: 256,
-  noWrap: true,
-  bounds: bounds
-}).addTo(map);
+layer.addTo(map);
 
 // =============================
-// 测试标记
+// 🧪 调试：打印失败tile
 // =============================
-L.marker([4000, 4000])
-  .addTo(map)
-  .bindPopup("📍 测试点")
-  .openPopup();
+layer.on('tileerror', function(e) {
+  console.log("❌ Tile加载失败:", e.coords);
+});
 
 // =============================
-// 点击查看坐标
+// 🧪 点击查看坐标
 // =============================
 map.on('click', e => {
   console.log("坐标:", e.latlng);
 });
+
+// =============================
+// 测试点
+// =============================
+L.marker([4000,4000])
+  .addTo(map)
+  .bindPopup("测试点")
+  .openPopup();
 
 </script>
 </body>
