@@ -1,120 +1,89 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html>
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Minecraft BE Map</title>
+<meta charset="utf-8">
+<title>Minecraft Map (FULL)</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-  html, body {
-    width: 100%;
-    height: 100%;
-    margin: 0;
-  }
-  #map {
-    width: 100%;
-    height: 100%;
-    background: #111;
-  }
-  #debug {
-    position: fixed;
-    left: 8px;
-    top: 8px;
-    z-index: 9999;
-    padding: 8px 10px;
-    border-radius: 8px;
-    background: rgba(0,0,0,.65);
-    color: #fff;
-    font: 12px/1.4 monospace;
-    max-width: calc(100vw - 16px);
-    word-break: break-all;
-    pointer-events: none;
-  }
+html,body { margin:0; height:100%; }
+#map { width:100%; height:100%; background:#000; }
 </style>
 </head>
+
 <body>
 <div id="map"></div>
-<div id="debug">loading...</div>
 
 <script>
-(() => {
-  // 你的 GitHub Pages 页面在 /HJTR/map/，这里会自动变成 /HJTR/map/tiles/
-  const TILE_BASE = new URL('./tiles/', location.href).href;
 
-  // 你的真实瓦片范围：zoom.-6 ~ zoom.0
-  const NATIVE_MIN_ZOOM = -6;
-  const NATIVE_MAX_ZOOM = 0;
+// =============================
+// 配置
+// =============================
+const TILE_BASE = new URL('./tiles/', location.href).href;
 
-  // 先给一个足够大的范围，避免刚打开时看不到内容
-  const WORLD = 8192;
+// 你的真实 zoom
+const MIN_ZOOM = -6;
+const MAX_ZOOM = 0;
 
-  const debug = document.getElementById('debug');
+// =============================
+// 初始化地图
+// =============================
+const map = L.map('map', {
+  crs: L.CRS.Simple,
+  minZoom: MIN_ZOOM,
+  maxZoom: MAX_ZOOM,
+  zoomSnap: 1,
+  zoomDelta: 1,
+});
 
-  const map = L.map('map', {
-    crs: L.CRS.Simple,
-    minZoom: NATIVE_MIN_ZOOM,
-    maxZoom: NATIVE_MAX_ZOOM,
-    zoomSnap: 1,
-    zoomDelta: 1,
-    inertia: true,
-    preferCanvas: true
-  });
+// 👇 关键：不要用 fitBounds
+map.setView([0, 0], -2);
 
-  // 先把视野放到原点附近
-  map.setView([0, 0], -1);
+// =============================
+// 🔥 自定义 TileLayer（核心）
+// =============================
+const MinecraftLayer = L.TileLayer.extend({
 
-  // 允许拖动到更大的范围，避免被边界卡死
-  map.setMaxBounds([[-WORLD, -WORLD], [WORLD, WORLD]]);
+  createTile: function(coords, done) {
+    const tile = document.createElement('img');
 
-  // 自定义 TileLayer：必须重写 getTileUrl
-  const MinecraftTileLayer = L.TileLayer.extend({
-    getTileUrl: function (coords) {
-      const z = coords.z; // 直接用 Leaflet 的 zoom，不再额外平移
-      const x = coords.x;
-      const y = coords.y;
+    const z = coords.z;
+    const x = coords.x;
+    const y = coords.y;
 
-      return `${TILE_BASE}zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
-    }
-  });
+    const url = `${TILE_BASE}zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
 
-  function minecraftTileLayer(options) {
-    return new MinecraftTileLayer('', Object.assign({
-      tileSize: 256,
-      noWrap: true,
-      bounds: [[-WORLD, -WORLD], [WORLD, WORLD]],
-      keepBuffer: 4,
-      updateWhenIdle: true,
-      updateWhenZooming: false
-    }, options || {}));
+    tile.src = url;
+
+    tile.onload = () => done(null, tile);
+    tile.onerror = () => done(null, tile); // 👈 不报错（关键）
+
+    return tile;
   }
 
-  const layer = minecraftTileLayer().addTo(map);
+});
 
-  layer.on('tileloadstart', e => {
-    if (e && e.coords) {
-      debug.textContent = `loading tile: z=${e.coords.z}, x=${e.coords.x}, y=${e.coords.y}`;
-    }
-  });
+// 添加图层
+new MinecraftLayer('', {
+  tileSize: 256,
+  noWrap: true,
+  keepBuffer: 8,   // 👈 提前加载周围
+  updateWhenIdle: false,
+  updateWhenZooming: true,
+}).addTo(map);
 
-  layer.on('tileerror', e => {
-    const c = e && e.coords ? e.coords : {};
-    const url = `${TILE_BASE}zoom.${c.z}/${c.x}/${c.y}/tile.${c.x}.${c.y}.webp`;
-    console.error('Tile load failed:', c, url);
-    debug.textContent = `tileerror: ${url}`;
-  });
+// =============================
+// 调试
+// =============================
+map.on('click', e => {
+  console.log("坐标:", e.latlng);
+});
 
-  map.on('moveend zoomend', () => {
-    const c = map.getCenter();
-    debug.textContent =
-      `center=[${c.lat.toFixed(2)}, ${c.lng.toFixed(2)}], zoom=${map.getZoom()}`;
-  });
+// 测试点
+L.marker([0,0]).addTo(map).bindPopup("中心点");
 
-  // 测试标记：如果地图显示了，这个点应该能看到
-  L.marker([0, 0]).addTo(map).bindPopup('中心点');
-})();
 </script>
 </body>
 </html>
