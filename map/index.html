@@ -2,14 +2,14 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Minecraft Map (Universal)</title>
+<title>Minecraft Map</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
-html,body {margin:0;height:100%;}
-#map {width:100%;height:100%;background:#000;}
+html,body { margin:0; height:100%; }
+#map { width:100%; height:100%; background:#000; }
 </style>
 </head>
 
@@ -17,76 +17,83 @@ html,body {margin:0;height:100%;}
 <div id="map"></div>
 
 <script>
-// =====================
-// 配置区域（你改这里）
-// =====================
-
-// 👉 切换地图类型
-const MODE = "unmined"; 
-// "unmined" 或 "dynmap"
-
-// tile格式
-const EXT = "webp"; // 或 png
-
+// =============================
+// 配置区（你只需要改这里）
+// =============================
+const MAP_SIZE = 8192;   // 地图大小（不确定可以先用这个）
 const MAX_ZOOM = 6;
+const MIN_ZOOM = 0;
 
-// =====================
+// 模式切换：unmined / dynmap
+const MODE = "unmined";  
+
+// =============================
 // 初始化地图
-// =====================
+// =============================
 const map = L.map('map', {
   crs: L.CRS.Simple,
-  minZoom: 0,
+  minZoom: MIN_ZOOM,
   maxZoom: MAX_ZOOM,
 });
 
-const bounds = [[0,0],[8192,8192]];
+// 范围
+const bounds = [[0,0], [MAP_SIZE, MAP_SIZE]];
 map.fitBounds(bounds);
 
-// =====================
-// 自定义 Tile Layer
-// =====================
-const CustomLayer = L.TileLayer.extend({
+// =============================
+// 自定义 TileLayer（核心）
+// =============================
+L.TileLayer.Custom = L.TileLayer.extend({
 
   getTileUrl: function(coords) {
+
     const z = coords.z;
     const x = coords.x;
     const y = coords.y;
 
-    // =====================
-    // Unmined 适配
-    // =====================
+    // =========================
+    // 1️⃣ Unmined结构
+    // =========================
     if (MODE === "unmined") {
-      return `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.${EXT}`;
+      return `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
     }
 
-    // =====================
-    // Dynmap 适配
-    // =====================
+    // =========================
+    // 2️⃣ Dynmap结构
+    // =========================
     if (MODE === "dynmap") {
-      return `./tiles/flat/${z}/${x}_${y}.${EXT}`;
+      // dynmap常见格式
+      // tiles/world/flat/0_0/0_0.png
+      const chunkX = Math.floor(x / 32);
+      const chunkY = Math.floor(y / 32);
+
+      return `./tiles/world/flat/${chunkX}_${chunkY}/${x}_${y}.png`;
     }
+
   }
 
 });
 
-// 加载图层
-new CustomLayer('', {
+// 添加图层
+new L.TileLayer.Custom('', {
   tileSize: 256,
   noWrap: true,
   bounds: bounds
 }).addTo(map);
 
-// =====================
+// =============================
 // 测试标记
-// =====================
-L.marker([4000,4000]).addTo(map)
-  .bindPopup("📍 Test Location");
+// =============================
+L.marker([4000, 4000])
+  .addTo(map)
+  .bindPopup("📍 测试点")
+  .openPopup();
 
-// =====================
+// =============================
 // 点击查看坐标
-// =====================
+// =============================
 map.on('click', e => {
-  console.log(`X: ${e.latlng.lng}, Z: ${e.latlng.lat}`);
+  console.log("坐标:", e.latlng);
 });
 
 </script>
