@@ -1,16 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Minecraft Web Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; }
-        #map { width: 100vw; height: 100vh; background-color: #1a1a1a; }
-        .popup-img { width: 100%; max-width: 200px; border-radius: 5px; margin-top: 5px; }
-        .popup-title { font-weight: bold; font-size: 16px; margin: 0 0 5px 0; }
-        .popup-desc { color: #666; font-size: 13px; margin: 0; }
+        body { margin: 0; padding: 0; }
+        /* 让地图铺满全屏 */
+        #map { width: 100vw; height: 100vh; background-color: #1a1a1a; } 
     </style>
 </head>
 <body>
@@ -19,93 +17,47 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // 1. 初始化地图，使用简单的平面坐标系 (Minecraft 是平的，不是地球)
+    // 1. 初始化地图
+    // 使用 L.CRS.Simple，因为 Minecraft 像是一张平面的纸，而不是地球（无需墨卡托投影）
     const map = L.map('map', {
         crs: L.CRS.Simple,
-        minZoom: -6, // 对应你文件夹的 zoom.-6
-        maxZoom: 0,  // 对应你文件夹的 zoom.0
-        zoomControl: true
+        minZoom: -6,
+        maxZoom: 0,
+        zoomControl: true 
     });
 
-    // 默认视角和缩放
-    map.setView([0, 0], -2);
-
-    // 2. 自定义瓦片图层 (适配你的 Unmined 目录结构)
-    const MinecraftTileLayer = L.TileLayer.extend({
+    // 2. 自定义 Unmined 瓦片图层加载逻辑
+    L.TileLayer.Unmined = L.TileLayer.extend({
         getTileUrl: function(coords) {
-            // Leaflet 的 y 轴向下是正的，Minecraft 可能需要根据你的生成器调整
             const z = coords.z;
             const x = coords.x;
+            // 注意：Leaflet 的 Y 轴方向与 Minecraft 可能相反，如果不匹配，之后可以尝试 const y = -coords.y;
             const y = coords.y;
-            
-            // 根据你提供的结构：zoom.{z}/{x}/{y}/tile.{x}.{y}.webp
-            return `HJTR/map/tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
+
+            // 按照 Unmined 的结构计算分组文件夹 (除以 10 并向下取整)
+            const groupX = Math.floor(x / 10);
+            const groupY = Math.floor(y / 10);
+
+            // 拼接你提供的目录结构路径
+            // 请确保此相对路径指向你的 HJTR/map/tiles 目录
+            return `HJTR/map/tiles/zoom.${z}/${groupX}/${groupY}/tile.${x}.${y}.webp`;
         }
     });
 
-    // 实例化并添加到地图
-    // noWrap: true 禁止地图横向复制，bounds 限制地图边缘
-    new MinecraftTileLayer('', {
-        noWrap: true,
-        tileSize: 256, // Unmined 默认瓦片大小通常是 256 或 512
-        errorTileUrl: 'images/empty_tile.png' // 如果该区域没跑图，显示的透明或默认图片
-    }).addTo(map);
-
-    // 3. 定义不同地标的 Logo 图标
-    const icons = {
-        bus: L.icon({
-            iconUrl: 'images/icons/bus.png', // 请替换为你的公交站图标路径
-            iconSize: [32, 32],
-            iconAnchor: [16, 32], // 图标的哪个点对准坐标
-            popupAnchor: [0, -32] // 弹出框在图标的相对位置
-        }),
-        hotel: L.icon({
-            iconUrl: 'images/icons/hotel.png', // 请替换为你的酒店图标路径
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-            popupAnchor: [0, -32]
-        })
-    };
-
-    // 4. 加载并渲染 JSON 数据
-    // 实际项目中请用 fetch('data.json') 替代直接读取对象
-    const mapData = {
-        "landmarks": [
-            { "id": "1", "name": "中心公交总站", "type": "bus", "coords": [-200, 150], "image": "https://via.placeholder.com/200x100?text=Bus+Station", "description": "主城区的核心交通枢纽。" },
-            { "id": "2", "name": "海景大酒店", "type": "hotel", "coords": [300, -100], "image": "https://via.placeholder.com/200x100?text=Hotel+View", "description": "豪华海景房，附带游泳池。" }
-        ],
-        "routes": [
-            { "id": "r1", "name": "主干道", "type": "road", "color": "#aaaaaa", "weight": 8, "points": [[-200, 150], [0, 50], [300, -100]] },
-            { "id": "m1", "name": "地铁1号线", "type": "subway", "color": "#FF0000", "weight": 5, "dashArray": "10, 10", "points": [[-200, 150], [300, -100]] }
-        ]
-    };
-
-    // 绘制道路和地铁 (Polyline)
-    mapData.routes.forEach(route => {
-        L.polyline(route.points, {
-            color: route.color,
-            weight: route.weight,
-            dashArray: route.dashArray || '', // 用于画虚线（地铁）
-            opacity: 0.8
-        }).addTo(map).bindPopup(route.name);
+    // 3. 实例化图层并添加到地图
+    const unminedLayer = new L.TileLayer.Unmined('', {
+        tileSize: 256, // Unmined 默认瓦片大小通常是 256x256
+        noWrap: true,  // 游戏地图不应该像地球一样无限循环拼接
+        bounds: [[-10000, -10000], [10000, 10000]], // 限制拖动范围，后续可根据地图实际大小调整
+        // 如果某个区域没有瓦片（没探索过），加载一张 1x1 的全透明图片，防止控制台报错
+        errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
     });
 
-    // 绘制地标 (Markers)
-    mapData.landmarks.forEach(poi => {
-        const marker = L.marker(poi.coords, { 
-            icon: icons[poi.type] || new L.Icon.Default() 
-        }).addTo(map);
+    map.addLayer(unminedLayer);
 
-        // 绑定弹出框 (HTML 结构预留了图片位置)
-        const popupContent = `
-            <div style="text-align: center;">
-                <h3 class="popup-title">${poi.name}</h3>
-                ${poi.image ? `<img src="${poi.image}" class="popup-img" alt="${poi.name}">` : ''}
-                <p class="popup-desc">${poi.description}</p>
-            </div>
-        `;
-        marker.bindPopup(popupContent);
-    });
+    // 4. 设置初始中心点和缩放层级 (x, y)
+    // 根据你的地图实际情况，调整初始看向的坐标
+    map.setView([0, 0], -3); 
 
 </script>
 </body>
