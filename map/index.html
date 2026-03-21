@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Minecraft Map (FULL)</title>
+<title>Minecraft Map FIXED</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -18,71 +18,70 @@ html,body { margin:0; height:100%; }
 
 <script>
 
-// =============================
-// 配置
-// =============================
 const TILE_BASE = new URL('./tiles/', location.href).href;
 
-// 你的真实 zoom
-const MIN_ZOOM = -6;
-const MAX_ZOOM = 0;
+// 👇 根据你实际改（重要！）
+const TILE_RANGE = {
+  minX: -2,
+  maxX: 2,
+  minY: -10,
+  maxY: 10
+};
 
-// =============================
-// 初始化地图
-// =============================
 const map = L.map('map', {
   crs: L.CRS.Simple,
-  minZoom: MIN_ZOOM,
-  maxZoom: MAX_ZOOM,
-  zoomSnap: 1,
-  zoomDelta: 1,
+  minZoom: -6,
+  maxZoom: 0,
 });
 
-// 👇 关键：不要用 fitBounds
-map.setView([0, 0], -2);
+map.setView([0,0], -2);
 
 // =============================
-// 🔥 自定义 TileLayer（核心）
+// 核心 TileLayer
 // =============================
-const MinecraftLayer = L.TileLayer.extend({
+const Layer = L.TileLayer.extend({
 
   createTile: function(coords, done) {
+
     const tile = document.createElement('img');
 
     const z = coords.z;
     const x = coords.x;
     const y = coords.y;
 
+    // ❗ 限制范围（核心修复）
+    if (
+      x < TILE_RANGE.minX || x > TILE_RANGE.maxX ||
+      y < TILE_RANGE.minY || y > TILE_RANGE.maxY
+    ) {
+      tile.style.display = "none";
+      done(null, tile);
+      return tile;
+    }
+
     const url = `${TILE_BASE}zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
 
     tile.src = url;
 
     tile.onload = () => done(null, tile);
-    tile.onerror = () => done(null, tile); // 👈 不报错（关键）
+    tile.onerror = () => {
+      tile.style.display = "none";
+      done(null, tile);
+    };
 
     return tile;
   }
 
 });
 
-// 添加图层
-new MinecraftLayer('', {
+new Layer('', {
   tileSize: 256,
   noWrap: true,
-  keepBuffer: 8,   // 👈 提前加载周围
-  updateWhenIdle: false,
-  updateWhenZooming: true,
+  keepBuffer: 6
 }).addTo(map);
 
-// =============================
-// 调试
-// =============================
-map.on('click', e => {
-  console.log("坐标:", e.latlng);
-});
-
-// 测试点
-L.marker([0,0]).addTo(map).bindPopup("中心点");
+// 测试
+L.marker([0,0]).addTo(map).bindPopup("中心");
 
 </script>
 </body>
