@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>MC Map Engine</title>
+<meta charset="utf-8">
+<title>Minecraft Map Engine</title>
 
 <style>
 html,body {
@@ -25,142 +25,162 @@ html,body {
   height:256px;
   image-rendering: pixelated;
 }
+
 </style>
 </head>
 
 <body>
+
 <div id="map"></div>
 
 <script>
 
-// =============================
-// 🔥 配置区
-// =============================
+// ==========================
+// ⚙️ 配置
+// ==========================
+const TILE_SIZE = 256;
 
-// 模式切换：unmined / dynmap
-const MODE = "unmined";
+// 👉 切换地图类型
+const MODE = "unmined"; // "dynmap"
 
-// Unmined路径
-const UNMINED_BASE = "./tiles";
+// 👉 Unmined zoom范围
+const MIN_ZOOM = -6;
+const MAX_ZOOM = 0;
 
-// Dynmap路径
-const DYNMAP_BASE = "./dynmap/tiles/world/flat";
+// ==========================
+// 🌍 状态
+// ==========================
+let map = document.getElementById("map");
 
-// =============================
-// 地图状态
-// =============================
-let zoom = -2;          // 当前缩放
-let tileSize = 256;
-let centerX = 0;        // 世界坐标
-let centerY = 0;
+let state = {
+  zoom: -1,
+  x: 0,
+  y: 0,
+  dragging: false,
+  lastX: 0,
+  lastY: 0
+};
 
-const map = document.getElementById("map");
-
-// =============================
-// 🔥 核心：获取tile URL
-// =============================
+// ==========================
+// 🧠 坐标 → tile
+// ==========================
 function getTileURL(z, x, y) {
 
   if (MODE === "unmined") {
-    return `${UNMINED_BASE}/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
+    return `./tiles/zoom.${z}/${x}/${y}/tile.${x}.${y}.webp`;
   }
 
   if (MODE === "dynmap") {
-    return `${DYNMAP_BASE}/${x}_${y}/${z}_${x}_${y}.png`;
+    let chunkX = Math.floor(x / 32);
+    let chunkY = Math.floor(y / 32);
+    return `./tiles/world/flat/${chunkX}_${chunkY}/${x}_${y}.png`;
   }
+
 }
 
-// =============================
-// 渲染瓦片（核心）
-// =============================
+// ==========================
+// 🧠 渲染 tiles
+// ==========================
 function render() {
 
   map.innerHTML = "";
 
-  const rect = map.getBoundingClientRect();
+  const width = window.innerWidth;
+  const height = window.innerHeight;
 
-  const tilesX = Math.ceil(rect.width / tileSize) + 2;
-  const tilesY = Math.ceil(rect.height / tileSize) + 2;
+  const tilesX = Math.ceil(width / TILE_SIZE) + 2;
+  const tilesY = Math.ceil(height / TILE_SIZE) + 2;
 
-  const startX = Math.floor(centerX / tileSize) - Math.floor(tilesX/2);
-  const startY = Math.floor(centerY / tileSize) - Math.floor(tilesY/2);
+  const startX = Math.floor(state.x / TILE_SIZE);
+  const startY = Math.floor(state.y / TILE_SIZE);
 
-  for (let dx = 0; dx < tilesX; dx++) {
-    for (let dy = 0; dy < tilesY; dy++) {
+  for (let dx = -1; dx < tilesX; dx++) {
+    for (let dy = -1; dy < tilesY; dy++) {
 
-      const x = startX + dx;
-      const y = startY + dy;
+      let tx = startX + dx;
+      let ty = startY + dy;
 
-      const img = document.createElement("img");
+      let img = document.createElement("img");
       img.className = "tile";
 
-      img.style.left = (dx * tileSize - (centerX % tileSize)) + "px";
-      img.style.top  = (dy * tileSize - (centerY % tileSize)) + "px";
+      img.style.left = (tx * TILE_SIZE - state.x) + "px";
+      img.style.top  = (ty * TILE_SIZE - state.y) + "px";
 
-      img.src = getTileURL(zoom, x, y);
+      img.src = getTileURL(state.zoom, tx, ty);
 
-      // ❗ 不存在就隐藏（不会碎格）
-      img.onerror = () => img.style.display = "none";
+      // ❗ 不存在就隐藏
+      img.onerror = () => img.remove();
 
       map.appendChild(img);
     }
   }
 }
 
-// =============================
-// 拖动（像 Google Maps）
-// =============================
-let dragging = false;
-let lastX, lastY;
-
-map.addEventListener("mousedown", e => {
-  dragging = true;
-  lastX = e.clientX;
-  lastY = e.clientY;
+// ==========================
+// 🖱️ 拖动
+// ==========================
+map.onmousedown = (e) => {
+  state.dragging = true;
   map.style.cursor = "grabbing";
-});
+  state.lastX = e.clientX;
+  state.lastY = e.clientY;
+};
 
-window.addEventListener("mouseup", () => {
-  dragging = false;
+window.onmouseup = () => {
+  state.dragging = false;
   map.style.cursor = "grab";
-});
+};
 
-window.addEventListener("mousemove", e => {
-  if (!dragging) return;
+window.onmousemove = (e) => {
 
-  const dx = e.clientX - lastX;
-  const dy = e.clientY - lastY;
+  if (!state.dragging) return;
 
-  centerX -= dx;
-  centerY -= dy;
+  let dx = e.clientX - state.lastX;
+  let dy = e.clientY - state.lastY;
 
-  lastX = e.clientX;
-  lastY = e.clientY;
+  state.x -= dx;
+  state.y -= dy;
 
-  render();
-});
-
-// =============================
-// 缩放（滚轮）
-// =============================
-map.addEventListener("wheel", e => {
-
-  e.preventDefault();
-
-  if (e.deltaY < 0) zoom++;
-  else zoom--;
-
-  // 限制范围（根据你数据）
-  zoom = Math.max(-6, Math.min(0, zoom));
+  state.lastX = e.clientX;
+  state.lastY = e.clientY;
 
   render();
-});
+};
 
-// =============================
-// 初始化
-// =============================
+// ==========================
+// 🔍 缩放（核心）
+// ==========================
+map.onwheel = (e) => {
+
+  let oldZoom = state.zoom;
+
+  if (e.deltaY < 0) {
+    state.zoom++;
+  } else {
+    state.zoom--;
+  }
+
+  // 限制范围
+  state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, state.zoom));
+
+  // 缩放比例
+  let scale = Math.pow(2, state.zoom - oldZoom);
+
+  // 👇 关键：缩放中心保持
+  state.x = state.x * scale;
+  state.y = state.y * scale;
+
+  render();
+};
+
+// ==========================
+// 🚀 初始化
+// ==========================
 render();
 
+window.onresize = render;
+
 </script>
+
 </body>
 </html>
