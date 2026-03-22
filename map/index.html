@@ -2,20 +2,20 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Minecraft Map (Stable)</title>
+<title>Minecraft Map</title>
 
 <style>
 html,body {
   margin:0;
   height:100%;
-  overflow:hidden;
   background:#000;
+  overflow:hidden;
 }
 
 #map {
+  position:relative;
   width:100%;
   height:100%;
-  position:relative;
   cursor:grab;
 }
 
@@ -32,23 +32,19 @@ html,body {
 
 <div id="map"></div>
 
-<!-- 👇 引入你提供的 Unmined 数据 -->
-<script src="./unmined.js"></script>
-
 <script>
 
 // ==========================
-// 基本配置
+// ✅ 你的服务器路径（已修正）
+// ==========================
+const BASE_URL = "/map/tiles";
+
 // ==========================
 const TILE_SIZE = 256;
 const map = document.getElementById("map");
 
-// 从 Unmined 自动读取
-const MIN_ZOOM = UnminedMapProperties.minZoom;
-const MAX_ZOOM = UnminedMapProperties.maxZoom;
-
 // ==========================
-// 状态
+// 🌍 状态
 // ==========================
 let state = {
   x: 0,
@@ -60,34 +56,14 @@ let state = {
 };
 
 // ==========================
-// 🔥 判断 tile 是否存在（关键）
-// ==========================
-function tileExists(x, z) {
-
-  const regionX = Math.floor(x / 32);
-  const regionZ = Math.floor(z / 32);
-
-  const region = UnminedRegions.find(r => r.x === regionX && r.z === regionZ);
-
-  if (!region) return false;
-
-  const localX = ((x % 32) + 32) % 32;
-  const localZ = ((z % 32) + 32) % 32;
-
-  const row = region.m[localZ];
-
-  return (row & (1 << localX)) !== 0;
-}
-
-// ==========================
-// 获取 tile URL
+// 🔥 关键：正确 tile 路径
 // ==========================
 function getTileURL(z, x, z2) {
-  return `./tiles/zoom.${z}/${x}/${z2}/tile.${x}.${z2}.webp`;
+  return `${BASE_URL}/zoom.${z}/${x}/${z2}/tile.${x}.${z2}.webp`;
 }
 
 // ==========================
-// 渲染
+// 🔥 渲染（重写过的稳定版）
 // ==========================
 function render() {
 
@@ -96,29 +72,31 @@ function render() {
   const w = window.innerWidth;
   const h = window.innerHeight;
 
-  const tilesX = Math.ceil(w / TILE_SIZE) + 2;
-  const tilesZ = Math.ceil(h / TILE_SIZE) + 2;
+  const tilesX = Math.ceil(w / TILE_SIZE) + 4;
+  const tilesZ = Math.ceil(h / TILE_SIZE) + 4;
 
-  const startX = Math.floor(state.x / TILE_SIZE);
-  const startZ = Math.floor(state.z / TILE_SIZE);
+  const centerTileX = Math.floor(state.x / TILE_SIZE);
+  const centerTileZ = Math.floor(state.z / TILE_SIZE);
 
-  for (let dx = -tilesX; dx < tilesX; dx++) {
-    for (let dz = -tilesZ; dz < tilesZ; dz++) {
+  for (let dx = -tilesX; dx <= tilesX; dx++) {
+    for (let dz = -tilesZ; dz <= tilesZ; dz++) {
 
-      const tx = startX + dx;
-      const tz = startZ + dz;
-
-      // ❗ 只加载存在的 tile（关键修复）
-      if (!tileExists(tx, tz)) continue;
+      const tx = centerTileX + dx;
+      const tz = centerTileZ + dz;
 
       const img = document.createElement("img");
       img.className = "tile";
 
-      img.style.left = (tx * TILE_SIZE - state.x + w/2) + "px";
-      img.style.top  = (tz * TILE_SIZE - state.z + h/2) + "px";
+      // 👇 核心定位（修复黑屏关键）
+      const screenX = (tx * TILE_SIZE - state.x) + w/2;
+      const screenZ = (tz * TILE_SIZE - state.z) + h/2;
+
+      img.style.left = screenX + "px";
+      img.style.top  = screenZ + "px";
 
       img.src = getTileURL(state.zoom, tx, tz);
 
+      // ❗ 不存在直接删除（避免破图）
       img.onerror = () => img.remove();
 
       map.appendChild(img);
@@ -127,7 +105,7 @@ function render() {
 }
 
 // ==========================
-// 拖动
+// 🖱️ 拖动
 // ==========================
 map.onmousedown = (e) => {
   state.dragging = true;
@@ -145,8 +123,8 @@ window.onmousemove = (e) => {
 
   if (!state.dragging) return;
 
-  let dx = e.clientX - state.lastX;
-  let dz = e.clientY - state.lastY;
+  const dx = e.clientX - state.lastX;
+  const dz = e.clientY - state.lastY;
 
   state.x -= dx;
   state.z -= dz;
@@ -158,11 +136,11 @@ window.onmousemove = (e) => {
 };
 
 // ==========================
-// 缩放
+// 🔍 缩放（稳定版）
 // ==========================
 map.onwheel = (e) => {
 
-  let oldZoom = state.zoom;
+  const oldZoom = state.zoom;
 
   if (e.deltaY < 0) {
     state.zoom++;
@@ -170,10 +148,10 @@ map.onwheel = (e) => {
     state.zoom--;
   }
 
-  state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, state.zoom));
+  state.zoom = Math.max(-6, Math.min(0, state.zoom));
 
-  let scale = Math.pow(2, state.zoom - oldZoom);
-
+  // 👇 缩放补偿（关键）
+  const scale = Math.pow(2, state.zoom - oldZoom);
   state.x *= scale;
   state.z *= scale;
 
@@ -181,10 +159,12 @@ map.onwheel = (e) => {
 };
 
 // ==========================
-// 初始化居中（自动）
+// 🚀 初始化（关键修复）
 // ==========================
-state.x = ((UnminedMapProperties.minRegionX + UnminedMapProperties.maxRegionX) * 16) * TILE_SIZE;
-state.z = ((UnminedMapProperties.minRegionZ + UnminedMapProperties.maxRegionZ) * 16) * TILE_SIZE;
+
+// 👉 强制定位到一个“有 tile 的地方”
+state.x = 0;
+state.z = 0;
 
 // 启动
 render();
