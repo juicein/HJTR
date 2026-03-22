@@ -1,1 +1,85 @@
-// =========================
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MC Web Map</title>
+
+<style>
+html,body { margin:0; height:100%; overflow:hidden; font-family:sans-serif; }
+
+#map { position:absolute; width:100%; height:100%; background:#000; }
+
+.tile {
+  position:absolute;
+  width:256px;
+  height:256px;
+  image-rendering: pixelated;
+}
+
+/* 🔍 搜索栏 */
+#searchBox {
+  position:absolute;
+  top:15px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:1000;
+  width:300px;
+}
+
+#searchBox input {
+  width:100%;
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  outline:none;
+}
+
+/* 📍 POI 卡片 */
+#info {
+  position:absolute;
+  bottom:20px;
+  left:20px;
+  width:260px;
+  background:white;
+  border-radius:12px;
+  padding:12px;
+  display:none;
+}
+
+/* 📍 标记 */
+.marker {
+  position:absolute;
+  width:24px;
+  height:24px;
+  background:red;
+  border-radius:50%;
+  transform:translate(-50%, -100%);
+  cursor:pointer;
+}
+
+/* 🚇 路线 */
+.road {
+  position:absolute;
+  height:4px;
+  background:yellow;
+  transform-origin:left center;
+}
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div id="searchBox">
+  <input placeholder="搜索地点 / 坐标 (100,200)" id="searchInput">
+</div>
+
+<div id="info"></div>
+
+<script src="unmined.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+
+</body>
+</html>
