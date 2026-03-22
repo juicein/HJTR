@@ -2,10 +2,15 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>MC Map FINAL</title>
+<title>Minecraft Map (Stable)</title>
 
 <style>
-html,body { margin:0; height:100%; overflow:hidden; background:#000; }
+html,body {
+  margin:0;
+  height:100%;
+  overflow:hidden;
+  background:#000;
+}
 
 #map {
   width:100%;
@@ -27,62 +32,63 @@ html,body { margin:0; height:100%; overflow:hidden; background:#000; }
 
 <div id="map"></div>
 
-<!-- 这里引入你自己的 unmined 文件 -->
+<!-- 👇 引入你提供的 Unmined 数据 -->
 <script src="./unmined.js"></script>
 
 <script>
 
-// =====================
-// 基础配置
-// =====================
+// ==========================
+// 基本配置
+// ==========================
 const TILE_SIZE = 256;
 const map = document.getElementById("map");
 
-// =====================
+// 从 Unmined 自动读取
+const MIN_ZOOM = UnminedMapProperties.minZoom;
+const MAX_ZOOM = UnminedMapProperties.maxZoom;
+
+// ==========================
 // 状态
-// =====================
+// ==========================
 let state = {
   x: 0,
-  y: 0,
-  zoom: -1
+  z: 0,
+  zoom: -1,
+  dragging: false,
+  lastX: 0,
+  lastY: 0
 };
 
-// =====================
-// region索引（核心）
-// =====================
-const regionMap = {};
-
-UnminedRegions.forEach(r => {
-  regionMap[`${r.x},${r.z}`] = r.m;
-});
-
-// =====================
-// 🔥 正确 tile 判断（修复版）
-// =====================
+// ==========================
+// 🔥 判断 tile 是否存在（关键）
+// ==========================
 function tileExists(x, z) {
 
   const regionX = Math.floor(x / 32);
   const regionZ = Math.floor(z / 32);
 
-  const region = regionMap[`${regionX},${regionZ}`];
+  const region = UnminedRegions.find(r => r.x === regionX && r.z === regionZ);
+
   if (!region) return false;
 
   const localX = ((x % 32) + 32) % 32;
   const localZ = ((z % 32) + 32) % 32;
 
-  const index = localZ * 32 + localX;
+  const row = region.m[localZ];
 
-  const row = Math.floor(index / 32);
-  const col = index % 32;
-
-  const rowVal = region[row];
-
-  return (rowVal & (1 << col)) !== 0;
+  return (row & (1 << localX)) !== 0;
 }
 
-// =====================
-// 渲染（完全修复版）
-// =====================
+// ==========================
+// 获取 tile URL
+// ==========================
+function getTileURL(z, x, z2) {
+  return `./tiles/zoom.${z}/${x}/${z2}/tile.${x}.${z2}.webp`;
+}
+
+// ==========================
+// 渲染
+// ==========================
 function render() {
 
   map.innerHTML = "";
@@ -90,33 +96,29 @@ function render() {
   const w = window.innerWidth;
   const h = window.innerHeight;
 
-  // 👇 关键：覆盖整个屏幕范围
-  const tilesX = Math.ceil(w / TILE_SIZE) + 4;
-  const tilesY = Math.ceil(h / TILE_SIZE) + 4;
+  const tilesX = Math.ceil(w / TILE_SIZE) + 2;
+  const tilesZ = Math.ceil(h / TILE_SIZE) + 2;
 
-  const centerTileX = Math.floor(state.x / TILE_SIZE);
-  const centerTileY = Math.floor(state.y / TILE_SIZE);
+  const startX = Math.floor(state.x / TILE_SIZE);
+  const startZ = Math.floor(state.z / TILE_SIZE);
 
   for (let dx = -tilesX; dx < tilesX; dx++) {
-    for (let dy = -tilesY; dy < tilesY; dy++) {
+    for (let dz = -tilesZ; dz < tilesZ; dz++) {
 
-      const tx = centerTileX + dx;
-      const ty = centerTileY + dy;
+      const tx = startX + dx;
+      const tz = startZ + dz;
 
-      // ❗ 只加载存在的 tile
-      if (!tileExists(tx, ty)) continue;
+      // ❗ 只加载存在的 tile（关键修复）
+      if (!tileExists(tx, tz)) continue;
 
       const img = document.createElement("img");
       img.className = "tile";
 
-      // 👇 正确路径（你的结构）
-      img.src = `./tiles/zoom.${state.zoom}/${tx}/${ty}/tile.${tx}.${ty}.webp`;
+      img.style.left = (tx * TILE_SIZE - state.x + w/2) + "px";
+      img.style.top  = (tz * TILE_SIZE - state.z + h/2) + "px";
 
-      // 👇 正确位置（关键修复）
-      img.style.left = (tx * TILE_SIZE - state.x + w / 2) + "px";
-      img.style.top  = (ty * TILE_SIZE - state.y + h / 2) + "px";
+      img.src = getTileURL(state.zoom, tx, tz);
 
-      // ❗ 防止报错影响
       img.onerror = () => img.remove();
 
       map.appendChild(img);
@@ -124,60 +126,67 @@ function render() {
   }
 }
 
-// =====================
+// ==========================
 // 拖动
-// =====================
-let dragging = false;
-let startX, startY, startCX, startCY;
-
-map.onmousedown = e => {
-  dragging = true;
-  startCX = e.clientX;
-  startCY = e.clientY;
-  startX = state.x;
-  startY = state.y;
+// ==========================
+map.onmousedown = (e) => {
+  state.dragging = true;
   map.style.cursor = "grabbing";
+  state.lastX = e.clientX;
+  state.lastY = e.clientY;
 };
 
 window.onmouseup = () => {
-  dragging = false;
+  state.dragging = false;
   map.style.cursor = "grab";
 };
 
-window.onmousemove = e => {
+window.onmousemove = (e) => {
 
-  if (!dragging) return;
+  if (!state.dragging) return;
 
-  state.x = startX - (e.clientX - startCX);
-  state.y = startY - (e.clientY - startCY);
+  let dx = e.clientX - state.lastX;
+  let dz = e.clientY - state.lastY;
+
+  state.x -= dx;
+  state.z -= dz;
+
+  state.lastX = e.clientX;
+  state.lastY = e.clientY;
 
   render();
 };
 
-// =====================
-// 缩放（稳定版）
-// =====================
-map.onwheel = e => {
+// ==========================
+// 缩放
+// ==========================
+map.onwheel = (e) => {
 
   let oldZoom = state.zoom;
 
-  if (e.deltaY < 0) state.zoom++;
-  else state.zoom--;
+  if (e.deltaY < 0) {
+    state.zoom++;
+  } else {
+    state.zoom--;
+  }
 
-  state.zoom = Math.max(UnminedMapProperties.minZoom, 
-                        Math.min(UnminedMapProperties.maxZoom, state.zoom));
+  state.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, state.zoom));
 
   let scale = Math.pow(2, state.zoom - oldZoom);
 
   state.x *= scale;
-  state.y *= scale;
+  state.z *= scale;
 
   render();
 };
 
-// =====================
-// 初始化
-// =====================
+// ==========================
+// 初始化居中（自动）
+// ==========================
+state.x = ((UnminedMapProperties.minRegionX + UnminedMapProperties.maxRegionX) * 16) * TILE_SIZE;
+state.z = ((UnminedMapProperties.minRegionZ + UnminedMapProperties.maxRegionZ) * 16) * TILE_SIZE;
+
+// 启动
 render();
 
 window.onresize = render;
