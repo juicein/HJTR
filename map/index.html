@@ -2,67 +2,23 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>MC Web Map</title>
+<title>MC Map FINAL</title>
 
 <style>
-html,body { margin:0; height:100%; overflow:hidden; font-family:sans-serif; }
+html,body { margin:0; height:100%; overflow:hidden; background:#000; }
 
-#map { position:absolute; width:100%; height:100%; background:#000; }
+#map {
+  width:100%;
+  height:100%;
+  position:relative;
+  cursor:grab;
+}
 
 .tile {
   position:absolute;
   width:256px;
   height:256px;
   image-rendering: pixelated;
-}
-
-/* 🔍 搜索栏 */
-#searchBox {
-  position:absolute;
-  top:15px;
-  left:50%;
-  transform:translateX(-50%);
-  z-index:1000;
-  width:300px;
-}
-
-#searchBox input {
-  width:100%;
-  padding:10px;
-  border-radius:8px;
-  border:none;
-  outline:none;
-}
-
-/* 📍 POI 卡片 */
-#info {
-  position:absolute;
-  bottom:20px;
-  left:20px;
-  width:260px;
-  background:white;
-  border-radius:12px;
-  padding:12px;
-  display:none;
-}
-
-/* 📍 标记 */
-.marker {
-  position:absolute;
-  width:24px;
-  height:24px;
-  background:red;
-  border-radius:50%;
-  transform:translate(-50%, -100%);
-  cursor:pointer;
-}
-
-/* 🚇 路线 */
-.road {
-  position:absolute;
-  height:4px;
-  background:yellow;
-  transform-origin:left center;
 }
 </style>
 </head>
@@ -71,15 +27,162 @@ html,body { margin:0; height:100%; overflow:hidden; font-family:sans-serif; }
 
 <div id="map"></div>
 
-<div id="searchBox">
-  <input placeholder="搜索地点 / 坐标 (100,200)" id="searchInput">
-</div>
+<!-- 这里引入你自己的 unmined 文件 -->
+<script src="./unmined.js"></script>
 
-<div id="info"></div>
+<script>
 
-<script src="unmined.js"></script>
-<script src="data.js"></script>
-<script src="engine.js"></script>
+// =====================
+// 基础配置
+// =====================
+const TILE_SIZE = 256;
+const map = document.getElementById("map");
+
+// =====================
+// 状态
+// =====================
+let state = {
+  x: 0,
+  y: 0,
+  zoom: -1
+};
+
+// =====================
+// region索引（核心）
+// =====================
+const regionMap = {};
+
+UnminedRegions.forEach(r => {
+  regionMap[`${r.x},${r.z}`] = r.m;
+});
+
+// =====================
+// 🔥 正确 tile 判断（修复版）
+// =====================
+function tileExists(x, z) {
+
+  const regionX = Math.floor(x / 32);
+  const regionZ = Math.floor(z / 32);
+
+  const region = regionMap[`${regionX},${regionZ}`];
+  if (!region) return false;
+
+  const localX = ((x % 32) + 32) % 32;
+  const localZ = ((z % 32) + 32) % 32;
+
+  const index = localZ * 32 + localX;
+
+  const row = Math.floor(index / 32);
+  const col = index % 32;
+
+  const rowVal = region[row];
+
+  return (rowVal & (1 << col)) !== 0;
+}
+
+// =====================
+// 渲染（完全修复版）
+// =====================
+function render() {
+
+  map.innerHTML = "";
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  // 👇 关键：覆盖整个屏幕范围
+  const tilesX = Math.ceil(w / TILE_SIZE) + 4;
+  const tilesY = Math.ceil(h / TILE_SIZE) + 4;
+
+  const centerTileX = Math.floor(state.x / TILE_SIZE);
+  const centerTileY = Math.floor(state.y / TILE_SIZE);
+
+  for (let dx = -tilesX; dx < tilesX; dx++) {
+    for (let dy = -tilesY; dy < tilesY; dy++) {
+
+      const tx = centerTileX + dx;
+      const ty = centerTileY + dy;
+
+      // ❗ 只加载存在的 tile
+      if (!tileExists(tx, ty)) continue;
+
+      const img = document.createElement("img");
+      img.className = "tile";
+
+      // 👇 正确路径（你的结构）
+      img.src = `./tiles/zoom.${state.zoom}/${tx}/${ty}/tile.${tx}.${ty}.webp`;
+
+      // 👇 正确位置（关键修复）
+      img.style.left = (tx * TILE_SIZE - state.x + w / 2) + "px";
+      img.style.top  = (ty * TILE_SIZE - state.y + h / 2) + "px";
+
+      // ❗ 防止报错影响
+      img.onerror = () => img.remove();
+
+      map.appendChild(img);
+    }
+  }
+}
+
+// =====================
+// 拖动
+// =====================
+let dragging = false;
+let startX, startY, startCX, startCY;
+
+map.onmousedown = e => {
+  dragging = true;
+  startCX = e.clientX;
+  startCY = e.clientY;
+  startX = state.x;
+  startY = state.y;
+  map.style.cursor = "grabbing";
+};
+
+window.onmouseup = () => {
+  dragging = false;
+  map.style.cursor = "grab";
+};
+
+window.onmousemove = e => {
+
+  if (!dragging) return;
+
+  state.x = startX - (e.clientX - startCX);
+  state.y = startY - (e.clientY - startCY);
+
+  render();
+};
+
+// =====================
+// 缩放（稳定版）
+// =====================
+map.onwheel = e => {
+
+  let oldZoom = state.zoom;
+
+  if (e.deltaY < 0) state.zoom++;
+  else state.zoom--;
+
+  state.zoom = Math.max(UnminedMapProperties.minZoom, 
+                        Math.min(UnminedMapProperties.maxZoom, state.zoom));
+
+  let scale = Math.pow(2, state.zoom - oldZoom);
+
+  state.x *= scale;
+  state.y *= scale;
+
+  render();
+};
+
+// =====================
+// 初始化
+// =====================
+render();
+
+window.onresize = render;
+
+</script>
 
 </body>
 </html>
