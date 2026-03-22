@@ -1,46 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Minecraft Map</title>
-
-<style>
-html,body {
-  margin:0;
-  height:100%;
-  background:#000;
-  overflow:hidden;
-}
-
-#map {
-  position:relative;
-  width:100%;
-  height:100%;
-  cursor:grab;
-}
-
-.tile {
-  position:absolute;
-  width:256px;
-  height:256px;
-  image-rendering: pixelated;
-}
-</style>
-</head>
-
-<body>
-
-<div id="map"></div>
-
-<script>
-
 // ==========================
-// ✅ 你的服务器路径（已修正）
-// ==========================
-const BASE_URL = "/map/tiles";
-
+// ⚙️ 配置
 // ==========================
 const TILE_SIZE = 256;
+const BASE_URL = "/map/tiles";
+
 const map = document.getElementById("map");
 
 // ==========================
@@ -49,34 +12,37 @@ const map = document.getElementById("map");
 let state = {
   x: 0,
   z: 0,
-  zoom: -1,
-  dragging: false,
-  lastX: 0,
-  lastY: 0
+  zoom: -1
 };
 
 // ==========================
-// 🔥 关键：正确 tile 路径
+// 🧠 Tile缓存（核心）
+// ==========================
+const tilePool = new Map(); 
+// key: "z_x_z" → img
+
+// ==========================
+// 🧠 获取URL
 // ==========================
 function getTileURL(z, x, z2) {
   return `${BASE_URL}/zoom.${z}/${x}/${z2}/tile.${x}.${z2}.webp`;
 }
 
 // ==========================
-// 🔥 渲染（重写过的稳定版）
+// 🚀 渲染（专业级）
 // ==========================
-function render() {
-
-  map.innerHTML = "";
+function updateTiles() {
 
   const w = window.innerWidth;
   const h = window.innerHeight;
 
-  const tilesX = Math.ceil(w / TILE_SIZE) + 4;
-  const tilesZ = Math.ceil(h / TILE_SIZE) + 4;
+  const tilesX = Math.ceil(w / TILE_SIZE) + 1;
+  const tilesZ = Math.ceil(h / TILE_SIZE) + 1;
 
   const centerTileX = Math.floor(state.x / TILE_SIZE);
   const centerTileZ = Math.floor(state.z / TILE_SIZE);
+
+  const visible = new Set();
 
   for (let dx = -tilesX; dx <= tilesX; dx++) {
     for (let dz = -tilesZ; dz <= tilesZ; dz++) {
@@ -84,94 +50,102 @@ function render() {
       const tx = centerTileX + dx;
       const tz = centerTileZ + dz;
 
-      const img = document.createElement("img");
-      img.className = "tile";
+      const key = `${state.zoom}_${tx}_${tz}`;
+      visible.add(key);
 
-      // 👇 核心定位（修复黑屏关键）
+      let img = tilePool.get(key);
+
+      // 🟢 不存在 → 创建
+      if (!img) {
+
+        img = document.createElement("img");
+        img.className = "tile";
+
+        img.src = getTileURL(state.zoom, tx, tz);
+
+        img.onerror = () => img.remove();
+
+        tilePool.set(key, img);
+        map.appendChild(img);
+      }
+
+      // 🟢 更新位置（关键：不重建DOM）
       const screenX = (tx * TILE_SIZE - state.x) + w/2;
       const screenZ = (tz * TILE_SIZE - state.z) + h/2;
 
-      img.style.left = screenX + "px";
-      img.style.top  = screenZ + "px";
-
-      img.src = getTileURL(state.zoom, tx, tz);
-
-      // ❗ 不存在直接删除（避免破图）
-      img.onerror = () => img.remove();
-
-      map.appendChild(img);
+      img.style.transform = `translate(${screenX}px, ${screenZ}px)`;
     }
   }
+
+  // 🔴 删除不可见 tile
+  tilePool.forEach((img, key) => {
+    if (!visible.has(key)) {
+      img.remove();
+      tilePool.delete(key);
+    }
+  });
 }
 
 // ==========================
-// 🖱️ 拖动
+// 🖱️ 拖动（流畅版）
 // ==========================
-map.onmousedown = (e) => {
-  state.dragging = true;
+let dragging = false;
+let lastX, lastY;
+
+map.onmousedown = e => {
+  dragging = true;
+  lastX = e.clientX;
+  lastY = e.clientY;
   map.style.cursor = "grabbing";
-  state.lastX = e.clientX;
-  state.lastY = e.clientY;
 };
 
 window.onmouseup = () => {
-  state.dragging = false;
+  dragging = false;
   map.style.cursor = "grab";
 };
 
-window.onmousemove = (e) => {
+window.onmousemove = e => {
 
-  if (!state.dragging) return;
+  if (!dragging) return;
 
-  const dx = e.clientX - state.lastX;
-  const dz = e.clientY - state.lastY;
+  const dx = e.clientX - lastX;
+  const dz = e.clientY - lastY;
 
   state.x -= dx;
   state.z -= dz;
 
-  state.lastX = e.clientX;
-  state.lastY = e.clientY;
+  lastX = e.clientX;
+  lastY = e.clientY;
 
-  render();
+  requestAnimationFrame(updateTiles);
 };
 
 // ==========================
-// 🔍 缩放（稳定版）
+// 🔍 缩放（平滑版）
 // ==========================
-map.onwheel = (e) => {
+map.onwheel = e => {
 
   const oldZoom = state.zoom;
 
-  if (e.deltaY < 0) {
-    state.zoom++;
-  } else {
-    state.zoom--;
-  }
+  if (e.deltaY < 0) state.zoom++;
+  else state.zoom--;
 
   state.zoom = Math.max(-6, Math.min(0, state.zoom));
 
-  // 👇 缩放补偿（关键）
   const scale = Math.pow(2, state.zoom - oldZoom);
+
   state.x *= scale;
   state.z *= scale;
 
-  render();
+  requestAnimationFrame(updateTiles);
 };
 
 // ==========================
-// 🚀 初始化（关键修复）
+// 🚀 初始化
 // ==========================
-
-// 👉 强制定位到一个“有 tile 的地方”
 state.x = 0;
 state.z = 0;
 
-// 启动
-render();
+updateTiles();
 
-window.onresize = render;
-
-</script>
-
-</body>
-</html>
+window.onresize = () => requestAnimationFrame(updateTiles);
