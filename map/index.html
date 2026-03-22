@@ -1,151 +1,44 @@
-// ==========================
-// ⚙️ 配置
-// ==========================
-const TILE_SIZE = 256;
-const BASE_URL = "/map/tiles";
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Minecraft Map</title>
 
-const map = document.getElementById("map");
-
-// ==========================
-// 🌍 状态
-// ==========================
-let state = {
-  x: 0,
-  z: 0,
-  zoom: -1
-};
-
-// ==========================
-// 🧠 Tile缓存（核心）
-// ==========================
-const tilePool = new Map(); 
-// key: "z_x_z" → img
-
-// ==========================
-// 🧠 获取URL
-// ==========================
-function getTileURL(z, x, z2) {
-  return `${BASE_URL}/zoom.${z}/${x}/${z2}/tile.${x}.${z2}.webp`;
+<style>
+html,body {
+  margin:0;
+  height:100%;
+  background:#000;
+  overflow:hidden;
 }
 
-// ==========================
-// 🚀 渲染（专业级）
-// ==========================
-function updateTiles() {
-
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-
-  const tilesX = Math.ceil(w / TILE_SIZE) + 1;
-  const tilesZ = Math.ceil(h / TILE_SIZE) + 1;
-
-  const centerTileX = Math.floor(state.x / TILE_SIZE);
-  const centerTileZ = Math.floor(state.z / TILE_SIZE);
-
-  const visible = new Set();
-
-  for (let dx = -tilesX; dx <= tilesX; dx++) {
-    for (let dz = -tilesZ; dz <= tilesZ; dz++) {
-
-      const tx = centerTileX + dx;
-      const tz = centerTileZ + dz;
-
-      const key = `${state.zoom}_${tx}_${tz}`;
-      visible.add(key);
-
-      let img = tilePool.get(key);
-
-      // 🟢 不存在 → 创建
-      if (!img) {
-
-        img = document.createElement("img");
-        img.className = "tile";
-
-        img.src = getTileURL(state.zoom, tx, tz);
-
-        img.onerror = () => img.remove();
-
-        tilePool.set(key, img);
-        map.appendChild(img);
-      }
-
-      // 🟢 更新位置（关键：不重建DOM）
-      const screenX = (tx * TILE_SIZE - state.x) + w/2;
-      const screenZ = (tz * TILE_SIZE - state.z) + h/2;
-
-      img.style.transform = `translate(${screenX}px, ${screenZ}px)`;
-    }
-  }
-
-  // 🔴 删除不可见 tile
-  tilePool.forEach((img, key) => {
-    if (!visible.has(key)) {
-      img.remove();
-      tilePool.delete(key);
-    }
-  });
+#map {
+  position:relative;
+  width:100%;
+  height:100%;
+  cursor:grab;
+  overflow:hidden;
 }
 
-// ==========================
-// 🖱️ 拖动（流畅版）
-// ==========================
-let dragging = false;
-let lastX, lastY;
+.tile {
+  position:absolute;
+  width:256px;
+  height:256px;
+  image-rendering: pixelated;
+  will-change: transform;
+}
+</style>
+</head>
 
-map.onmousedown = e => {
-  dragging = true;
-  lastX = e.clientX;
-  lastY = e.clientY;
-  map.style.cursor = "grabbing";
-};
+<body>
 
-window.onmouseup = () => {
-  dragging = false;
-  map.style.cursor = "grab";
-};
+<div id="map"></div>
 
-window.onmousemove = e => {
+<!-- 可选 -->
+<script src="./unmined.js"></script>
 
-  if (!dragging) return;
+<!-- 核心引擎 -->
+<script src="./map_engine.js"></script>
 
-  const dx = e.clientX - lastX;
-  const dz = e.clientY - lastY;
-
-  state.x -= dx;
-  state.z -= dz;
-
-  lastX = e.clientX;
-  lastY = e.clientY;
-
-  requestAnimationFrame(updateTiles);
-};
-
-// ==========================
-// 🔍 缩放（平滑版）
-// ==========================
-map.onwheel = e => {
-
-  const oldZoom = state.zoom;
-
-  if (e.deltaY < 0) state.zoom++;
-  else state.zoom--;
-
-  state.zoom = Math.max(-6, Math.min(0, state.zoom));
-
-  const scale = Math.pow(2, state.zoom - oldZoom);
-
-  state.x *= scale;
-  state.z *= scale;
-
-  requestAnimationFrame(updateTiles);
-};
-
-// ==========================
-// 🚀 初始化
-// ==========================
-state.x = 0;
-state.z = 0;
-
-updateTiles();
-
-window.onresize = () => requestAnimationFrame(updateTiles);
+</body>
+</html>
