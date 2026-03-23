@@ -2,43 +2,22 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Minecraft Map</title>
-
+<title>MC Map Engine</title>
 <style>
-html,body {
-  margin:0;
-  height:100%;
-  background:#000;
-  overflow:hidden;
-}
-
-#map {
-  position:relative;
-  width:100%;
-  height:100%;
-  cursor:grab;
-  overflow:hidden;
-}
-
-.tile {
-  position:absolute;
-  width:256px;
-  height:256px;
-  image-rendering: pixelated;
-  will-change: transform;
-}
+  html,body {
+    margin:0;
+    overflow:hidden;
+    background:#111;
+  }
+  canvas {
+    display:block;
+  }
 </style>
 </head>
-
 <body>
 
-<div id="map"></div>
+<canvas id="map"></canvas>
 
-<!-- 可选 -->
-<script src="./unmined.js"></script>
-
-<!-- 核心引擎 -->
-<script src="./map_engine.js"></script>
-
+<script src="map_engine.js"></script>
 </body>
 </html>
