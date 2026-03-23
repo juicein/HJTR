@@ -3,12 +3,12 @@ var UnminedMapProperties = {
     minZoom: -6,
     maxZoom: 0,
     defaultZoom: 0,
-    imageFormat: "webp",
+    imageFormat: "jpeg",
     minRegionX: -17,
     minRegionZ: -17,
-    maxRegionX: 27,
+    maxRegionX: 26,
     maxRegionZ: 19,
-    worldName: "NAC20250720",
+    worldName: "NAC20250322",
     background: "",
     markers: new Array()
 }
