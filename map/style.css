@@ -43,3 +43,45 @@ body, html {
     background: rgba(0,0,0,0.7); color: white; padding: 2px 6px;
     border-radius: 4px; font-size: 12px; white-space: nowrap; margin-top: 4px;
 }
+
+
+/* 缩放控制按钮样式 */
+.zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.zoom-controls button {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.95);
+    border: none;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    cursor: pointer;
+    border-bottom: 1px solid #ddd;
+    transition: background 0.2s;
+}
+
+
+
+.zoom-controls button:last-child {
+    border-bottom: none;
+}
+
+.zoom-controls button:hover {
+    background: #f0f0f0;
+}
+
+.zoom-controls button:active {
+    background: #e0e0e0;
+}
+
