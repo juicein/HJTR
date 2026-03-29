@@ -1,0 +1,39 @@
+{
+  "mapConfig": {
+    "origin": { "x": 0, "z": 0 },
+    "defaultZoom": -1
+  },
+  "regions": [
+    { "name": "全服主城", "level": "global", "x": 0, "z": 0 },
+    { "name": "商业特区", "level": "district", "x": 500, "z": -200 },
+    { "name": "阳光社区", "level": "community", "x": 550, "z": -150 }
+  ],
+  "pois": [
+    {
+      "name": "洲际大酒店", "type": "hotel", "x": 520, "z": -180,
+      "desc": "豪华五星级附魔酒店",
+      "images": ["https://placehold.co/400x200?text=Hotel+Image+1"]
+    },
+    { "name": "中央银行", "type": "bank", "x": 480, "z": -220 }
+  ],
+  "roads": [
+    {
+      "name": "主城1号高速", "type": "highway",
+      "path": [[-1000, 0], [0, 0], [200, 150], [500, -200]]
+    },
+    {
+      "name": "商业街", "type": "normal",
+      "path": [[480, -220], [520, -180], [550, -150]]
+    }
+  ],
+  "subways": [
+    {
+      "name": "下界合金线", "type": "subway",
+      "path": [[0, 0], [500, -200], [1000, 500]],
+      "stations": [
+        { "name": "主城枢纽站", "x": 0, "z": 0 },
+        { "name": "商业区站", "x": 500, "z": -200 }
+      ]
+    }
+  ]
+}
