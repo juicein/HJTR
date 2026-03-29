@@ -1,69 +1,128 @@
+// ================= 全局状态与配置 =================
+let mapData = { regions: [], pois: [], roads: [], subways: [] };
+let zoomLevel = -1;
+let currentX = 0, currentZ = 0; // 地图中心点
+let mapOrigin = { x: 0, z: 0 };
+let isDragging = false;
+let dragStartX, dragStartZ, mouseStartX, mouseStartY;
 
-// ================= 全局配置与状态 =================
-let mapConfig = {
-    minZoom: -6,
-    maxZoom: 0,
-    defaultZoom: -1,
-    imageFormat: "webp" // 默认值，如果找不到 js 文件就用这个
+// 用户设置项 (本地记忆)
+let userSettings = {
+    showCrosshair: false,
+    showCoords: false,
+    rememberPos: true
 };
 
-let zoomLevel = mapConfig.defaultZoom;
-let isDragging = false;
-let isZooming = false; // 用于移动端双指缩放
-let dragStartMouseX, dragStartMouseY;
-let dragStartX, dragStartZ;
-let initialPinchDistance = 0;
-let initialZoomLevel = 0;
-
-// ================= DOM 元素 =================
+// ================= DOM 获取 =================
 const container = document.getElementById('map-container');
 const tileContainer = document.querySelector('.tile-container');
 const markerContainer = document.querySelector('.marker-container');
-const xInput = document.getElementById('coordinates-x');
-const zInput = document.getElementById('coordinates-z');
+const pathCanvas = document.getElementById('path-canvas');
+const ctx = pathCanvas.getContext('2d');
+const coordDisplay = document.getElementById('coord-display');
+const contextMenu = document.getElementById('context-menu');
 
-// ================= 1. 读取 map_properties.js =================
-function initMapProperties() {
-    const script = document.createElement('script');
-    script.src = 'map_properties.js';
+// ================= 1. 初始化与设置系统 =================
+async function init() {
+    loadSettings();
+    applySettingsToUI();
     
-    // 如果文件加载成功
-    script.onload = () => {
-        if (typeof UnminedMapProperties !== 'undefined') {
-            mapConfig.minZoom = UnminedMapProperties.minZoom;
-            mapConfig.maxZoom = UnminedMapProperties.maxZoom;
-            mapConfig.defaultZoom = UnminedMapProperties.defaultZoom;
-            mapConfig.imageFormat = UnminedMapProperties.imageFormat || "webp";
-            zoomLevel = mapConfig.defaultZoom; // 更新当前缩放层级
-            console.log("成功加载地图配置:", mapConfig);
+    // 异步拉取 JSON 数据
+    try {
+        const response = await fetch('map_data.json');
+        const data = await response.json();
+        mapData = data;
+        mapOrigin = data.mapConfig.origin || { x: 0, z: 0 };
+        
+        // 恢复位置或回到原点
+        if (userSettings.rememberPos && localStorage.getItem('lastPosX')) {
+            currentX = parseFloat(localStorage.getItem('lastPosX'));
+            currentZ = parseFloat(localStorage.getItem('lastPosZ'));
+            zoomLevel = parseInt(localStorage.getItem('lastZoom')) || data.mapConfig.defaultZoom;
+        } else {
+            currentX = mapOrigin.x;
+            currentZ = mapOrigin.z;
+            zoomLevel = data.mapConfig.defaultZoom;
         }
-        updateMap();
-    };
+    } catch (e) {
+        console.error("无法加载 map_data.json", e);
+    }
     
-    // 如果文件丢失或加载失败（Fallback 容错）
-    script.onerror = () => {
-        console.warn("未找到 map_properties.js，将使用默认配置运行地图。");
-        updateMap();
-    };
-    
-    document.head.appendChild(script);
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    updateMap();
 }
 
-// ================= 2. 核心地图渲染 =================
-function updateMap() {
-    const cx = parseFloat(xInput.value) || 0; 
-    const cz = parseFloat(zInput.value) || 0; 
+function loadSettings() {
+    const saved = localStorage.getItem('mcMapSettings');
+    if (saved) userSettings = { ...userSettings, ...JSON.parse(saved) };
+}
+
+function saveSettings() {
+    localStorage.setItem('mcMapSettings', JSON.stringify(userSettings));
+    applySettingsToUI();
+}
+
+function applySettingsToUI() {
+    document.getElementById('set-crosshair').checked = userSettings.showCrosshair;
+    document.getElementById('set-coords').checked = userSettings.showCoords;
+    document.getElementById('set-memory').checked = userSettings.rememberPos;
     
+    document.getElementById('crosshair').style.display = userSettings.showCrosshair ? 'block' : 'none';
+    coordDisplay.style.display = userSettings.showCoords ? 'block' : 'none';
+}
+
+function toggleSettings() {
+    document.getElementById('settings-panel').classList.toggle('open');
+}
+
+// 监听设置修改
+['crosshair', 'coords', 'memory'].forEach(key => {
+    document.getElementById(`set-${key}`).addEventListener('change', (e) => {
+        userSettings[`show${key.charAt(0).toUpperCase() + key.slice(1)}`] = e.target.checked;
+        if(key === 'memory') userSettings.rememberPos = e.target.checked;
+        saveSettings();
+    });
+});
+
+// ================= 2. 核心渲染 (瓦片 + Canvas道路 + 标记) =================
+function resizeCanvas() {
+    pathCanvas.width = container.offsetWidth;
+    pathCanvas.height = container.offsetHeight;
+    updateMap();
+}
+
+function updateMap() {
+    if (userSettings.rememberPos) {
+        localStorage.setItem('lastPosX', currentX);
+        localStorage.setItem('lastPosZ', currentZ);
+        localStorage.setItem('lastZoom', zoomLevel);
+    }
+
+    if (userSettings.showCoords) {
+        coordDisplay.innerText = `X: ${Math.round(currentX)}, Z: ${Math.round(currentZ)}`;
+    }
+
     const width = container.offsetWidth;
     const height = container.offsetHeight;
-    
     const scale = Math.pow(2, zoomLevel);
-    const centerWorldPx = cx * scale;
-    const centerWorldPz = cz * scale;
     
+    const centerWorldPx = currentX * scale;
+    const centerWorldPz = currentZ * scale;
+
+    // --- 1. 渲染瓦片 (复用你成熟的逻辑) ---
+    renderTiles(width, height, centerWorldPx, centerWorldPz);
+
+    // --- 2. 渲染矢量道路 (Canvas 圆角优化) ---
+    renderPaths(width, height, scale, centerWorldPx, centerWorldPz);
+
+    // --- 3. 渲染 LOD 层级标记点 ---
+    renderMarkers(width, height, scale, centerWorldPx, centerWorldPz);
+}
+
+function renderTiles(width, height, centerWorldPx, centerWorldPz) {
     const centerTileX = Math.floor(centerWorldPx / 256);
     const centerTileZ = Math.floor(centerWorldPz / 256);
-    
     const rangeX = Math.ceil(width / 2 / 256) + 1;
     const rangeZ = Math.ceil(height / 2 / 256) + 1;
     
@@ -74,153 +133,233 @@ function updateMap() {
             const tileKey = `${zoomLevel}_${tx}_${tz}`;
             neededTiles.add(tileKey);
             
-            const tileWorldPx = tx * 256;
-            const tileWorldPz = tz * 256;
+            const screenX = (width / 2) + (tx * 256 - centerWorldPx);
+            const screenY = (height / 2) + (tz * 256 - centerWorldPz);
             
-            const screenX = (width / 2) + (tileWorldPx - centerWorldPx);
-            const screenY = (height / 2) + (tileWorldPz - centerWorldPz);
-            
-            renderTile(tileKey, tx, tz, screenX, screenY);
+            let img = tileContainer.querySelector(`img[data-key="${tileKey}"]`);
+            if (!img) {
+                img = document.createElement('img');
+                img.dataset.key = tileKey;
+                img.style.position = 'absolute';
+                img.style.width = '256px'; img.style.height = '256px';
+                
+                // 根据你的目录结构
+                const dirX = Math.floor(tx / 10);
+                const dirZ = Math.floor(tz / 10);
+                img.src = `./tiles/zoom.${zoomLevel}/${dirX}/${dirZ}/tile.${tx}.${tz}.webp`;
+                img.onerror = () => { img.style.display = 'none'; };
+                tileContainer.appendChild(img);
+            }
+            img.style.left = `${Math.round(screenX)}px`;
+            img.style.top = `${Math.round(screenY)}px`;
         }
     }
     
     Array.from(tileContainer.children).forEach(img => {
-        if (!neededTiles.has(img.dataset.key)) {
-            img.remove();
-        }
+        if (!neededTiles.has(img.dataset.key)) img.remove();
     });
 }
 
-function renderTile(key, tx, tz, screenX, screenY) {
-    let img = tileContainer.querySelector(`img[data-key="${key}"]`);
+// 核心：Canvas 渲染多段线道路
+function renderPaths(width, height, scale, centerWorldPx, centerWorldPz) {
+    ctx.clearRect(0, 0, width, height);
     
-    if (!img) {
-        img = document.createElement('img');
-        img.dataset.key = key;
-        const dirX = Math.floor(tx / 10);
-        const dirZ = Math.floor(tz / 10);
+    // LOD 规则：缩放到 -4 以下时不显示普通道路，只显示高速
+    const hideNormalRoads = zoomLevel < -3;
+
+    // 配置圆角线条
+    ctx.lineJoin = 'round'; // 关键：处理拐点的平滑圆角
+    ctx.lineCap = 'round';
+
+    // 绘制道路
+    mapData.roads.forEach(road => {
+        if (hideNormalRoads && road.type !== 'highway') return;
+
+        ctx.beginPath();
+        // 设置样式
+        ctx.lineWidth = road.type === 'highway' ? 8 : (road.type === 'arterial' ? 6 : 4);
+        ctx.strokeStyle = road.type === 'highway' ? '#fbbc04' : '#ffffff';
         
-        // 动态使用配置中的扩展名 (webp 或 jpeg)
-        img.src = `./tiles/zoom.${zoomLevel}/${dirX}/${dirZ}/tile.${tx}.${tz}.${mapConfig.imageFormat}`;
-        img.onerror = () => { img.style.display = 'none'; };
-        tileContainer.appendChild(img);
+        road.path.forEach((pt, idx) => {
+            const px = (width / 2) + (pt[0] * scale - centerWorldPx);
+            const py = (height / 2) + (pt[1] * scale - centerWorldPz);
+            if (idx === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+    });
+
+    // 绘制地铁
+    mapData.subways.forEach(sub => {
+        ctx.beginPath();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#ea4335'; // 地铁红
+        ctx.setLineDash([10, 10]); // 虚线表示地铁
+
+        sub.path.forEach((pt, idx) => {
+            const px = (width / 2) + (pt[0] * scale - centerWorldPx);
+            const py = (height / 2) + (pt[1] * scale - centerWorldPz);
+            if (idx === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        });
+        ctx.stroke();
+        ctx.setLineDash([]); // 恢复实线
+    });
+}
+
+function renderMarkers(width, height, scale, centerWorldPx, centerWorldPz) {
+    markerContainer.innerHTML = '';
+    
+    // 1. LOD 控制：根据层级筛选地名
+    mapData.regions.forEach(reg => {
+        if (zoomLevel < -5 && reg.level !== 'global') return;
+        if (zoomLevel >= -2 && reg.level === 'global') return; // 放大后隐藏全局字
+        createMarkerDom(reg, reg.name, '📍', width, height, scale, centerWorldPx, centerWorldPz);
+    });
+
+    // 2. 细节层级渲染 POI 和 地铁站
+    if (zoomLevel >= -3) {
+        mapData.pois.forEach(poi => {
+            let icon = '🏢';
+            if(poi.type === 'hotel') icon = '🏨';
+            if(poi.type === 'bank') icon = '🏦';
+            createMarkerDom(poi, poi.name, icon, width, height, scale, centerWorldPx, centerWorldPz);
+        });
+        
+        mapData.subways.forEach(sub => {
+            if(!sub.stations) return;
+            sub.stations.forEach(st => {
+                createMarkerDom(st, st.name, '🚇', width, height, scale, centerWorldPx, centerWorldPz);
+            });
+        });
     }
+}
+
+function createMarkerDom(data, text, iconStr, width, height, scale, centerPx, centerPz) {
+    const px = (width / 2) + (data.x * scale - centerPx);
+    const py = (height / 2) + (data.z * scale - centerPz);
     
-    img.style.left = `${Math.round(screenX)}px`;
-    img.style.top = `${Math.round(screenY)}px`;
-}
+    // 视口剔除优化
+    if (px < -100 || px > width + 100 || py < -100 || py > height + 100) return;
 
-// ================= 3. 缩放控制逻辑 (UI/滚轮/双指) =================
-function setZoom(newZoom) {
-    // 限制缩放范围在 mapConfig 内
-    newZoom = Math.max(mapConfig.minZoom, Math.min(mapConfig.maxZoom, newZoom));
-    if (newZoom === zoomLevel) return; // 没有变化则跳过
+    const el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.left = `${px}px`;
+    el.style.top = `${py}px`;
+    el.style.transform = 'translate(-50%, -50%)';
+    el.style.textAlign = 'center';
+    el.style.pointerEvents = 'auto'; // 允许点击地标
     
-    zoomLevel = newZoom;
-    tileContainer.innerHTML = ''; // 切换缩放级别时清空旧瓦片，防止残影
-    updateMap();
+    el.innerHTML = `
+        <div style="font-size:24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${iconStr}</div>
+        <div style="background:rgba(255,255,255,0.9); padding:2px 6px; border-radius:12px; font-size:12px; font-weight:bold; color:#333; margin-top:4px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">${text}</div>
+    `;
+    
+    el.onclick = () => {
+        alert(`${text}\n${data.desc || '没有详细描述'}\n坐标: ${data.x}, ${data.z}`);
+    };
+    markerContainer.appendChild(el);
 }
 
-// UI 按钮缩放
-document.getElementById('btn-zoom-in').addEventListener('click', () => setZoom(zoomLevel + 1));
-document.getElementById('btn-zoom-out').addEventListener('click', () => setZoom(zoomLevel - 1));
+// ================= 3. 拖拽、缩放与长按交互 =================
+let pressTimer;
 
-// 鼠标滚轮缩放
-container.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    if (e.deltaY > 0) setZoom(zoomLevel - 1); // 向下滚缩小
-    else if (e.deltaY < 0) setZoom(zoomLevel + 1); // 向上滚放大
-}, { passive: false });
-
-// 移动端双指测距函数
-function getDistance(touch1, touch2) {
-    const dx = touch2.clientX - touch1.clientX;
-    const dy = touch2.clientY - touch1.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-// ================= 4. 拖拽与触控逻辑 =================
 container.addEventListener('mousedown', startInteraction);
 container.addEventListener('touchstart', startInteraction, { passive: false });
 window.addEventListener('mousemove', drag);
-window.addEventListener('touchmove', handleTouchMove, { passive: false });
+window.addEventListener('touchmove', drag, { passive: false });
 window.addEventListener('mouseup', endInteraction);
 window.addEventListener('touchend', endInteraction);
-window.addEventListener('touchcancel', endInteraction);
+container.addEventListener('contextmenu', e => e.preventDefault()); // 禁用自带右键
 
 function startInteraction(e) {
-    if (e.type === 'mousedown' && e.button !== 0) return;
+    if (e.target.closest('.m3-context-menu') || e.target.closest('.m3-fab') || e.target.closest('.m3-search-bar')) return;
     
-    // 双指缩放初始化
-    if (e.type === 'touchstart' && e.touches.length === 2) {
-        isZooming = true;
-        isDragging = false;
-        initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
-        initialZoomLevel = zoomLevel;
-        return;
-    }
+    isDragging = true;
+    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
     
-    // 单指/鼠标拖拽初始化
-    if (e.type === 'mousedown' || (e.type === 'touchstart' && e.touches.length === 1)) {
-        isDragging = true;
-        isZooming = false;
-        const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-        const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-        
-        dragStartMouseX = clientX;
-        dragStartMouseY = clientY;
-        dragStartX = parseFloat(xInput.value) || 0;
-        dragStartZ = parseFloat(zInput.value) || 0;
-    }
-}
+    mouseStartX = clientX;
+    mouseStartY = clientY;
+    dragStartX = currentX;
+    dragStartZ = currentZ;
 
-function handleTouchMove(e) {
-    e.preventDefault(); // 阻止手机浏览器原生滚动或缩放
-    if (isZooming && e.touches.length === 2) {
-        const currentDistance = getDistance(e.touches[0], e.touches[1]);
-        const scaleRatio = currentDistance / initialPinchDistance;
-        
-        // 当双指拉伸/捏合到一定比例时，触发层级跳跃 (类似你原本的逻辑)
-        if (scaleRatio > 1.5) {
-            setZoom(initialZoomLevel + 1);
-            initialPinchDistance = currentDistance; // 重置基准距离
-            initialZoomLevel = zoomLevel;
-        } else if (scaleRatio < 0.6) {
-            setZoom(initialZoomLevel - 1);
-            initialPinchDistance = currentDistance;
-            initialZoomLevel = zoomLevel;
-        }
-    } else if (isDragging) {
-        drag(e); // 复用拖拽逻辑
-    }
+    contextMenu.style.display = 'none'; // 隐藏菜单
+
+    // 长按检测 (500ms)
+    pressTimer = setTimeout(() => {
+        isDragging = false; // 触发长按后停止拖拽
+        showContextMenu(clientX, clientY);
+    }, 500);
 }
 
 function drag(e) {
-    if (!isDragging || isZooming) return;
-    if (e.type === 'mousemove') e.preventDefault();
+    if (!isDragging) return;
+    e.preventDefault();
     
     const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
     
-    const deltaX = clientX - dragStartMouseX;
-    const deltaY = clientY - dragStartMouseY;
+    // 如果移动了，取消长按判定
+    if (Math.abs(clientX - mouseStartX) > 5 || Math.abs(clientY - mouseStartY) > 5) {
+        clearTimeout(pressTimer);
+    }
     
     const scale = Math.pow(2, zoomLevel);
-    xInput.value = Math.round(dragStartX - (deltaX / scale));
-    zInput.value = Math.round(dragStartZ - (deltaY / scale));
+    currentX = dragStartX - ((clientX - mouseStartX) / scale);
+    currentZ = dragStartZ - ((clientY - mouseStartY) / scale);
     
     requestAnimationFrame(updateMap);
 }
 
-function endInteraction() { 
-    isDragging = false; 
-    isZooming = false; 
+function endInteraction() {
+    isDragging = false;
+    clearTimeout(pressTimer);
 }
 
-// 监听输入框手动修改坐标
-xInput.addEventListener('change', updateMap);
-zInput.addEventListener('change', updateMap);
+// 长按菜单逻辑
+let targetMcCoords = { x: 0, z: 0 };
+function showContextMenu(screenX, screenY) {
+    // 逆向运算：将屏幕坐标转换回 Minecraft 世界坐标
+    const width = container.offsetWidth;
+    const height = container.offsetHeight;
+    const scale = Math.pow(2, zoomLevel);
+    
+    targetMcCoords.x = Math.round(currentX + (screenX - width / 2) / scale);
+    targetMcCoords.z = Math.round(currentZ + (screenY - height / 2) / scale);
 
-// ================= 初始化 =================
-// 启动程序：优先加载配置文件，然后再渲染地图
-initMapProperties();
+    document.getElementById('ctx-coord').innerText = `坐标: X: ${targetMcCoords.x}, Z: ${targetMcCoords.z}`;
+    
+    contextMenu.style.left = `${screenX}px`;
+    contextMenu.style.top = `${screenY}px`;
+    contextMenu.style.display = 'block';
+}
+
+// 菜单按钮事件绑定
+document.getElementById('ctx-copy').onclick = () => {
+    navigator.clipboard.writeText(`${targetMcCoords.x}, ${targetMcCoords.z}`);
+    contextMenu.style.display = 'none';
+    alert("坐标已复制到剪贴板！");
+};
+
+document.getElementById('ctx-route-from').onclick = () => { alert("已设为起点"); contextMenu.style.display = 'none'; };
+document.getElementById('ctx-route-to').onclick = () => { alert("已设为终点"); contextMenu.style.display = 'none'; };
+
+document.getElementById('ctx-add-marker').onclick = () => {
+    // 携带坐标参数跳转新页面
+    window.location.href = `add_marker.html?x=${targetMcCoords.x}&z=${targetMcCoords.z}`;
+};
+
+// UI 按钮绑定
+document.getElementById('btn-zoom-in').onclick = () => { zoomLevel++; updateMap(); };
+document.getElementById('btn-zoom-out').onclick = () => { zoomLevel--; updateMap(); };
+document.getElementById('btn-origin').onclick = () => { currentX = mapOrigin.x; currentZ = mapOrigin.z; updateMap(); };
+
+// 隐藏菜单
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('#context-menu') && !isDragging) {
+        contextMenu.style.display = 'none';
+    }
+});
+
+init();
