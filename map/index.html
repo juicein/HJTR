@@ -3,94 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Haojin Map Explorer</title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <title>Minecraft Map Viewer - Material 3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="top-bar md-glass">
-        <div class="search-box">
-            <span class="material-symbols-rounded">search</span>
-            <input type="text" id="search-input" placeholder="在 Haojin 中搜索...">
-        </div>
-        <button id="btn-settings" class="icon-btn"><span class="material-symbols-rounded">settings</span></button>
+    <div class="search-bar m3-elevation-2">
+        <span class="material-symbols-rounded icon">menu</span>
+        <input type="text" id="search-input" placeholder="在地图上搜索...">
+        <span class="material-symbols-rounded icon" id="btn-settings">settings</span>
     </div>
 
-    <div class="map-controls">
-        <button id="btn-my-location" class="icon-btn md-glass"><span class="material-symbols-rounded">my_location</span></button>
-        <div class="zoom-group md-glass">
-            <button id="btn-zoom-in"><span class="material-symbols-rounded">add</span></button>
-            <div class="divider"></div>
-            <button id="btn-zoom-out"><span class="material-symbols-rounded">remove</span></button>
-        </div>
+    <div class="zoom-controls m3-elevation-2">
+        <button id="btn-zoom-in"><span class="material-symbols-rounded">add</span></button>
+        <div class="divider"></div>
+        <button id="btn-zoom-out"><span class="material-symbols-rounded">remove</span></button>
     </div>
 
-    <div id="crosshair" class="crosshair hidden">
+    <div class="coord-display m3-elevation-1" id="coord-display">
+        X: <span id="display-x">0</span> Z: <span id="display-z">0</span>
+    </div>
+
+    <div class="crosshair" id="crosshair">
         <span class="material-symbols-rounded">add</span>
     </div>
 
-    <div id="coord-display" class="coord-display md-glass hidden">X: 0, Z: 0</div>
-
     <div class="preview-container" id="map-container">
         <div class="tile-container"></div>
-        <svg id="vector-layer" class="vector-layer"></svg>
-        <div class="marker-container"></div>
+        <canvas id="overlay-canvas"></canvas> <div class="marker-container" id="marker-container"></div>
     </div>
 
-    <div id="bottom-sheet" class="bottom-sheet">
+    <div class="detail-panel m3-elevation-3" id="detail-panel">
         <div class="drag-handle"></div>
-        <h2 id="sheet-title">地点名称</h2>
-        <p id="sheet-category" class="subtitle">分类</p>
-        
-        <div class="action-row">
-            <button class="md-btn primary" id="btn-route-to">
-                <span class="material-symbols-rounded">directions</span> 路线
-            </button>
-            <button class="md-btn secondary" id="btn-call">
-                <span class="material-symbols-rounded">call</span> 致电
-            </button>
-            <button class="md-btn secondary" id="btn-website">
-                <span class="material-symbols-rounded">language</span> 网站
-            </button>
-        </div>
-
-        <div class="image-scroller" id="sheet-images"></div>
-        <p id="sheet-remark" class="remark-text"></p>
+        <div class="panel-content">
+            </div>
     </div>
 
-    <div id="context-menu" class="context-menu md-glass">
-        <div class="menu-item" id="menu-copy-coord">
-            <span class="material-symbols-rounded">content_copy</span> 复制坐标 (<span id="menu-coord-text"></span>)
-        </div>
-        <div class="menu-item" id="menu-route-from">
-            <span class="material-symbols-rounded">trip_origin</span> 从这里出发
-        </div>
-        <div class="menu-item" id="menu-route-to">
-            <span class="material-symbols-rounded">place</span> 到这里去
+    <div class="context-menu m3-elevation-3" id="context-menu">
+        <div class="menu-header">
+            <span class="material-symbols-rounded">location_on</span>
+            <div class="coords">X: <span id="ctx-x">0</span>, Z: <span id="ctx-z">0</span></div>
         </div>
         <div class="divider"></div>
-        <div class="menu-item" id="menu-add-marker">
-            <span class="material-symbols-rounded">add_location</span> 添加标点
-        </div>
+        <button class="menu-item" id="ctx-copy"><span class="material-symbols-rounded">content_copy</span> 复制坐标</button>
+        <button class="menu-item" id="ctx-route-to"><span class="material-symbols-rounded">directions</span> 到这里去</button>
+        <button class="menu-item" id="ctx-route-from"><span class="material-symbols-rounded">trip_origin</span> 从这里出发</button>
+        <div class="divider"></div>
+        <button class="menu-item" id="ctx-add-poi"><span class="material-symbols-rounded">add_location_alt</span> 添加地点</button>
     </div>
 
-    <div id="settings-dialog" class="dialog-backdrop hidden">
-        <div class="dialog-surface md-glass">
-            <h3>地图设置</h3>
-            <label class="toggle-row">
-                <span>显示十字准星</span>
-                <input type="checkbox" id="toggle-crosshair">
-            </label>
-            <label class="toggle-row">
-                <span>显示实时坐标</span>
-                <input type="checkbox" id="toggle-coords">
-            </label>
-            <label class="toggle-row">
-                <span>记忆上次浏览位置</span>
-                <input type="checkbox" id="toggle-memory">
-            </label>
-            <button class="md-btn text-btn" id="btn-close-settings">完成</button>
-        </div>
+    <div class="settings-dialog m3-elevation-4" id="settings-dialog">
+        <h3>地图设置</h3>
+        <label class="m3-switch-label">
+            <span>显示十字准星</span>
+            <input type="checkbox" id="setting-crosshair" checked>
+        </label>
+        <label class="m3-switch-label">
+            <span>显示当前坐标</span>
+            <input type="checkbox" id="setting-coords" checked>
+        </label>
+        <label class="m3-switch-label">
+            <span>记住上次位置</span>
+            <input type="checkbox" id="setting-remember" checked>
+        </label>
+        <button id="btn-close-settings">关闭</button>
     </div>
 
     <script src="script.js"></script>
