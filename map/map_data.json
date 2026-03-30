@@ -1,38 +1,44 @@
 {
   "mapConfig": {
-    "origin": { "x": 0, "z": 0 },
+    "originX": 0,
+    "originZ": 0,
     "defaultZoom": -1
   },
   "regions": [
-    { "name": "全服主城", "level": "global", "x": 0, "z": 0 },
-    { "name": "商业特区", "level": "district", "x": 500, "z": -200 },
-    { "name": "阳光社区", "level": "community", "x": 550, "z": -150 }
+    { "name": "南洋理工大区", "x": -500, "z": -500, "level": "district", "minZoom": -6, "maxZoom": -3 },
+    { "name": "Joo Koon 社区", "x": 100, "z": -100, "level": "community", "minZoom": -3, "maxZoom": -1 }
+  ],
+  "roads": [
+    { 
+      "name": "Pioneer Rd", "type": "arterial", "color": "#ffffff", "width": 8, "opacity": 0.8,
+      "points": [[-300, 200], [0, 150], [150, -50], [400, -50]] 
+    },
+    { 
+      "name": "Tuas 高速", "type": "highway", "color": "#fbbc04", "width": 12, "opacity": 0.6,
+      "points": [[-600, 400], [-300, 200], [200, -300]] 
+    }
+  ],
+  "transit": [
+    {
+      "name": "东西线 (绿线)", "type": "subway", "color": "#009645",
+      "stations": [
+        { "name": "Joo Koon", "x": 100, "z": -150 },
+        { "name": "Pioneer", "x": 400, "z": -150 }
+      ],
+      "points": [[100, -150], [400, -150]]
+    }
   ],
   "pois": [
     {
-      "name": "洲际大酒店", "type": "hotel", "x": 520, "z": -180,
-      "desc": "豪华五星级附魔酒店",
-      "images": ["https://placehold.co/400x200?text=Hotel+Image+1"]
-    },
-    { "name": "中央银行", "type": "bank", "x": 480, "z": -220 }
-  ],
-  "roads": [
-    {
-      "name": "主城1号高速", "type": "highway",
-      "path": [[-1000, 0], [0, 0], [200, 150], [500, -200]]
-    },
-    {
-      "name": "商业街", "type": "normal",
-      "path": [[480, -220], [520, -180], [550, -150]]
-    }
-  ],
-  "subways": [
-    {
-      "name": "下界合金线", "type": "subway",
-      "path": [[0, 0], [500, -200], [1000, 500]],
-      "stations": [
-        { "name": "主城枢纽站", "x": 0, "z": 0 },
-        { "name": "商业区站", "x": 500, "z": -200 }
+      "id": "poi_001", "name": "FairPrice Joo Koon", "type": "supermarket", 
+      "x": 120, "z": -180, "minZoom": -2, "maxZoom": 0,
+      "rating": 4.3, "reviews": 1343,
+      "status": "已结束营业 · 开始营业时间：09:00",
+      "desc": "大型仓储式超市，提供新鲜生鲜与日常用品。",
+      "url": "https://www.fairprice.com.sg",
+      "images": [
+        "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=500&q=80",
+        "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80"
       ]
     }
   ]
