@@ -12,7 +12,19 @@
       "rating": 4.3, "reviews": 1343, "status": "营业中 · 09:00 开始",
       "website": "https://example.com", "remarks": "提供新鲜蔬菜和日常用品",
       "images": ["https://via.placeholder.com/300x200?text=Image+1", "https://via.placeholder.com/150x200?text=Image+2"]
-    }
+    },
+    {
+  "id": "poi2", "type": "hotel", "name": "中央国际酒店","x": 1350,
+  "z": -420,"minZoom": -2,"maxZoom": 0,"rating": 4.7,
+  "reviews": 892,"status": "营业中 · 24小时服务",
+"website": "https://hotel-example.com",
+  "remarks": "五星级酒店，提供餐厅、泳池和会议室",
+"images": [
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945",
+    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa",
+    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b"
+  ]
+}
   ],
   "roads": [
     {
