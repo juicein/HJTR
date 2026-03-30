@@ -7,14 +7,14 @@
   ],
   "pois": [
     {
-      "id": "poi1", "type": "supermarket", "name": "FairPrice Joo Koon", 
+      "id": "poi1", "type": "supermarket", "name": "FairPrice l Koon", 
       "x": 120, "z": 250, "minZoom": -2, "maxZoom": 0,
       "rating": 4.3, "reviews": 1343, "status": "营业中 · 09:00 开始",
       "website": "https://example.com", "remarks": "提供新鲜蔬菜和日常用品",
       "images": ["https://via.placeholder.com/300x200?text=Image+1", "https://via.placeholder.com/150x200?text=Image+2"]
     },
     {
-  "id": "poi2", "type": "hotel", "name": "中央国际酒店","x": 1350,
+  "id": "poi2", "type": "hotel", "name": "中央国际酒店","x": 135,
   "z": -420,"minZoom": -2,"maxZoom": 0,"rating": 4.7,
   "reviews": 892,"status": "营业中 · 24小时服务",
 "website": "https://hotel-example.com",
