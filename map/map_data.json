@@ -1,45 +1,50 @@
 {
-  "mapConfig": {
+  "settings": {
     "originX": 0,
-    "originZ": 0,
-    "defaultZoom": -1
+    "originZ": 0
   },
-  "regions": [
-    { "name": "南洋理工大区", "x": -500, "z": -500, "level": "district", "minZoom": -6, "maxZoom": -3 },
-    { "name": "Joo Koon 社区", "x": 100, "z": -100, "level": "community", "minZoom": -3, "maxZoom": -1 }
-  ],
-  "roads": [
-    { 
-      "name": "Pioneer Rd", "type": "arterial", "color": "#ffffff", "width": 8, "opacity": 0.8,
-      "points": [[-300, 200], [0, 150], [150, -50], [400, -50]] 
-    },
-    { 
-      "name": "Tuas 高速", "type": "highway", "color": "#fbbc04", "width": 12, "opacity": 0.6,
-      "points": [[-600, 400], [-300, 200], [200, -300]] 
-    }
-  ],
-  "transit": [
+  "places": [
     {
-      "name": "东西线 (绿线)", "type": "subway", "color": "#009645",
-      "stations": [
-        { "name": "Joo Koon", "x": 100, "z": -150 },
-        { "name": "Pioneer", "x": 400, "z": -150 }
-      ],
-      "points": [[100, -150], [400, -150]]
-    }
-  ],
-  "pois": [
-    {
-      "id": "poi_001", "name": "FairPrice Joo Koon", "type": "supermarket", 
-      "x": 120, "z": -180, "minZoom": -2, "maxZoom": 0,
-      "rating": 4.3, "reviews": 1343,
-      "status": "已结束营业 · 开始营业时间：09:00",
-      "desc": "大型仓储式超市，提供新鲜生鲜与日常用品。",
-      "url": "https://www.fairprice.com.sg",
+      "id": "poi_001",
+      "type": "poi",
+      "category": "supermarket",
+      "name": "Haojin 中心超市",
+      "x": 150,
+      "z": -200,
+      "level": "community", 
+      "remark": "24小时营业，提供新鲜蔬菜。",
+      "website": "https://example.com",
       "images": [
-        "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=500&q=80",
-        "https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&q=80"
+        "https://picsum.photos/400/300?1",
+        "https://picsum.photos/400/300?2"
       ]
+    },
+    {
+      "id": "region_001",
+      "type": "label",
+      "name": "Haojin 核心区",
+      "x": 0,
+      "z": 0,
+      "level": "region"
+    }
+  ],
+  "networks": [
+    {
+      "id": "road_001",
+      "type": "road",
+      "roadType": "main",
+      "name": "Haojin 大道",
+      "level": "district",
+      "path": [[-500, -100], [0, 0], [200, 50], [500, 300]]
+    },
+    {
+      "id": "metro_01",
+      "type": "transit",
+      "transitType": "subway",
+      "name": "Haojin 1号线",
+      "level": "global",
+      "color": "#E53935",
+      "path": [[-800, 200], [0, 0], [600, -150]]
     }
   ]
 }
