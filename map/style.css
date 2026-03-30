@@ -1,84 +1,66 @@
 :root {
-    --md-sys-color-surface: #fdf8fd;
-    --md-sys-color-surface-container: #f3edf7;
-    --md-sys-color-primary: #6750a4;
-    --md-sys-color-on-surface: #1c1b1f;
+    --m3-sys-light-surface: #fdfbff;
+    --m3-sys-light-on-surface: #1a1b1e;
+    --m3-sys-light-primary: #005ac1;
+    --m3-sys-light-primary-container: #d8e2ff;
+    --m3-sys-light-on-primary-container: #001a41;
+    --m3-sys-light-surface-container: #f3edf7;
+    --m3-radius-xl: 28px;
+    --m3-radius-full: 999px;
 }
 
-body, html {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    font-family: 'Google Sans', Roboto, Arial, sans-serif;
-    background-color: #e5e5dd; overflow: hidden;
-    color: var(--md-sys-color-on-surface);
-}
+body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; background-color: #f1f3f4; }
+.hidden { display: none !important; }
 
-/* Material 3 搜索栏 */
-.m3-search-bar {
-    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
-    width: 90%; max-width: 400px; height: 48px;
-    background: white; border-radius: 24px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    display: flex; align-items: center; padding: 0 12px; z-index: 100;
-}
-.m3-search-bar input {
-    border: none; outline: none; flex: 1; font-size: 16px;
-    background: transparent; padding: 0 12px;
-}
-.m3-search-bar .material-symbols-outlined { color: #5f6368; cursor: pointer; }
+/* M3 阴影规范 */
+.m3-elevation { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+.m3-elevation-high { box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
 
-/* 坐标显示 Chip */
-.m3-chip {
-    position: absolute; top: 76px; left: 50%; transform: translateX(-50%);
-    background: white; padding: 6px 12px; border-radius: 16px;
-    font-size: 12px; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.2); z-index: 100;
-}
+/* 搜索栏 */
+.top-search-bar { position: absolute; top: 16px; left: 16px; right: 16px; height: 56px; background: var(--m3-sys-light-surface); border-radius: var(--m3-radius-full); z-index: 1000; display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+.top-search-bar input { flex: 1; border: none; outline: none; font-size: 16px; background: transparent; }
+.top-search-bar span { color: #5f6368; cursor: pointer; }
 
-/* 右侧 FAB 按钮组 */
-.m3-fab-group {
-    position: absolute; right: 16px; bottom: 32px;
-    display: flex; flex-direction: column; gap: 12px; z-index: 100;
-}
-.m3-fab {
-    width: 56px; height: 56px; border-radius: 16px;
-    background: var(--md-sys-color-surface-container); border: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: transform 0.1s, box-shadow 0.1s;
-}
-.m3-fab.mini { width: 40px; height: 40px; border-radius: 12px; }
-.m3-fab:active { transform: scale(0.95); }
-
-/* 地图图层 */
-.preview-container { width: 100vw; height: 100vh; position: relative; overflow: hidden; }
-.tile-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-#path-canvas { position: absolute; top: 0; left: 0; pointer-events: none; }
-.marker-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+/* 地图容器 */
+.preview-container { width: 100vw; height: 100vh; position: relative; cursor: grab; background-color: #eaddd8; }
+.preview-container:active { cursor: grabbing; }
+.tile-container, .marker-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.vector-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.tile-container img { position: absolute; width: 256px; height: 256px; }
 
 /* 十字准星 */
-.crosshair {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    color: var(--md-sys-color-primary); pointer-events: none; z-index: 50;
-}
+.crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999; pointer-events: none; color: rgba(0,0,0,0.5); }
+
+/* 标记点样式 (Google Maps 气球风格) */
+.map-marker { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; }
+.map-marker:hover { transform: translate(-50%, -100%) scale(1.1); z-index: 100; }
+.marker-icon { background: #ea4335; color: white; border-radius: 50%; padding: 4px; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid white; }
+.marker-icon.transit { background: #009645; }
+.marker-icon.supermarket { background: #fbbc04; }
+.marker-label { background: rgba(255,255,255,0.9); padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 500; margin-top: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.2); white-space: nowrap; }
+.region-label { position: absolute; transform: translate(-50%, -50%); font-size: 24px; font-weight: bold; color: rgba(0,0,0,0.6); text-shadow: 2px 2px 4px white, -2px -2px 4px white; pointer-events: none; letter-spacing: 4px; }
+
+/* M3 底部抽屉 (Bottom Sheet) */
+.bottom-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; max-height: 80vh; background: var(--m3-sys-light-surface); border-radius: var(--m3-radius-xl) var(--m3-radius-xl) 0 0; z-index: 2000; transition: bottom 0.4s cubic-bezier(0.2, 0, 0, 1); display: flex; flex-direction: column; overflow-y: auto; }
+.bottom-sheet.active { bottom: 0; }
+.sheet-drag-handle { width: 32px; height: 4px; background: #e0e0e0; border-radius: 2px; margin: 12px auto; }
+.sheet-content { padding: 0 24px 24px 24px; }
+.sheet-title { font-size: 24px; font-weight: 400; color: var(--m3-sys-light-on-surface); margin: 0 0 8px 0; }
+.sheet-subtitle { font-size: 14px; color: #5f6368; margin-bottom: 16px; }
+.action-buttons { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 16px; }
+.m3-action-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: var(--m3-radius-full); border: 1px solid #747775; background: transparent; color: var(--m3-sys-light-primary); font-weight: 500; cursor: pointer; white-space: nowrap; }
+.m3-action-btn.primary { background: var(--m3-sys-light-primary); color: white; border: none; }
+.poi-gallery { display: flex; gap: 8px; overflow-x: auto; margin-top: 16px; }
+.poi-gallery img { width: 140px; height: 140px; object-fit: cover; border-radius: 12px; }
 
 /* 长按菜单 */
-.m3-context-menu {
-    position: absolute; background: white; border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-width: 180px;
-    padding: 8px 0; z-index: 1000; display: none;
-}
-.m3-context-menu .menu-header { padding: 8px 16px; font-size: 12px; color: #5f6368; font-family: monospace; }
-.m3-context-menu .menu-item {
-    padding: 10px 16px; font-size: 14px; display: flex; align-items: center; gap: 12px;
-    cursor: pointer; transition: background 0.2s; pointer-events: auto;
-}
-.m3-context-menu .menu-item:hover { background: #f0f0f0; }
-.m3-context-menu .menu-divider { height: 1px; background: #e0e0e0; margin: 4px 0; }
+.context-menu { position: absolute; background: white; border-radius: 8px; padding: 8px 0; z-index: 3000; width: 200px; display: none; }
+.context-menu .menu-item { padding: 12px 16px; display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; color: #3c4043; }
+.context-menu .menu-item:hover { background: #f1f3f4; }
+.context-menu hr { border: none; border-top: 1px solid #e8eaed; margin: 4px 0; }
 
-/* 侧边设置栏 */
-.m3-side-panel {
-    position: absolute; top: 0; left: -300px; width: 280px; height: 100%;
-    background: white; box-shadow: 4px 0 16px rgba(0,0,0,0.2);
-    transition: left 0.3s cubic-bezier(0.2, 0, 0, 1); z-index: 200; padding: 24px; box-sizing: border-box;
-}
-.m3-side-panel.open { left: 0; }
-.m3-switch { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; font-size: 14px; cursor: pointer;}
+/* 设置中心与缩放按钮 */
+.zoom-controls { position: absolute; right: 16px; bottom: 30vh; display: flex; flex-direction: column; background: white; border-radius: 8px; overflow: hidden; z-index: 1000; }
+.zoom-controls button { width: 48px; height: 48px; border: none; background: transparent; border-bottom: 1px solid #f1f3f4; cursor: pointer; }
+.settings-dialog { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 24px; border-radius: var(--m3-radius-xl); z-index: 4000; width: 300px; }
+.setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 16px; }
