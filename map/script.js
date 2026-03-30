@@ -1,152 +1,92 @@
-// ================= 全局状态与配置 =================
-let mapData = { regions: [], pois: [], roads: [], subways: [] };
+// ================= 全局状态与设置 =================
+let mapData = null;
+let currentX = 0, currentZ = 0;
 let zoomLevel = -1;
-let currentX = 0, currentZ = 0; // 地图中心点
-let mapOrigin = { x: 0, z: 0 };
 let isDragging = false;
-let dragStartX, dragStartZ, mouseStartX, mouseStartY;
+let dragStartMouseX, dragStartMouseY, dragStartX, dragStartZ;
 
-// 用户设置项 (本地记忆)
-let userSettings = {
-    showCrosshair: false,
-    showCoords: false,
-    rememberPos: true
-};
+// 设置记忆系统
+const defaultSettings = { showCrosshair: true, rememberPosition: true, lastX: 0, lastZ: 0, lastZoom: -1 };
+let settings = JSON.parse(localStorage.getItem('mapSettings')) || defaultSettings;
 
-// ================= DOM 获取 =================
+// ================= DOM 元素 =================
 const container = document.getElementById('map-container');
 const tileContainer = document.querySelector('.tile-container');
 const markerContainer = document.querySelector('.marker-container');
-const pathCanvas = document.getElementById('path-canvas');
-const ctx = pathCanvas.getContext('2d');
-const coordDisplay = document.getElementById('coord-display');
+const vectorLayer = document.getElementById('vector-layer'); // SVG层
+const bottomSheet = document.getElementById('bottom-sheet');
 const contextMenu = document.getElementById('context-menu');
 
-// ================= 1. 初始化与设置系统 =================
+// ================= 1. 初始化与数据加载 =================
 async function init() {
-    loadSettings();
     applySettingsToUI();
     
-    // 异步拉取 JSON 数据
     try {
-        const response = await fetch('map_data.json');
-        const data = await response.json();
-        mapData = data;
-        mapOrigin = data.mapConfig.origin || { x: 0, z: 0 };
+        const response = await fetch('data.json');
+        mapData = await response.json();
         
-        // 恢复位置或回到原点
-        if (userSettings.rememberPos && localStorage.getItem('lastPosX')) {
-            currentX = parseFloat(localStorage.getItem('lastPosX'));
-            currentZ = parseFloat(localStorage.getItem('lastPosZ'));
-            zoomLevel = parseInt(localStorage.getItem('lastZoom')) || data.mapConfig.defaultZoom;
+        // 读取记忆位置或默认原点
+        if (settings.rememberPosition && settings.lastX !== undefined) {
+            currentX = settings.lastX; currentZ = settings.lastZ; zoomLevel = settings.lastZoom;
         } else {
-            currentX = mapOrigin.x;
-            currentZ = mapOrigin.z;
-            zoomLevel = data.mapConfig.defaultZoom;
+            currentX = mapData.mapConfig.originX; currentZ = mapData.mapConfig.originZ; zoomLevel = mapData.mapConfig.defaultZoom;
         }
+        
+        updateMap();
     } catch (e) {
-        console.error("无法加载 map_data.json", e);
+        console.error("加载 mapData.json 失败", e);
     }
-    
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    updateMap();
-}
-
-function loadSettings() {
-    const saved = localStorage.getItem('mcMapSettings');
-    if (saved) userSettings = { ...userSettings, ...JSON.parse(saved) };
 }
 
 function saveSettings() {
-    localStorage.setItem('mcMapSettings', JSON.stringify(userSettings));
-    applySettingsToUI();
+    if (settings.rememberPosition) {
+        settings.lastX = currentX; settings.lastZ = currentZ; settings.lastZoom = zoomLevel;
+    }
+    localStorage.setItem('mapSettings', JSON.stringify(settings));
 }
 
-function applySettingsToUI() {
-    document.getElementById('set-crosshair').checked = userSettings.showCrosshair;
-    document.getElementById('set-coords').checked = userSettings.showCoords;
-    document.getElementById('set-memory').checked = userSettings.rememberPos;
-    
-    document.getElementById('crosshair').style.display = userSettings.showCrosshair ? 'block' : 'none';
-    coordDisplay.style.display = userSettings.showCoords ? 'block' : 'none';
-}
-
-function toggleSettings() {
-    document.getElementById('settings-panel').classList.toggle('open');
-}
-
-// 监听设置修改
-['crosshair', 'coords', 'memory'].forEach(key => {
-    document.getElementById(`set-${key}`).addEventListener('change', (e) => {
-        userSettings[`show${key.charAt(0).toUpperCase() + key.slice(1)}`] = e.target.checked;
-        if(key === 'memory') userSettings.rememberPos = e.target.checked;
-        saveSettings();
-    });
-});
-
-// ================= 2. 核心渲染 (瓦片 + Canvas道路 + 标记) =================
-function resizeCanvas() {
-    pathCanvas.width = container.offsetWidth;
-    pathCanvas.height = container.offsetHeight;
-    updateMap();
-}
-
+// ================= 2. 核心：混合渲染引擎 (瓦片 + 矢量道路 + 标记) =================
 function updateMap() {
-    if (userSettings.rememberPos) {
-        localStorage.setItem('lastPosX', currentX);
-        localStorage.setItem('lastPosZ', currentZ);
-        localStorage.setItem('lastZoom', zoomLevel);
-    }
-
-    if (userSettings.showCoords) {
-        coordDisplay.innerText = `X: ${Math.round(currentX)}, Z: ${Math.round(currentZ)}`;
-    }
-
     const width = container.offsetWidth;
     const height = container.offsetHeight;
     const scale = Math.pow(2, zoomLevel);
     
     const centerWorldPx = currentX * scale;
     const centerWorldPz = currentZ * scale;
+    
+    // 渲染地图瓦片 (与上一版逻辑相同)
+    renderTiles(width, height, centerWorldPx, centerWorldPz, scale);
+    
+    if (!mapData) return;
 
-    // --- 1. 渲染瓦片 (复用你成熟的逻辑) ---
-    renderTiles(width, height, centerWorldPx, centerWorldPz);
+    // 渲染 SVG 矢量道路 (核心改进：道路在底图上，但在地标下)
+    renderVectors(width, height, centerWorldPx, centerWorldPz, scale);
 
-    // --- 2. 渲染矢量道路 (Canvas 圆角优化) ---
-    renderPaths(width, height, scale, centerWorldPx, centerWorldPz);
-
-    // --- 3. 渲染 LOD 层级标记点 ---
-    renderMarkers(width, height, scale, centerWorldPx, centerWorldPz);
+    // 渲染各级地标、POI
+    renderMarkers(width, height, centerWorldPx, centerWorldPz, scale);
+    
+    saveSettings();
 }
 
-function renderTiles(width, height, centerWorldPx, centerWorldPz) {
+function renderTiles(width, height, centerWorldPx, centerWorldPz, scale) {
     const centerTileX = Math.floor(centerWorldPx / 256);
     const centerTileZ = Math.floor(centerWorldPz / 256);
     const rangeX = Math.ceil(width / 2 / 256) + 1;
     const rangeZ = Math.ceil(height / 2 / 256) + 1;
     
     const neededTiles = new Set();
-    
     for (let tx = centerTileX - rangeX; tx <= centerTileX + rangeX; tx++) {
         for (let tz = centerTileZ - rangeZ; tz <= centerTileZ + rangeZ; tz++) {
-            const tileKey = `${zoomLevel}_${tx}_${tz}`;
-            neededTiles.add(tileKey);
-            
+            const key = `${zoomLevel}_${tx}_${tz}`;
+            neededTiles.add(key);
             const screenX = (width / 2) + (tx * 256 - centerWorldPx);
             const screenY = (height / 2) + (tz * 256 - centerWorldPz);
             
-            let img = tileContainer.querySelector(`img[data-key="${tileKey}"]`);
+            let img = tileContainer.querySelector(`img[data-key="${key}"]`);
             if (!img) {
                 img = document.createElement('img');
-                img.dataset.key = tileKey;
-                img.style.position = 'absolute';
-                img.style.width = '256px'; img.style.height = '256px';
-                
-                // 根据你的目录结构
-                const dirX = Math.floor(tx / 10);
-                const dirZ = Math.floor(tz / 10);
-                img.src = `./tiles/zoom.${zoomLevel}/${dirX}/${dirZ}/tile.${tx}.${tz}.webp`;
+                img.dataset.key = key;
+                img.src = `./tiles/zoom.${zoomLevel}/${Math.floor(tx/10)}/${Math.floor(tz/10)}/tile.${tx}.${tz}.webp`;
                 img.onerror = () => { img.style.display = 'none'; };
                 tileContainer.appendChild(img);
             }
@@ -154,212 +94,205 @@ function renderTiles(width, height, centerWorldPx, centerWorldPz) {
             img.style.top = `${Math.round(screenY)}px`;
         }
     }
-    
-    Array.from(tileContainer.children).forEach(img => {
-        if (!neededTiles.has(img.dataset.key)) img.remove();
-    });
+    Array.from(tileContainer.children).forEach(img => { if (!neededTiles.has(img.dataset.key)) img.remove(); });
 }
 
-// 核心：Canvas 渲染多段线道路
-function renderPaths(width, height, scale, centerWorldPx, centerWorldPz) {
-    ctx.clearRect(0, 0, width, height);
+// === 新增：SVG 道路与轨交渲染 ===
+function renderVectors(width, height, centerWorldPx, centerWorldPz, scale) {
+    vectorLayer.innerHTML = ''; // 清空上一帧 SVG
     
-    // LOD 规则：缩放到 -4 以下时不显示普通道路，只显示高速
-    const hideNormalRoads = zoomLevel < -3;
-
-    // 配置圆角线条
-    ctx.lineJoin = 'round'; // 关键：处理拐点的平滑圆角
-    ctx.lineCap = 'round';
+    // 只有放大到一定程度才显示详细道路
+    if (zoomLevel < -3) return;
 
     // 绘制道路
     mapData.roads.forEach(road => {
-        if (hideNormalRoads && road.type !== 'highway') return;
+        const pathData = road.points.map((p, index) => {
+            const screenX = (width / 2) + (p[0] * scale - centerWorldPx);
+            const screenY = (height / 2) + (p[1] * scale - centerWorldPz);
+            return `${index === 0 ? 'M' : 'L'} ${screenX} ${screenY}`;
+        }).join(' ');
 
-        ctx.beginPath();
-        // 设置样式
-        ctx.lineWidth = road.type === 'highway' ? 8 : (road.type === 'arterial' ? 6 : 4);
-        ctx.strokeStyle = road.type === 'highway' ? '#fbbc04' : '#ffffff';
-        
-        road.path.forEach((pt, idx) => {
-            const px = (width / 2) + (pt[0] * scale - centerWorldPx);
-            const py = (height / 2) + (pt[1] * scale - centerWorldPz);
-            if (idx === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        });
-        ctx.stroke();
-    });
-
-    // 绘制地铁
-    mapData.subways.forEach(sub => {
-        ctx.beginPath();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = '#ea4335'; // 地铁红
-        ctx.setLineDash([10, 10]); // 虚线表示地铁
-
-        sub.path.forEach((pt, idx) => {
-            const px = (width / 2) + (pt[0] * scale - centerWorldPx);
-            const py = (height / 2) + (pt[1] * scale - centerWorldPz);
-            if (idx === 0) ctx.moveTo(px, py);
-            else ctx.lineTo(px, py);
-        });
-        ctx.stroke();
-        ctx.setLineDash([]); // 恢复实线
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', road.color);
+        path.setAttribute('stroke-width', road.width * scale * 2); // 道路宽度随缩放变化
+        path.setAttribute('stroke-opacity', road.opacity);
+        path.setAttribute('stroke-linejoin', 'round'); // 节点圆角平滑处理
+        path.setAttribute('stroke-linecap', 'round');
+        vectorLayer.appendChild(path);
     });
 }
 
-function renderMarkers(width, height, scale, centerWorldPx, centerWorldPz) {
-    markerContainer.innerHTML = '';
+// === 分级标记点渲染 ===
+function renderMarkers(width, height, centerWorldPx, centerWorldPz, scale) {
+    markerContainer.innerHTML = ''; 
     
-    // 1. LOD 控制：根据层级筛选地名
-    mapData.regions.forEach(reg => {
-        if (zoomLevel < -5 && reg.level !== 'global') return;
-        if (zoomLevel >= -2 && reg.level === 'global') return; // 放大后隐藏全局字
-        createMarkerDom(reg, reg.name, '📍', width, height, scale, centerWorldPx, centerWorldPz);
+    // 渲染大区/社区名称 (缩小时显示)
+    mapData.regions.forEach(region => {
+        if (zoomLevel >= region.minZoom && zoomLevel <= region.maxZoom) {
+            const screenX = (width / 2) + (region.x * scale - centerWorldPx);
+            const screenY = (height / 2) + (region.z * scale - centerWorldPz);
+            const el = document.createElement('div');
+            el.className = 'region-label';
+            el.style.left = `${screenX}px`; el.style.top = `${screenY}px`;
+            el.innerText = region.name;
+            markerContainer.appendChild(el);
+        }
     });
 
-    // 2. 细节层级渲染 POI 和 地铁站
-    if (zoomLevel >= -3) {
-        mapData.pois.forEach(poi => {
-            let icon = '🏢';
-            if(poi.type === 'hotel') icon = '🏨';
-            if(poi.type === 'bank') icon = '🏦';
-            createMarkerDom(poi, poi.name, icon, width, height, scale, centerWorldPx, centerWorldPz);
-        });
-        
-        mapData.subways.forEach(sub => {
-            if(!sub.stations) return;
-            sub.stations.forEach(st => {
-                createMarkerDom(st, st.name, '🚇', width, height, scale, centerWorldPx, centerWorldPz);
-            });
-        });
-    }
+    // 渲染具体 POI (放大时显示)
+    let renderedScreenBox = []; // 用于简单的碰撞检测预留
+
+    mapData.pois.forEach(poi => {
+        if (zoomLevel >= poi.minZoom && zoomLevel <= poi.maxZoom) {
+            const screenX = (width / 2) + (poi.x * scale - centerWorldPx);
+            const screenY = (height / 2) + (poi.z * scale - centerWorldPz);
+            
+            // 剔除屏幕外的点
+            if (screenX < -50 || screenX > width + 50 || screenY < -50 || screenY > height + 50) return;
+
+            const el = document.createElement('div');
+            el.className = 'map-marker';
+            el.style.left = `${screenX}px`; el.style.top = `${screenY}px`;
+            
+            // 匹配 Material Icon
+            let iconName = 'location_on';
+            if (poi.type === 'supermarket') iconName = 'shopping_cart';
+            else if (poi.type === 'hotel') iconName = 'bed';
+            
+            el.innerHTML = `
+                <div class="marker-icon ${poi.type}"><span class="material-symbols-rounded" style="font-size: 18px;">${iconName}</span></div>
+                <div class="marker-label">${poi.name}</div>
+            `;
+            
+            // 点击弹出 Bottom Sheet
+            el.onclick = (e) => { e.stopPropagation(); openBottomSheet(poi); };
+            markerContainer.appendChild(el);
+        }
+    });
 }
 
-function createMarkerDom(data, text, iconStr, width, height, scale, centerPx, centerPz) {
-    const px = (width / 2) + (data.x * scale - centerPx);
-    const py = (height / 2) + (data.z * scale - centerPz);
-    
-    // 视口剔除优化
-    if (px < -100 || px > width + 100 || py < -100 || py > height + 100) return;
-
-    const el = document.createElement('div');
-    el.style.position = 'absolute';
-    el.style.left = `${px}px`;
-    el.style.top = `${py}px`;
-    el.style.transform = 'translate(-50%, -50%)';
-    el.style.textAlign = 'center';
-    el.style.pointerEvents = 'auto'; // 允许点击地标
-    
-    el.innerHTML = `
-        <div style="font-size:24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${iconStr}</div>
-        <div style="background:rgba(255,255,255,0.9); padding:2px 6px; border-radius:12px; font-size:12px; font-weight:bold; color:#333; margin-top:4px; box-shadow:0 1px 3px rgba(0,0,0,0.2);">${text}</div>
-    `;
-    
-    el.onclick = () => {
-        alert(`${text}\n${data.desc || '没有详细描述'}\n坐标: ${data.x}, ${data.z}`);
-    };
-    markerContainer.appendChild(el);
-}
-
-// ================= 3. 拖拽、缩放与长按交互 =================
-let pressTimer;
-
+// ================= 3. 交互系统 (拖拽、长按、菜单) =================
+let touchTimer;
 container.addEventListener('mousedown', startInteraction);
-container.addEventListener('touchstart', startInteraction, { passive: false });
+container.addEventListener('touchstart', (e) => {
+    startInteraction(e);
+    // 触发长按检测 (500ms)
+    const touch = e.touches[0];
+    touchTimer = setTimeout(() => showContextMenu(touch.clientX, touch.clientY), 500);
+}, { passive: false });
+
 window.addEventListener('mousemove', drag);
-window.addEventListener('touchmove', drag, { passive: false });
+window.addEventListener('touchmove', (e) => {
+    clearTimeout(touchTimer); // 移动则取消长按
+    drag(e);
+}, { passive: false });
+
 window.addEventListener('mouseup', endInteraction);
-window.addEventListener('touchend', endInteraction);
-container.addEventListener('contextmenu', e => e.preventDefault()); // 禁用自带右键
+window.addEventListener('touchend', () => { clearTimeout(touchTimer); endInteraction(); });
 
 function startInteraction(e) {
-    if (e.target.closest('.m3-context-menu') || e.target.closest('.m3-fab') || e.target.closest('.m3-search-bar')) return;
-    
+    if (e.type === 'mousedown' && e.button !== 0) return;
     isDragging = true;
-    const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-    
-    mouseStartX = clientX;
-    mouseStartY = clientY;
-    dragStartX = currentX;
-    dragStartZ = currentZ;
-
-    contextMenu.style.display = 'none'; // 隐藏菜单
-
-    // 长按检测 (500ms)
-    pressTimer = setTimeout(() => {
-        isDragging = false; // 触发长按后停止拖拽
-        showContextMenu(clientX, clientY);
-    }, 500);
+    closeBottomSheet(); // 点击地图收起抽屉
+    hideContextMenu();
+    dragStartMouseX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+    dragStartMouseY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    dragStartX = currentX; dragStartZ = currentZ;
 }
 
 function drag(e) {
     if (!isDragging) return;
-    e.preventDefault();
-    
+    if (e.type === 'mousemove') e.preventDefault();
     const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-    
-    // 如果移动了，取消长按判定
-    if (Math.abs(clientX - mouseStartX) > 5 || Math.abs(clientY - mouseStartY) > 5) {
-        clearTimeout(pressTimer);
-    }
+    const deltaX = clientX - dragStartMouseX;
+    const deltaY = clientY - dragStartMouseY;
     
     const scale = Math.pow(2, zoomLevel);
-    currentX = dragStartX - ((clientX - mouseStartX) / scale);
-    currentZ = dragStartZ - ((clientY - mouseStartY) / scale);
-    
+    currentX = dragStartX - (deltaX / scale);
+    currentZ = dragStartZ - (deltaY / scale);
     requestAnimationFrame(updateMap);
 }
 
-function endInteraction() {
-    isDragging = false;
-    clearTimeout(pressTimer);
-}
+function endInteraction() { isDragging = false; }
 
-// 长按菜单逻辑
-let targetMcCoords = { x: 0, z: 0 };
+// ================= 4. UI 组件逻辑 =================
+// 底部抽屉 (Bottom Sheet)
+function openBottomSheet(poi) {
+    const sheetContent = document.getElementById('sheet-content');
+    
+    // 生成图片画廊
+    const galleryHtml = poi.images ? poi.images.map(img => `<img src="${img}" alt="poi">`).join('') : '';
+
+    sheetContent.innerHTML = `
+        <h2 class="sheet-title">${poi.name}</h2>
+        <div class="sheet-subtitle">${poi.rating || ''} ⭐️ (${poi.reviews || 0}) · ${poi.type} <br> ${poi.status || ''}</div>
+        <div class="action-buttons">
+            <button class="m3-action-btn primary"><span class="material-symbols-rounded">directions</span> 路线</button>
+            <button class="m3-action-btn"><span class="material-symbols-rounded">call</span> 致电</button>
+            ${poi.url ? `<button class="m3-action-btn" onclick="window.open('${poi.url}')"><span class="material-symbols-rounded">language</span> 网站</button>` : ''}
+            <button class="m3-action-btn"><span class="material-symbols-rounded">bookmark</span> 保存</button>
+        </div>
+        <p style="color: #3c4043; line-height: 1.5;">${poi.desc || ''}</p>
+        <div class="poi-gallery">${galleryHtml}</div>
+    `;
+    bottomSheet.classList.add('active');
+}
+function closeBottomSheet() { bottomSheet.classList.remove('active'); }
+
+// 长按上下文菜单
+let contextWorldX, contextWorldZ;
 function showContextMenu(screenX, screenY) {
-    // 逆向运算：将屏幕坐标转换回 Minecraft 世界坐标
-    const width = container.offsetWidth;
-    const height = container.offsetHeight;
+    isDragging = false; // 中断拖拽
+    // 反向计算点击的地图坐标
+    const width = container.offsetWidth; const height = container.offsetHeight;
     const scale = Math.pow(2, zoomLevel);
-    
-    targetMcCoords.x = Math.round(currentX + (screenX - width / 2) / scale);
-    targetMcCoords.z = Math.round(currentZ + (screenY - height / 2) / scale);
+    contextWorldX = Math.round(currentX + (screenX - width/2) / scale);
+    contextWorldZ = Math.round(currentZ + (screenY - height/2) / scale);
 
-    document.getElementById('ctx-coord').innerText = `坐标: X: ${targetMcCoords.x}, Z: ${targetMcCoords.z}`;
-    
-    contextMenu.style.left = `${screenX}px`;
-    contextMenu.style.top = `${screenY}px`;
+    document.getElementById('ctx-coords-text').innerText = `${contextWorldX}, ${contextWorldZ}`;
+    contextMenu.style.left = `${screenX}px`; contextMenu.style.top = `${screenY}px`;
     contextMenu.style.display = 'block';
+    
+    // 手机端震动反馈
+    if (navigator.vibrate) navigator.vibrate(50);
+}
+function hideContextMenu() { contextMenu.style.display = 'none'; }
+
+// 复制坐标
+document.getElementById('ctx-copy-coords').onclick = () => {
+    navigator.clipboard.writeText(`${contextWorldX}, ${contextWorldZ}`);
+    alert("坐标已复制!"); hideContextMenu();
+};
+
+// 设置菜单
+document.getElementById('btn-settings').onclick = () => document.getElementById('settings-dialog').classList.remove('hidden');
+document.getElementById('btn-close-settings').onclick = () => {
+    settings.showCrosshair = document.getElementById('setting-crosshair').checked;
+    settings.rememberPosition = document.getElementById('setting-remember').checked;
+    applySettingsToUI(); saveSettings();
+    document.getElementById('settings-dialog').classList.add('hidden');
+};
+
+function applySettingsToUI() {
+    document.getElementById('setting-crosshair').checked = settings.showCrosshair;
+    document.getElementById('setting-remember').checked = settings.rememberPosition;
+    document.getElementById('crosshair').classList.toggle('hidden', !settings.showCrosshair);
 }
 
-// 菜单按钮事件绑定
-document.getElementById('ctx-copy').onclick = () => {
-    navigator.clipboard.writeText(`${targetMcCoords.x}, ${targetMcCoords.z}`);
-    contextMenu.style.display = 'none';
-    alert("坐标已复制到剪贴板！");
-};
+// 缩放按钮
+document.getElementById('btn-zoom-in').onclick = () => { zoomLevel = Math.min(0, zoomLevel + 1); updateMap(); };
+document.getElementById('btn-zoom-out').onclick = () => { zoomLevel = Math.max(-6, zoomLevel - 1); updateMap(); };
 
-document.getElementById('ctx-route-from').onclick = () => { alert("已设为起点"); contextMenu.style.display = 'none'; };
-document.getElementById('ctx-route-to').onclick = () => { alert("已设为终点"); contextMenu.style.display = 'none'; };
+// 滚轮缩放
+container.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY > 0) zoomLevel = Math.max(-6, zoomLevel - 1);
+    else if (e.deltaY < 0) zoomLevel = Math.min(0, zoomLevel + 1);
+    updateMap();
+}, { passive: false });
 
-document.getElementById('ctx-add-marker').onclick = () => {
-    // 携带坐标参数跳转新页面
-    window.location.href = `add_marker.html?x=${targetMcCoords.x}&z=${targetMcCoords.z}`;
-};
-
-// UI 按钮绑定
-document.getElementById('btn-zoom-in').onclick = () => { zoomLevel++; updateMap(); };
-document.getElementById('btn-zoom-out').onclick = () => { zoomLevel--; updateMap(); };
-document.getElementById('btn-origin').onclick = () => { currentX = mapOrigin.x; currentZ = mapOrigin.z; updateMap(); };
-
-// 隐藏菜单
-document.addEventListener('click', (e) => {
-    if (!e.target.closest('#context-menu') && !isDragging) {
-        contextMenu.style.display = 'none';
-    }
-});
-
+// 启动
 init();
