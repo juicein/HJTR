@@ -14,7 +14,7 @@
       "images": ["https://via.placeholder.com/300x200?text=Image+1", "https://via.placeholder.com/150x200?text=Image+2"]
     },
     {
-  "id": "poi2", "type": "hotel", "name": "中央国际酒店","x": 135,
+  "id": "poi2", "type": "hotel", "name": "寰宇土豪金环球国际五星级大酒店","x": 135,
   "z": -420,"minZoom": -2,"maxZoom": 0,"rating": 4.7,
   "reviews": 892,"status": "营业中 · 24小时服务",
 "website": "https://hotel-example.com",
