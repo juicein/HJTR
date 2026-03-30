@@ -3,53 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minecraft Maps (Material 3)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    <title>Minecraft Material Maps</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="m3-search-bar">
-        <span class="material-symbols-outlined menu-icon" onclick="toggleSettings()">menu</span>
-        <input type="text" id="search-input" placeholder="在 Minecraft 中搜索...">
-        <span class="material-symbols-outlined search-icon">search</span>
+    <div class="top-search-bar m3-elevation">
+        <span class="material-symbols-rounded">menu</span>
+        <input type="text" placeholder="在这里搜索...">
+        <span class="material-symbols-rounded" id="btn-settings">settings</span>
     </div>
 
-    <div id="coord-display" class="m3-chip" style="display: none;">X: 0, Z: 0</div>
-
-    <div id="crosshair" class="crosshair" style="display: none;">
-        <span class="material-symbols-outlined">add</span>
+    <div id="crosshair" class="crosshair hidden">
+        <span class="material-symbols-rounded">my_location</span>
     </div>
 
-    <div class="m3-fab-group">
-        <button class="m3-fab mini" id="btn-origin"><span class="material-symbols-outlined">my_location</span></button>
-        <button class="m3-fab mini" id="btn-zoom-in"><span class="material-symbols-outlined">add</span></button>
-        <button class="m3-fab mini" id="btn-zoom-out"><span class="material-symbols-outlined">remove</span></button>
-        <button class="m3-fab" id="btn-nav" style="background-color: var(--md-sys-color-primary); color: white;">
-            <span class="material-symbols-outlined">directions</span>
-        </button>
+    <div class="zoom-controls m3-elevation">
+        <button id="btn-zoom-in"><span class="material-symbols-rounded">add</span></button>
+        <button id="btn-zoom-out"><span class="material-symbols-rounded">remove</span></button>
     </div>
 
     <div class="preview-container" id="map-container">
         <div class="tile-container"></div>
-        <canvas id="path-canvas"></canvas> 
+        <svg class="vector-layer" id="vector-layer"></svg>
         <div class="marker-container"></div>
     </div>
 
-    <div id="settings-panel" class="m3-side-panel">
-        <h3>设置</h3>
-        <label class="m3-switch"><input type="checkbox" id="set-crosshair"> <span>显示十字准星</span></label>
-        <label class="m3-switch"><input type="checkbox" id="set-coords"> <span>显示实时坐标</span></label>
-        <label class="m3-switch"><input type="checkbox" id="set-memory"> <span>记住上次位置</span></label>
-        <button class="m3-btn" onclick="toggleSettings()">关闭</button>
+    <div id="bottom-sheet" class="bottom-sheet m3-elevation-high">
+        <div class="sheet-drag-handle"></div>
+        <div class="sheet-content" id="sheet-content">
+            </div>
     </div>
 
-    <div id="context-menu" class="m3-context-menu">
-        <div class="menu-header" id="ctx-coord">X: 0, Z: 0</div>
-        <div class="menu-item" id="ctx-copy"><span class="material-symbols-outlined">content_copy</span> 复制坐标</div>
-        <div class="menu-item" id="ctx-route-from"><span class="material-symbols-outlined">trip_origin</span> 从这里出发</div>
-        <div class="menu-item" id="ctx-route-to"><span class="material-symbols-outlined">place</span> 到这里去</div>
-        <div class="menu-divider"></div>
-        <div class="menu-item" id="ctx-add-marker"><span class="material-symbols-outlined">add_location_alt</span> 添加新标点</div>
+    <div id="context-menu" class="context-menu m3-elevation">
+        <div class="menu-item" id="ctx-copy-coords">
+            <span class="material-symbols-rounded">content_copy</span> <span id="ctx-coords-text">0, 0</span>
+        </div>
+        <hr>
+        <div class="menu-item"><span class="material-symbols-rounded">directions</span> 从这里出发</div>
+        <div class="menu-item"><span class="material-symbols-rounded">route</span> 到这里去</div>
+        <div class="menu-item"><span class="material-symbols-rounded">add_location</span> 添加缺失地点</div>
+    </div>
+
+    <div id="settings-dialog" class="settings-dialog m3-elevation-high hidden">
+        <h3>地图设置</h3>
+        <label class="setting-item">
+            <span>显示中心十字准星</span>
+            <input type="checkbox" id="setting-crosshair">
+        </label>
+        <label class="setting-item">
+            <span>记忆上次浏览位置</span>
+            <input type="checkbox" id="setting-remember">
+        </label>
+        <button id="btn-close-settings" class="m3-btn">完成</button>
     </div>
 
     <script src="script.js"></script>
