@@ -1,50 +1,46 @@
 {
   "settings": {
-    "originX": 0,
-    "originZ": 0
+    "defaultOrigin": { "x": 0, "z": 0 }
   },
-  "places": [
+  "areas": [
     {
-      "id": "poi_001",
-      "type": "poi",
-      "category": "supermarket",
-      "name": "Haojin 中心超市",
-      "x": 150,
-      "z": -200,
-      "level": "community", 
-      "remark": "24小时营业，提供新鲜蔬菜。",
-      "website": "https://example.com",
-      "images": [
-        "https://picsum.photos/400/300?1",
-        "https://picsum.photos/400/300?2"
-      ]
+      "name": "主城区", "level": "global", "x": 0, "z": 0, "minZoom": -4, "maxZoom": -1
     },
     {
-      "id": "region_001",
-      "type": "label",
-      "name": "Haojin 核心区",
-      "x": 0,
-      "z": 0,
-      "level": "region"
+      "name": "大学城片区", "level": "district", "x": 1500, "z": -800, "minZoom": -2, "maxZoom": 0
     }
   ],
-  "networks": [
+  "pois": [
     {
-      "id": "road_001",
-      "type": "road",
-      "roadType": "main",
-      "name": "Haojin 大道",
-      "level": "district",
-      "path": [[-500, -100], [0, 0], [200, 50], [500, 300]]
-    },
+      "id": "poi_1",
+      "type": "supermarket",
+      "name": "FairPrice Joo Koon",
+      "x": 200, "z": -150,
+      "images": ["https://picsum.photos/400/200", "https://picsum.photos/400/201"],
+      "rating": 4.3,
+      "reviews": 1343,
+      "status": "已结束营业 · 开始营业时间: 09:00",
+      "website": "https://fairprice.com.sg",
+      "desc": "本地大型综合超市，提供新鲜食材与生活用品。",
+      "minZoom": -2
+    }
+  ],
+  "roads": [
     {
-      "id": "metro_01",
-      "type": "transit",
-      "transitType": "subway",
-      "name": "Haojin 1号线",
-      "level": "global",
-      "color": "#E53935",
-      "path": [[-800, 200], [0, 0], [600, -150]]
+      "name": "中央大道",
+      "type": "main",
+      "points": [[-500, 0], [0, 50], [200, 100], [500, 300]]
+    }
+  ],
+  "subways": [
+    {
+      "name": "1号线",
+      "color": "#E91E63",
+      "points": [[-800, 200], [0, 0], [800, -200]],
+      "stations": [
+        { "name": "中央广场站", "x": 0, "z": 0 },
+        { "name": "大学城站", "x": 800, "z": -200 }
+      ]
     }
   ]
 }
