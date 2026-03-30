@@ -1,46 +1,30 @@
 {
   "settings": {
-    "defaultOrigin": { "x": 0, "z": 0 }
+    "origin": { "x": 0, "z": 0 }
   },
-  "areas": [
-    {
-      "name": "主城区", "level": "global", "x": 0, "z": 0, "minZoom": -4, "maxZoom": -1
-    },
-    {
-      "name": "大学城片区", "level": "district", "x": 1500, "z": -800, "minZoom": -2, "maxZoom": 0
-    }
+  "regions": [
+    { "id": "reg1", "name": "新叶城 (主城)", "x": 0, "z": 0, "minZoom": -6, "maxZoom": -3 }
   ],
   "pois": [
     {
-      "id": "poi_1",
-      "type": "supermarket",
-      "name": "FairPrice Joo Koon",
-      "x": 200, "z": -150,
-      "images": ["https://picsum.photos/400/200", "https://picsum.photos/400/201"],
-      "rating": 4.3,
-      "reviews": 1343,
-      "status": "已结束营业 · 开始营业时间: 09:00",
-      "website": "https://fairprice.com.sg",
-      "desc": "本地大型综合超市，提供新鲜食材与生活用品。",
-      "minZoom": -2
+      "id": "poi1", "type": "supermarket", "name": "FairPrice Joo Koon", 
+      "x": 120, "z": 250, "minZoom": -2, "maxZoom": 0,
+      "rating": 4.3, "reviews": 1343, "status": "营业中 · 09:00 开始",
+      "website": "https://example.com", "remarks": "提供新鲜蔬菜和日常用品",
+      "images": ["https://via.placeholder.com/300x200?text=Image+1", "https://via.placeholder.com/150x200?text=Image+2"]
     }
   ],
   "roads": [
     {
-      "name": "中央大道",
-      "type": "main",
-      "points": [[-500, 0], [0, 50], [200, 100], [500, 300]]
+      "id": "rd1", "type": "highway", "name": "中央大道", "minZoom": -4, "maxZoom": 0,
+      "points": [{"x": -500, "z": -500}, {"x": 0, "z": 0}, {"x": 500, "z": 200}]
     }
   ],
   "subways": [
     {
-      "name": "1号线",
-      "color": "#E91E63",
-      "points": [[-800, 200], [0, 0], [800, -200]],
-      "stations": [
-        { "name": "中央广场站", "x": 0, "z": 0 },
-        { "name": "大学城站", "x": 800, "z": -200 }
-      ]
+      "id": "sub1", "name": "1号线", "color": "#E53935", "minZoom": -3, "maxZoom": 0,
+      "stations": [{"name": "中心广场站", "x": 0, "z": 0}, {"name": "东区站", "x": 300, "z": 150}],
+      "points": [{"x": 0, "z": 0}, {"x": 300, "z": 150}]
     }
   ]
 }
