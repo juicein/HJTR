@@ -3,7 +3,7 @@
     "origin": { "x": 0, "z": 0 }
   },
   "regions": [
-    { "id": "reg1", "name": "新叶城 (主城)", "x": 0, "z": 0, "minZoom": -6, "maxZoom": -3 }
+    { "id": "reg1", "name": "北方城 (主城)", "x": 0, "z": 0, "minZoom": -6, "maxZoom": -3 }
   ],
   "pois": [
     {
@@ -16,8 +16,8 @@
   ],
   "roads": [
     {
-      "id": "rd1", "type": "highway", "name": "中央大道", "minZoom": -4, "maxZoom": 0,
-      "points": [{"x": -500, "z": -500}, {"x": 0, "z": 0}, {"x": 500, "z": 200}]
+      "id": "rd1", "type": "highway", "name": "列宁大道", "minZoom": -4, "maxZoom": 0,
+      "points": [{"x": -500, "z": 0}, {"x": 0, "z": 0}, {"x": 500, "z": 0}]
     }
   ],
   "subways": [
