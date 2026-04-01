@@ -1,7 +1,7 @@
 // ================= 全局状态与设置 =================
 let mapConfig = { minZoom: -6, maxZoom: 0, defaultZoom: -1, imageFormat: "webp" };
 let appState = {
-    x: 0, z: 0, zoom: -1,
+    x: -15193, z: -6713, zoom: -1,
     showCrosshair: true, showCoords: true, memoryEnabled: true
 };
 let mapData = { regions: [], pois: [], roads: [], subways: [] };
