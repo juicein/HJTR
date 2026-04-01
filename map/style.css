@@ -18,23 +18,26 @@
   }
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-body { font-family: system-ui, -apple-system, sans-serif; background: #222; overflow: hidden; color: var(--md-sys-color-on-primary-container); }
-
-.m3-surface {
-    background: var(--md-sys-color-surface);
-    border-radius: 28px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+/* 彻底禁用整个网页的原生滚动和手势，解决手机端乱跑问题 */
+html, body { 
+    width: 100vw; height: 100vh; overflow: hidden; 
+    margin: 0; padding: 0; user-select: none;
+    touch-action: none; /* 禁用下拉刷新和双指缩放整个网页 */
+    overscroll-behavior: none;
+    font-family: system-ui, -apple-system, sans-serif; 
+    background: #222; color: var(--md-sys-color-on-primary-container); 
 }
 
-/* 顶部栏 */
+* { box-sizing: border-box; -webkit-user-drag: none; }
+
+.m3-surface { background: var(--md-sys-color-surface); border-radius: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+
 .top-bar { position: absolute; top: 16px; left: 16px; right: 16px; z-index: 1000; pointer-events: none; }
 .search-box { display: flex; align-items: center; padding: 8px 16px; pointer-events: auto; gap: 8px; max-width: 400px; }
 .search-box input { flex: 1; border: none; background: transparent; outline: none; font-size: 16px; color: inherit; }
 .icon-btn { background: none; border: none; cursor: pointer; color: var(--md-sys-color-outline); display: flex; }
 .coords-display { display: inline-block; padding: 8px 16px; margin-top: 8px; font-weight: 500; font-size: 14px; pointer-events: auto; border-radius: 16px; }
 
-/* 悬浮控制 */
 .fab-controls { position: absolute; right: 16px; bottom: 32px; z-index: 1000; display: flex; flex-direction: column; gap: 16px; }
 .fab { width: 56px; height: 56px; border-radius: 16px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .zoom-group { background: var(--md-sys-color-surface); border-radius: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
@@ -42,17 +45,18 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #222; over
 .zoom-group hr { margin: 0; border: none; border-top: 1px solid var(--md-sys-color-outline); opacity: 0.2; }
 
 /* 地图层 */
-.preview-container { width: 100vw; height: 100vh; position: relative; cursor: grab; background: #111; }
+.preview-container { width: 100%; height: 100%; position: relative; cursor: grab; background: #111; touch-action: none; }
 .preview-container:active { cursor: grabbing; }
 .tile-container, .line-layer, .marker-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
 .tile-container img { position: absolute; width: 256px; height: 256px; }
 .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.8); pointer-events: none; text-shadow: 0 0 2px black; display: none; }
 
-/* 标记点样式 */
-.map-marker { position: absolute; transform: translate(-50%, -100%); pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s; }
-.map-marker:hover { transform: translate(-50%, -105%) scale(1.1); }
-.marker-icon { width: 32px; height: 32px; background: var(--md-sys-color-primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: 2px solid white; }
-.marker-label { background: rgba(255,255,255,0.9); color: #000; padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: bold; margin-top: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.3); text-shadow: none; white-space: nowrap; }
+/* 标记点样式更新：横向排列，文字在右侧 */
+.map-marker { position: absolute; transform: translate(-16px, -50%); pointer-events: auto; cursor: pointer; display: flex; flex-direction: row; align-items: center; gap: 6px; transition: transform 0.2s; }
+.map-marker:hover { transform: translate(-16px, -50%) scale(1.05); z-index: 100; }
+.marker-icon { width: 28px; height: 28px; background: var(--md-sys-color-primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid white; flex-shrink: 0; overflow: hidden; }
+.marker-icon img.transit-logo { width: 100%; height: 100%; object-fit: cover; } /* 地铁/公司Logo */
+.marker-label { background: rgba(255,255,255,0.85); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); color: #222; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; }
 .marker-region { color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.8); font-size: 20px; font-weight: 900; letter-spacing: 2px; position: absolute; transform: translate(-50%, -50%); }
 
 /* 详情抽屉 (Bottom Sheet) */
@@ -60,8 +64,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #222; over
 .bottom-sheet.active { bottom: 0; }
 .drag-handle { width: 40px; height: 4px; background: var(--md-sys-color-outline); border-radius: 2px; margin: 12px auto; opacity: 0.5; }
 .sheet-content { padding: 0 24px 24px; overflow-y: auto; flex: 1; }
+
+.sheet-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .sheet-header h2 { font-size: 24px; margin-bottom: 4px; }
-.sheet-rating { color: #fbbc04; font-size: 14px; display: flex; align-items: center; gap: 4px; margin-bottom: 16px; }
+.poi-type { color: var(--md-sys-color-primary); font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 4px; margin-bottom: 16px; }
+.brand-logo { width: 48px; height: 48px; border-radius: 8px; object-fit: contain; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background: white; }
+
 .action-buttons { display: flex; gap: 12px; margin-bottom: 24px; }
 .action-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: none; color: var(--md-sys-color-primary); font-weight: 500; cursor: pointer; }
 .action-btn .icon { width: 40px; height: 40px; border-radius: 50%; background: var(--md-sys-color-primary-container); display: flex; align-items: center; justify-content: center; }
@@ -78,3 +86,6 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #222; over
 .settings-modal h3 { margin-bottom: 16px; }
 .switch-label { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer; }
 .close-btn { margin-top: 16px; background: var(--md-sys-color-primary-container) !important; border-radius: 16px; justify-content: center; color: var(--md-sys-color-on-primary-container) !important; font-weight: bold; }
+
+/* SVG 文字路径样式 */
+.road-text { font-size: 12px; font-weight: bold; fill: rgba(255,255,255,0.9); text-anchor: middle; }
