@@ -18,6 +18,7 @@
     </div>
 
     <div class="fab-controls">
+        <button id="btn-exit-route" class="fab" style="display:none; background: #ffdad6; color: #410002;"><span class="material-symbols-rounded">close</span></button>
         <button id="btn-my-location" class="fab"><span class="material-symbols-rounded">my_location</span></button>
         <div class="zoom-group">
             <button id="btn-zoom-in"><span class="material-symbols-rounded">add</span></button>
@@ -38,15 +39,14 @@
     <div class="context-menu m3-surface" id="context-menu">
         <div class="context-header" id="ctx-coords">0, 0</div>
         <button onclick="copyCoords()"><span class="material-symbols-rounded">content_copy</span> 复制坐标</button>
-        <button><span class="material-symbols-rounded">directions</span> 从这里出发</button>
-        <button><span class="material-symbols-rounded">location_on</span> 到这里去</button>
-        <button class="add-marker-btn"><span class="material-symbols-rounded">add_location</span> 添加地点</button>
+        <button onclick="setRouteStart()"><span class="material-symbols-rounded">directions</span> 从这里出发</button>
+        <button onclick="setRouteEnd()"><span class="material-symbols-rounded">location_on</span> 到这里去</button>
+        <button onclick="addLocationRedirect()"><span class="material-symbols-rounded">add_location</span> 添加地点</button>
     </div>
 
     <div class="bottom-sheet m3-surface" id="bottom-sheet">
         <div class="drag-handle"></div>
-        <div class="sheet-content" id="sheet-content">
-            </div>
+        <div class="sheet-content" id="sheet-content"></div>
     </div>
 
     <div class="settings-modal m3-surface" id="settings-modal">
