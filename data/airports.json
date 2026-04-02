@@ -375,6 +375,16 @@
    "level": "4E",
    "runways": 1
  },
+  {
+"name": "天际关东",
+"code": "TJG",
+"lat": 34.6328,
+"lng": 135.224,
+"aliases": ["天际"],
+"level": "4E",
+"ICAO": "RJBE",
+"runways": 1
+}，
 {
     "name": "鸭城云琴",
     "code": "YQA",
