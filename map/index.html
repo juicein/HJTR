@@ -12,9 +12,17 @@
         <div class="search-box m3-surface">
             <span class="material-symbols-rounded">search</span>
             <input type="text" id="search-input" placeholder="搜索地点、道路...">
+            <button id="btn-layers" class="icon-btn"><span class="material-symbols-rounded">layers</span></button>
             <button id="btn-settings" class="icon-btn"><span class="material-symbols-rounded">settings</span></button>
         </div>
         <div class="coords-display m3-surface" id="coords-display">X: 0, Z: 0</div>
+    </div>
+
+    <div class="layer-menu m3-surface" id="layer-menu" style="display: none;">
+        <button onclick="switchLayer('all')"><span class="material-symbols-rounded">map</span> 完整地图</button>
+        <button onclick="switchLayer('raw')"><span class="material-symbols-rounded">satellite_alt</span> 原始地图 (无标线)</button>
+        <button onclick="switchLayer('transit')"><span class="material-symbols-rounded">directions_subway</span> 公交地图 (仅铁路)</button>
+        <button onclick="switchLayer('travel')"><span class="material-symbols-rounded">directions_car</span> 出行地图 (仅道路)</button>
     </div>
 
     <div class="fab-controls">
@@ -51,17 +59,12 @@
 
     <div class="settings-modal m3-surface" id="settings-modal">
         <h3>地图设置</h3>
+        <label class="switch-label"><span>显示十字准星</span><input type="checkbox" id="toggle-crosshair" checked></label>
+        <label class="switch-label"><span>显示坐标信息</span><input type="checkbox" id="toggle-coords" checked></label>
+        <label class="switch-label"><span>记住上次位置</span><input type="checkbox" id="toggle-memory" checked></label>
         <label class="switch-label">
-            <span>显示十字准星</span>
-            <input type="checkbox" id="toggle-crosshair" checked>
-        </label>
-        <label class="switch-label">
-            <span>显示坐标信息</span>
-            <input type="checkbox" id="toggle-coords" checked>
-        </label>
-        <label class="switch-label">
-            <span>记住上次位置</span>
-            <input type="checkbox" id="toggle-memory" checked>
+            <span>弯道平滑曲度 (Radius)</span>
+            <input type="range" id="curve-radius" min="10" max="150" value="50" style="width: 100px;">
         </label>
         <button class="close-btn" id="btn-close-settings">关闭</button>
     </div>
