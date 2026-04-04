@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minecraft Material Map</title>
+    <title>Minecraft M3 Map</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
     <link rel="stylesheet" href="style.css">
 </head>
@@ -12,21 +12,14 @@
         <div class="search-box m3-surface">
             <span class="material-symbols-rounded">search</span>
             <input type="text" id="search-input" placeholder="搜索地点、道路...">
-            <button id="btn-layers" class="icon-btn"><span class="material-symbols-rounded">layers</span></button>
             <button id="btn-settings" class="icon-btn"><span class="material-symbols-rounded">settings</span></button>
         </div>
         <div class="coords-display m3-surface" id="coords-display">X: 0, Z: 0</div>
     </div>
 
-    <div class="layer-menu m3-surface" id="layer-menu" style="display: none;">
-        <button onclick="switchLayer('all')"><span class="material-symbols-rounded">map</span> 完整地图</button>
-        <button onclick="switchLayer('raw')"><span class="material-symbols-rounded">satellite_alt</span> 原始地图 (无标线)</button>
-        <button onclick="switchLayer('transit')"><span class="material-symbols-rounded">directions_subway</span> 公交地图 (仅铁路)</button>
-        <button onclick="switchLayer('travel')"><span class="material-symbols-rounded">directions_car</span> 出行地图 (仅道路)</button>
-    </div>
-
     <div class="fab-controls">
         <button id="btn-exit-route" class="fab" style="display:none; background: #ffdad6; color: #410002;"><span class="material-symbols-rounded">close</span></button>
+        <button id="btn-layers" class="fab secondary-fab"><span class="material-symbols-rounded">layers</span></button>
         <button id="btn-my-location" class="fab"><span class="material-symbols-rounded">my_location</span></button>
         <div class="zoom-group">
             <button id="btn-zoom-in"><span class="material-symbols-rounded">add</span></button>
@@ -38,10 +31,16 @@
     <div class="preview-container" id="map-container">
         <div class="tile-container"></div>
         <svg class="line-layer" id="line-layer" width="100%" height="100%"></svg>
+        <div class="region-container" id="region-container"></div>
         <div class="marker-container"></div>
-        <div class="crosshair" id="crosshair">
-            <span class="material-symbols-rounded">add</span>
-        </div>
+    </div>
+
+    <div class="layer-menu m3-surface" id="layer-menu">
+        <div class="context-header">地图类型</div>
+        <button onclick="setMapMode('raw')"><span class="material-symbols-rounded">public</span> 原始地图</button>
+        <button onclick="setMapMode('transit')"><span class="material-symbols-rounded">directions_subway</span> 公交地图</button>
+        <button onclick="setMapMode('traffic')"><span class="material-symbols-rounded">directions_car</span> 出行地图</button>
+        <button onclick="setMapMode('all')"><span class="material-symbols-rounded">layers</span> 全部显示</button>
     </div>
 
     <div class="context-menu m3-surface" id="context-menu">
@@ -57,16 +56,28 @@
         <div class="sheet-content" id="sheet-content"></div>
     </div>
 
-    <div class="settings-modal m3-surface" id="settings-modal">
-        <h3>地图设置</h3>
-        <label class="switch-label"><span>显示十字准星</span><input type="checkbox" id="toggle-crosshair" checked></label>
-        <label class="switch-label"><span>显示坐标信息</span><input type="checkbox" id="toggle-coords" checked></label>
-        <label class="switch-label"><span>记住上次位置</span><input type="checkbox" id="toggle-memory" checked></label>
-        <label class="switch-label">
-            <span>弯道平滑曲度 (Radius)</span>
-            <input type="range" id="curve-radius" min="10" max="150" value="50" style="width: 100px;">
-        </label>
-        <button class="close-btn" id="btn-close-settings">关闭</button>
+    <div class="route-sheet m3-surface" id="route-sheet">
+        <div class="drag-handle"></div>
+        <div class="route-header">
+            <div class="route-inputs">
+                <div class="route-icon-column">
+                    <span class="material-symbols-rounded" style="color:#1a73e8; font-size: 16px;">my_location</span>
+                    <div class="route-dot-line"></div>
+                    <span class="material-symbols-rounded" style="color:#d93025; font-size: 16px;">location_on</span>
+                </div>
+                <div class="route-text-column">
+                    <div class="route-input-box" id="route-start-input" onclick="focusRouteInput('start')">我的位置</div>
+                    <div class="route-input-box" id="route-end-input" onclick="focusRouteInput('end')">选择目的地</div>
+                </div>
+            </div>
+            <button class="icon-btn" onclick="closeRouteSheet()"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <div class="route-options">
+            <button class="route-mode-btn active"><span class="material-symbols-rounded">directions_car</span></button>
+            <button class="route-mode-btn"><span class="material-symbols-rounded">directions_walk</span></button>
+        </div>
+        <div class="route-results" id="route-results">
+            </div>
     </div>
 
     <script src="script.js"></script>
