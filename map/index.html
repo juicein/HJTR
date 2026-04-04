@@ -12,19 +12,22 @@
         <div class="search-box m3-surface">
             <span class="material-symbols-rounded">search</span>
             <input type="text" id="search-input" placeholder="搜索地点、道路...">
-            <button id="btn-layers" class="icon-btn"><span class="material-symbols-rounded">layers</span></button>
+            <button id="btn-settings" class="icon-btn"><span class="material-symbols-rounded">settings</span></button>
         </div>
         <div class="coords-display m3-surface" id="coords-display">X: 0, Z: 0</div>
     </div>
 
     <div class="layer-menu m3-surface" id="layer-menu">
-        <button onclick="switchLayer('all')" class="active"><span class="material-symbols-rounded">map</span> 默认地图</button>
-        <button onclick="switchLayer('travel')"><span class="material-symbols-rounded">directions_car</span> 出行地图 (仅道路)</button>
-        <button onclick="switchLayer('transit')"><span class="material-symbols-rounded">directions_subway</span> 公交地图 (仅轨交)</button>
-        <button onclick="switchLayer('none')"><span class="material-symbols-rounded">satellite_alt</span> 原始地图 (无标线)</button>
+        <div class="layer-title">地图显示</div>
+        <label class="radio-label"><input type="radio" name="map_layer" value="all" checked> <span>标准地图 (全部显示)</span></label>
+        <label class="radio-label"><input type="radio" name="map_layer" value="drive"> <span>出行地图 (仅道路)</span></label>
+        <label class="radio-label"><input type="radio" name="map_layer" value="transit"> <span>公交地图 (仅轨道)</span></label>
+        <label class="radio-label"><input type="radio" name="map_layer" value="none"> <span>清爽地图 (仅底图)</span></label>
     </div>
 
     <div class="fab-controls">
+        <button id="btn-exit-route" class="fab danger-fab" style="display:none;"><span class="material-symbols-rounded">close</span></button>
+        <button id="btn-layers" class="fab"><span class="material-symbols-rounded">layers</span></button>
         <button id="btn-my-location" class="fab"><span class="material-symbols-rounded">my_location</span></button>
         <div class="zoom-group">
             <button id="btn-zoom-in"><span class="material-symbols-rounded">add</span></button>
@@ -36,44 +39,45 @@
     <div class="preview-container" id="map-container">
         <div class="tile-container"></div>
         <svg class="line-layer" id="line-layer" width="100%" height="100%"></svg>
-        <div class="region-container" id="region-container"></div>
-        <div class="marker-container" id="marker-container"></div>
+        <div class="marker-container"></div>
+        <div class="crosshair" id="crosshair"><span class="material-symbols-rounded">add</span></div>
     </div>
 
     <div class="context-menu m3-surface" id="context-menu">
         <div class="context-header" id="ctx-coords">0, 0</div>
         <button onclick="copyCoords()"><span class="material-symbols-rounded">content_copy</span> 复制坐标</button>
-        <button onclick="openRouteDialog(window.lastClickedCoords, null)"><span class="material-symbols-rounded">directions</span> 从这里出发</button>
-        <button onclick="openRouteDialog(null, window.lastClickedCoords)"><span class="material-symbols-rounded">location_on</span> 到这里去</button>
+        <button onclick="openRoutePlanner('start')"><span class="material-symbols-rounded">directions</span> 从这里出发</button>
+        <button onclick="openRoutePlanner('end')"><span class="material-symbols-rounded">location_on</span> 到这里去</button>
         <button onclick="addLocationRedirect()"><span class="material-symbols-rounded">add_location</span> 添加地点</button>
     </div>
 
     <div class="bottom-sheet m3-surface" id="bottom-sheet">
         <div class="drag-handle"></div>
-        
-        <div class="sheet-content" id="sheet-poi" style="display: none;"></div>
-        
-        <div class="sheet-content" id="sheet-route" style="display: none;">
-            <div class="route-header">
-                <button class="icon-btn" onclick="closeBottomSheet()"><span class="material-symbols-rounded">close</span></button>
-                <h2>路线</h2>
-            </div>
-            
-            <div class="route-tabs">
-                <button class="route-tab active" id="tab-drive" onclick="setRouteMode('drive')"><span class="material-symbols-rounded">directions_car</span></button>
-                <button class="route-tab" id="tab-transit" onclick="setRouteMode('transit')"><span class="material-symbols-rounded">directions_subway</span></button>
-            </div>
+        <div class="sheet-content" id="sheet-content"></div>
+    </div>
 
-            <div class="route-inputs m3-surface-variant">
-                <div class="route-line-decor"></div>
-                <input type="text" id="route-start-input" placeholder="选择起点 (或点击地图)" readonly>
-                <hr>
-                <input type="text" id="route-end-input" placeholder="选择终点 (或点击地图)" readonly>
+    <div class="bottom-sheet route-sheet m3-surface" id="route-sheet">
+        <div class="drag-handle"></div>
+        <div class="sheet-content route-content">
+            <div class="route-inputs">
+                <div class="route-timeline"></div>
+                <div class="inputs-container">
+                    <input type="text" id="route-start-input" placeholder="选择起点..." readonly onclick="focusRouteInput('start')">
+                    <input type="text" id="route-end-input" placeholder="选择终点..." readonly onclick="focusRouteInput('end')">
+                </div>
+                <button class="icon-btn swap-btn" onclick="swapRoute()"><span class="material-symbols-rounded">swap_vert</span></button>
             </div>
-
-            <div id="route-results" class="route-results">
+            <div class="route-options-list" id="route-options-list">
                 </div>
         </div>
+    </div>
+
+    <div class="settings-modal m3-surface" id="settings-modal">
+        <h3>地图设置</h3>
+        <label class="switch-label"><span>显示十字准星</span><input type="checkbox" id="toggle-crosshair" checked></label>
+        <label class="switch-label"><span>显示坐标信息</span><input type="checkbox" id="toggle-coords" checked></label>
+        <label class="switch-label"><span>记住上次位置</span><input type="checkbox" id="toggle-memory" checked></label>
+        <button class="close-btn" id="btn-close-settings">关闭</button>
     </div>
 
     <script src="script.js"></script>
