@@ -1,92 +1,101 @@
-/* ...保留之前的变量和全局设定... */
 :root {
-  --md-sys-color-primary: #006495; --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #cbe6ff; --md-sys-color-on-primary-container: #001e30;
-  --md-sys-color-surface: #fdfcff; --md-sys-color-surface-container: #f0f4f8; --md-sys-color-outline: #72777f;
+  --md-sys-color-primary: #0a56d9; /* 更贴近 Google Map 蓝 */
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d3e3fd;
+  --md-sys-color-on-primary-container: #041e49;
+  --md-sys-color-surface: #fdfcff;
+  --md-sys-color-surface-container: #f0f4f8;
+  --md-sys-color-outline: #72777f;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --md-sys-color-surface: #1a1c1e; --md-sys-color-surface-container: #202429;
-    --md-sys-color-on-primary-container: #ffffff; --md-sys-color-primary-container: #006495;
-    --md-sys-color-primary: #93cae4;
+    --md-sys-color-surface: #1e1e1e;
+    --md-sys-color-surface-container: #2d2e30;
+    --md-sys-color-primary-container: #004a77;
+    --md-sys-color-primary: #a8c7fa;
   }
 }
+
 html, body { 
-    width: 100vw; height: 100vh; overflow: hidden; margin: 0; padding: 0; user-select: none;
-    touch-action: none; overscroll-behavior: none; font-family: system-ui, sans-serif; 
-    background: #222; color: var(--md-sys-color-on-primary-container); 
+    width: 100vw; height: 100vh; overflow: hidden; 
+    margin: 0; padding: 0; user-select: none; touch-action: none; overscroll-behavior: none;
+    font-family: system-ui, -apple-system, sans-serif; background: #222; color: var(--md-sys-color-on-primary-container); 
 }
 * { box-sizing: border-box; -webkit-user-drag: none; }
 .m3-surface { background: var(--md-sys-color-surface); border-radius: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
 
+/* Top & FABs */
 .top-bar { position: absolute; top: 16px; left: 16px; right: 16px; z-index: 1000; pointer-events: none; }
-.search-box { display: flex; align-items: center; padding: 8px 16px; pointer-events: auto; gap: 8px; max-width: 400px; }
+.search-box { display: flex; align-items: center; padding: 8px 16px; pointer-events: auto; gap: 8px; max-width: 400px; height: 48px; border-radius: 24px;}
 .search-box input { flex: 1; border: none; background: transparent; outline: none; font-size: 16px; color: inherit; }
-.icon-btn { background: none; border: none; cursor: pointer; color: var(--md-sys-color-outline); display: flex; padding: 4px; }
-.coords-display { display: inline-block; padding: 8px 16px; margin-top: 8px; font-weight: 500; font-size: 14px; pointer-events: auto; border-radius: 16px; }
+.icon-btn { background: none; border: none; cursor: pointer; color: var(--md-sys-color-outline); display: flex; }
+.coords-display { display: inline-block; padding: 6px 16px; margin-top: 8px; font-size: 13px; pointer-events: auto; border-radius: 16px; font-family: monospace;}
 
-.layer-menu { position: absolute; top: 72px; left: 16px; z-index: 2000; padding: 12px 0; display: flex; flex-direction: column; }
-.layer-menu button { background: none; border: none; padding: 12px 24px; display: flex; align-items: center; gap: 12px; color: inherit; font-size: 15px; cursor: pointer; text-align: left; }
-.layer-menu button:hover { background: var(--md-sys-color-surface-container); }
-
-.fab-controls { position: absolute; right: 16px; bottom: 32px; z-index: 1000; display: flex; flex-direction: column; gap: 16px; }
+.fab-controls { position: absolute; right: 16px; bottom: 32px; z-index: 1000; display: flex; flex-direction: column; gap: 12px; }
 .fab { width: 56px; height: 56px; border-radius: 16px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.zoom-group { background: var(--md-sys-color-surface); border-radius: 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; overflow: hidden; }
+.fab.secondary-fab { background: var(--md-sys-color-surface); width: 48px; height: 48px; border-radius: 12px; margin-left: 4px; }
+.zoom-group { background: var(--md-sys-color-surface); border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); display: flex; flex-direction: column; width: 48px; margin-left: 4px; }
 .zoom-group button { width: 48px; height: 48px; background: none; border: none; cursor: pointer; color: var(--md-sys-color-on-primary-container); }
 .zoom-group hr { margin: 0; border: none; border-top: 1px solid var(--md-sys-color-outline); opacity: 0.2; }
 
-.preview-container { width: 100%; height: 100%; position: relative; cursor: grab; background: #111; touch-action: none; }
+/* Map Layers */
+.preview-container { width: 100%; height: 100%; position: relative; cursor: grab; background: #e8eaed; touch-action: none; }
 .preview-container:active { cursor: grabbing; }
-.tile-container, .line-layer, .marker-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.tile-container, .line-layer, .marker-container, .region-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
 .tile-container img { position: absolute; width: 256px; height: 256px; }
-.crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.8); pointer-events: none; text-shadow: 0 0 2px black; display: none; }
 
-/* 标记点样式：默认右侧，碰撞时靠左侧 */
-.map-marker { position: absolute; pointer-events: auto; cursor: pointer; display: flex; flex-direction: row; align-items: center; gap: 6px; transition: transform 0.2s; transform: translate(-14px, -50%); }
-.map-marker.label-left { flex-direction: row-reverse; transform: translate(calc(-100% + 14px), -50%); }
-.map-marker:hover { z-index: 100; transform: translate(-14px, -50%) scale(1.05); }
-.map-marker.label-left:hover { transform: translate(calc(-100% + 14px), -50%) scale(1.05); }
+/* Regions & Markers */
+.region-label { position: absolute; color: rgba(0,0,0,0.4); text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff; font-size: 24px; font-weight: 900; letter-spacing: 4px; transform: translate(-50%, -50%); pointer-events: none; }
+@media (prefers-color-scheme: dark) { .region-label { color: rgba(255,255,255,0.4); text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000; } }
+
+.map-marker { position: absolute; transform: translate(-14px, -50%); pointer-events: auto; cursor: pointer; display: flex; flex-direction: row; align-items: center; gap: 6px; transition: transform 0.2s; }
+.map-marker:hover { transform: translate(-14px, -50%) scale(1.05); z-index: 100; }
+.map-marker.align-left { flex-direction: row-reverse; transform: translate(calc(-100% + 14px), -50%); } /* 碰撞时左排版 */
+.map-marker.align-left:hover { transform: translate(calc(-100% + 14px), -50%) scale(1.05); }
 
 .marker-icon { width: 28px; height: 28px; background: var(--md-sys-color-primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); border: 2px solid white; flex-shrink: 0; overflow: hidden; }
-.marker-icon img.transit-logo { width: 100%; height: 100%; object-fit: cover; }
-.marker-label { background: rgba(255,255,255,0.85); backdrop-filter: blur(4px); color: #222; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; }
+.marker-icon img.transit-logo { width: 100%; height: 100%; object-fit: contain; background: white;}
+.marker-label { background: rgba(255,255,255,0.9); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); color: #222; padding: 2px 6px; border-radius: 6px; font-size: 13px; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.2); white-space: nowrap; border: 1px solid rgba(0,0,0,0.05); }
 
-/* 详情抽屉 (Bottom Sheet) */
-.bottom-sheet { position: absolute; bottom: -100%; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; max-height: 80vh; z-index: 2000; transition: bottom 0.3s cubic-bezier(0.2, 0, 0, 1); border-bottom-left-radius: 0; border-bottom-right-radius: 0; display: flex; flex-direction: column; }
-.bottom-sheet.active { bottom: 0; }
-.drag-handle { width: 40px; height: 4px; background: var(--md-sys-color-outline); border-radius: 2px; margin: 12px auto; opacity: 0.5; }
+/* SVG */
+.road-text { font-size: 12px; font-weight: bold; fill: #444; paint-order: stroke; stroke: #fff; stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-color-scheme: dark) { .road-text { fill: #ddd; stroke: #222; } }
+
+/* Menus & Sheets */
+.context-menu, .layer-menu { position: absolute; z-index: 3000; display: none; padding: 8px 0; min-width: 200px; border-radius: 12px; transform-origin: top left; animation: popIn 0.2s cubic-bezier(0, 0, 0.2, 1); }
+@keyframes popIn { 0% { opacity: 0; transform: scale(0.9); } 100% { opacity: 1; transform: scale(1); } }
+.context-menu button, .layer-menu button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 24px; background: none; border: none; color: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+.context-menu button:hover, .layer-menu button:hover { background: var(--md-sys-color-surface-container); }
+.context-header { padding: 8px 24px 8px; font-weight: bold; font-size: 14px; color: var(--md-sys-color-primary); }
+
+.bottom-sheet, .route-sheet { position: absolute; bottom: -100%; left: 50%; transform: translateX(-50%); width: 100%; max-width: 500px; max-height: 80vh; z-index: 2000; transition: bottom 0.3s cubic-bezier(0.2, 0, 0, 1); border-bottom-left-radius: 0; border-bottom-right-radius: 0; display: flex; flex-direction: column; }
+.bottom-sheet.active, .route-sheet.active { bottom: 0; }
+.drag-handle { width: 32px; height: 4px; background: var(--md-sys-color-outline); border-radius: 2px; margin: 12px auto; opacity: 0.5; }
 .sheet-content { padding: 0 24px 24px; overflow-y: auto; flex: 1; }
 
-/* 地点与品牌Logo预留 */
 .sheet-header-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-.sheet-header h2 { font-size: 24px; margin-bottom: 4px; }
+.sheet-header h2 { font-size: 22px; margin: 0 0 4px 0; }
 .poi-type { color: var(--md-sys-color-primary); font-size: 14px; font-weight: bold; display: flex; align-items: center; gap: 4px; margin-bottom: 16px; }
-.brand-logo { width: 48px; height: 48px; border-radius: 8px; object-fit: contain; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background: white; margin-left: 12px;}
+.brand-logo { width: 56px; height: 56px; border-radius: 12px; object-fit: contain; box-shadow: 0 2px 8px rgba(0,0,0,0.1); background: white; border: 1px solid #eee; }
 
-.action-buttons { display: flex; gap: 12px; margin-bottom: 24px; }
-.action-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; background: none; border: none; color: var(--md-sys-color-primary); font-weight: 500; cursor: pointer; }
-.action-btn .icon { width: 40px; height: 40px; border-radius: 50%; background: var(--md-sys-color-primary-container); display: flex; align-items: center; justify-content: center; }
+.action-buttons { display: flex; gap: 8px; margin-bottom: 24px; }
+.action-btn { flex: 1; display: flex; justify-content: center; align-items: center; gap: 8px; background: var(--md-sys-color-primary); color: white; border: none; padding: 12px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+.action-btn.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
 
-/* 路线规划 UI */
-.route-ui-container { background: var(--md-sys-color-surface-container); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
-.route-modes { display: flex; gap: 8px; margin-bottom: 16px; }
-.route-mode-btn { flex: 1; padding: 8px; border: none; background: var(--md-sys-color-surface); border-radius: 8px; cursor: pointer; color: var(--md-sys-color-outline); }
-.route-mode-btn.active { background: var(--md-sys-color-primary); color: white; }
-.route-locations { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; position: relative; }
-.route-locations::before { content:''; position: absolute; left: 11px; top: 16px; bottom: 16px; width: 2px; background: var(--md-sys-color-outline); opacity: 0.3; }
-.route-loc-row { display: flex; align-items: center; gap: 12px; z-index: 1; }
-.route-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--md-sys-color-outline); margin-left: 8px;}
-.route-dot.dest { background: #E53935; }
-.route-input { flex: 1; background: var(--md-sys-color-surface); border: none; padding: 12px; border-radius: 8px; font-size: 14px; color: inherit; }
-.route-options { display: flex; flex-direction: column; gap: 8px; }
-.route-card { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--md-sys-color-surface); border-radius: 12px; border: 2px solid transparent; cursor: pointer; }
-.route-card.suggested { border-color: var(--md-sys-color-primary); }
-.route-card h4 { margin: 0 0 4px 0; font-size: 18px; color: var(--md-sys-color-primary); }
-.route-card p { margin: 0; font-size: 12px; color: var(--md-sys-color-outline); }
+/* Route Sheet (Google Map Style) */
+.route-header { padding: 0 24px 16px; display: flex; gap: 16px; border-bottom: 1px solid var(--md-sys-color-surface-container); }
+.route-inputs { flex: 1; display: flex; gap: 12px; background: var(--md-sys-color-surface-container); padding: 12px; border-radius: 16px; }
+.route-icon-column { display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 4px 0; }
+.route-dot-line { flex: 1; width: 2px; background: radial-gradient(circle, #aaa 2px, transparent 2px); background-size: 100% 8px; margin: 4px 0; }
+.route-text-column { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.route-input-box { background: var(--md-sys-color-surface); padding: 10px 12px; border-radius: 8px; font-size: 14px; color: var(--md-sys-color-on-primary-container); border: 1px solid transparent; cursor: pointer; }
+.route-input-box.focus { border-color: var(--md-sys-color-primary); outline: 1px solid var(--md-sys-color-primary); }
+.route-options { display: flex; padding: 12px 24px; gap: 16px; border-bottom: 1px solid var(--md-sys-color-surface-container); }
+.route-mode-btn { background: none; border: none; color: var(--md-sys-color-outline); cursor: pointer; padding: 8px; border-radius: 50%; }
+.route-mode-btn.active { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-primary); }
 
-.context-menu, .settings-modal { position: absolute; z-index: 3000; display: none; padding: 12px 0; min-width: 200px; }
-.context-menu button, .settings-modal button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 24px; background: none; border: none; color: inherit; font-size: 15px; cursor: pointer; text-align: left; }
-.settings-modal { top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 24px; min-width: 300px; }
-.switch-label { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; cursor: pointer; }
-.close-btn { margin-top: 16px; background: var(--md-sys-color-primary-container)!important; border-radius: 16px; justify-content: center; color: var(--md-sys-color-on-primary-container)!important; font-weight: bold; }
-.road-text { font-size: 12px; font-weight: bold; fill: rgba(255,255,255,0.9); text-anchor: middle; }
+.route-results { padding: 16px 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.route-card { background: var(--md-sys-color-surface-container); padding: 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 2px solid transparent; }
+.route-card.selected { border-color: var(--md-sys-color-primary); background: var(--md-sys-color-primary-container); }
+.route-info h4 { margin: 0; font-size: 18px; color: #188038; /* 谷歌绿 */ display: flex; align-items: center; gap: 8px;}
+.route-info p { margin: 4px 0 0; font-size: 14px; color: var(--md-sys-color-outline); }
