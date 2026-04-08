@@ -29,7 +29,11 @@
   "roads": [
     {
       "id": "rd1", "type": "highway", "name": "列宁大道", "minZoom": -4, "maxZoom": 0,
-      "points": [{"x": -500, "z": 0}, {"x": 0, "z": 0}, {"x": 500, "z": 800}]
+      "points": [{"x": -500, "z": 0}, {"x": 0, "z": 0}, {"x": 500, "z": 0}]
+    },
+    {
+      "id": "rd1", "type": "expressway", "name": "青叶大道", "minZoom": -4, "maxZoom": 0,
+      "points": [{"x": -500, "z": -22}, {"x": 1695, "z": -22}, {"x":1695 , "z": 800}]
     }
   ],
   "subways": [
