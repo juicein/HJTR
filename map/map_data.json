@@ -32,7 +32,7 @@
       "points": [{"x": -500, "z": 0}, {"x": 0, "z": 0}, {"x": 500, "z": 0}]
     },
     {
-      "id": "rd1", "type": "expressway", "name": "青叶大道", "minZoom": -4, "maxZoom": 0,
+      "id": "rd2", "type": "expressway", "name": "青叶大道", "minZoom": -4, "maxZoom": 0,
       "points": [{"x": -22, "z": -500}, {"x": -22, "z": 1695}, {"x":-22 , "z": 800}]
     }
   ],
