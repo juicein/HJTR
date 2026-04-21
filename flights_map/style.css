@@ -583,7 +583,10 @@ body:not(.show-ap-name):not(.show-ap-code) .airport-label { display: none !impor
   }
 }
 
-/*禁用双击 谨慎使用 */
+
+
+
+/*禁用双击 谨慎使用 先这么搞这*/
 body {
     touch-action: manipulation;
 }
