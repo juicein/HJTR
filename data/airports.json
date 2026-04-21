@@ -420,6 +420,15 @@
    "aliases": ["晴都"],
    "level": "4E",
    "runways": 1
+}, 
+{
+   "name": "西京雪原",
+   "code": "SEK",
+   "lat": 30.32674,
+   "lng": 115.05111,
+   "aliases": ["西京"],
+   "level": "4E",
+   "runways": 1
  }
  
 ]
