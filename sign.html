@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>公交电子站牌</title>
+
+<style>
+body{
+    margin:0;
+    background:#eee;
+}
+
+svg{
+    width:100%;
+    height:100vh;
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+
+const params = new URLSearchParams(location.search);
+
+const stationParam =
+      params.get("station") || "龙亭广场内-上行";
+
+const stationName =
+      stationParam.replace("-上行","")
+                  .replace("-下行","");
+
+fetch("data/bus_data.txt")
+.then(r=>r.text())
+.then(parseBus);
+
+function parseBus(text){
+
+    let result=[];
+
+    text.split("\n").forEach(line=>{
+
+        if(!line.trim()) return;
+
+        let route=
+            line.match(/【(.*?)】/);
+
+        if(!route) return;
+
+        route=route[1];
+
+        let stopText=
+            line.split("{")[0];
+
+        stopText=
+            stopText.replace(/【.*?】/,"");
+
+        let stops=
+            stopText.split("-");
+
+        let cleanStops=
+            stops.map(s=>
+                s.replace(/[↑↓]/g,"").trim()
+            );
+
+        let index=
+            cleanStops.indexOf(stationName);
+
+        if(index==-1) return;
+
+        let nextStop=
+            cleanStops[index+1] || "终点站";
+
+        result.push({
+            route,
+            nextStop
+        });
+
+    });
+
+    renderSvg(result);
+}
+
+function renderSvg(list){
+
+let rows="";
+
+list.forEach((item,i)=>{
+
+    rows+=`
+    <text
+        x="40"
+        y="${120+i*60}"
+        font-size="30"
+        font-weight="bold">
+        ${item.route}
+    </text>
+
+    <text
+        x="180"
+        y="${120+i*60}"
+        font-size="28">
+        下一站：${item.nextStop}
+    </text>
+    `;
+});
+
+let height=Math.max(
+    220,
+    120+list.length*60
+);
+
+let svg=`
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="800"
+     height="${height}">
+
+<rect
+ width="100%"
+ height="100%"
+ fill="white"/>
+
+<rect
+ width="100%"
+ height="70"
+ fill="#0A66CC"/>
+
+<text
+ x="20"
+ y="48"
+ fill="white"
+ font-size="36"
+ font-weight="bold">
+ ${stationName}
+</text>
+
+${rows}
+
+</svg>
+`;
+
+document.getElementById("app").innerHTML=svg;
+
+}
+
+</script>
+
+</body>
+</html>
