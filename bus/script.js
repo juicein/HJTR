@@ -628,9 +628,10 @@ function openDetail(line) {
   
   /* --- 注意注意！！！！颜色修改喵 自动颜色匹配修复 --- */
     /* ---const badgeColor = line.color ? `#${line.color.slice(0,6)}` : 'var(--md-sys-color-primary)';--- */
-const badgeColor = line.color
-  ? `#${line.color.replace(/^#+/, '')}`
-  : 'var(--md-sys-color-primary)';
+const badgeColor =
+  typeof line.color === 'string' && line.color.trim()
+    ? `#${line.color.replace(/^#+/, '')}`
+    : 'var(--md-sys-color-primary)';
 
   header.innerHTML = `
     <div class="dh-top">
