@@ -422,6 +422,24 @@
    "runways": 1
 }, 
 {
+   "name": "北海福成国际机场",
+   "code": "BFC",
+   "lat": 21.03,
+   "lng": 105.85,
+   "aliases": [],
+   "level": "4F",
+   "runways": 1
+ },
+ {
+   "name": "北海平川国际机场",
+   "code": "BPC",
+   "lat": 17.99,
+   "lng": 102.63,
+   "aliases": [],
+   "level": "4E",
+   "runways": 1
+ },
+{
    "name": "西京雪原",
    "code": "SEK",
    "lat": 30.32674,
