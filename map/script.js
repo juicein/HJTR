@@ -1,5 +1,5 @@
 let mapConfig = { minZoom: -6, maxZoom: 0, defaultZoom: -1, imageFormat: "webp" };
-let appState = { x: 0, z: 0, zoom: -1, showCrosshair: true, showCoords: true, memoryEnabled: true, mapLayer: 'all' }; // mapLayer: all, transit, drive, raw
+let appState = { x: -15151, z: -4000, zoom: -1, showCrosshair: true, showCoords: true, memoryEnabled: true, mapLayer: 'all' }; // mapLayer: all, transit, drive, raw
 let mapData = { regions: [], pois: [], roads: [], subways: [] };
 
 // 路由状态
