@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>地图数据编辑器 M3</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+
+<style>
+/* Material 3 Expressive 色彩系统 */
+:root {
+  --md-sys-color-primary: #386a20;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #b7f397;
+  --md-sys-color-on-primary-container: #042100;
+  --md-sys-color-surface: #fdfdf5;
+  --md-sys-color-surface-container: #f3f4e9;
+  --md-sys-color-outline: #74796d;  
+  --glass-bg: rgba(253, 253, 245, 0.85);
+  --text-main: #1a1c18;
+  --text-sub: #43483e;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--md-sys-color-surface-container);
+  color: var(--text-main);
+  margin: 0; padding: 0; padding-top: 64px; 
+  line-height: 1.5;
+}
+
+.top-app-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 64px;
+  background: var(--md-sys-color-surface);
+  display: flex; align-items: center; padding: 0 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1000; gap: 8px;
+}
+.top-app-bar .title { flex: 1; font-size: 20px; font-weight: 600; color: var(--md-sys-color-primary); }
+
+.icon-btn {
+  background: transparent; border: none; color: var(--text-sub);
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: 0.2s;
+}
+.icon-btn:hover { background: var(--md-sys-color-surface-container); color: var(--md-sys-color-primary); }
+
+.container { padding: 20px; max-width: 800px; margin: 0 auto;}
+h2 { font-weight: 600; color: var(--md-sys-color-primary); margin-top: 0; }
+
+.card {
+  background: var(--glass-bg); border-radius: 24px; padding: 24px;
+  margin-bottom: 20px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+}
+
+button.btn-filled {
+  padding: 10px 24px; border: none; border-radius: 24px;
+  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+  font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+}
+button.btn-filled:hover { opacity: 0.9; }
+button.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+button.delete { background: #ba1a1a; color: #ffffff; }
+
+input, select, textarea {
+  width: 100%; padding: 14px 16px; margin: 8px 0 16px 0;
+  border-radius: 16px; border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface); color: var(--text-main);
+  box-sizing: border-box; font-size: 15px; font-family: inherit;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--md-sys-color-primary); }
+label { font-size: 14px; color: var(--text-sub); font-weight: 600; }
+
+.hidden { display: none !important; }
+
+.poi-item {
+  padding: 16px; border-radius: 16px; border: 1px solid var(--md-sys-color-outline);
+  margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
+  background: var(--md-sys-color-surface);
+}
+.poi-info { flex: 1; }
+.poi-title { font-weight: 600; font-size: 16px; margin-bottom: 4px; color: var(--md-sys-color-primary);}
+.poi-desc { font-size: 13px; color: var(--text-sub); }
+</style>
+</head>
+<body>
+
+<header class="top-app-bar">
+  <div class="title">🗺️ 地图 POI 编辑器</div>
+  <div class="top-actions hidden" id="topActions">
+    <button class="icon-btn" onclick="addPOI()" title="新增地点">
+      <span class="material-symbols-rounded">add_location_alt</span>
+    </button>
+  </div>
+</header>
+
+<div class="container">
+  <div id="loginBox" class="card">
+    <h2>身份验证</h2>
+    <input id="pwd" type="password" placeholder="输入管理员口令">
+    <button class="btn-filled" onclick="login()">登录系统</button>
+  </div>
+
+  <div id="listPage" class="hidden">
+    <div class="card">
+      <h3 style="margin-top:0;">当前 POI 列表</h3>
+      <div id="poiList"></div>
+    </div>
+  </div>
+
+  <div id="editPage" class="hidden">
+    <button class="btn-filled secondary" onclick="back()" style="margin-bottom: 16px;">返回列表</button>
+    <div class="card">
+      <label>ID (必填，不可与现有重复)</label>
+      <input id="edit_id" placeholder="例如: poi3">
+      
+      <label>名称 (Name)</label>
+      <input id="edit_name">
+      
+      <label>类型 (Type)</label>
+      <select id="edit_type">
+        <option value="supermarket">超市 (supermarket)</option>
+        <option value="hotel">酒店 (hotel)</option>
+        <option value="restaurant">餐厅 (restaurant)</option>
+        <option value="landmark">地标 (landmark)</option>
+        <option value="other">其他 (other)</option>
+      </select>
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1"><label>X 坐标</label><input type="number" id="edit_x"></div>
+        <div style="flex:1"><label>Z 坐标</label><input type="number" id="edit_z"></div>
+      </div>
+
+      <div style="display:flex; gap:12px;">
+        <div style="flex:1"><label>最小缩放 (minZoom)</label><input type="number" id="edit_min" value="-2"></div>
+        <div style="flex:1"><label>最大缩放 (maxZoom)</label><input type="number" id="edit_max" value="0"></div>
+      </div>
+
+      <label>状态 (Status)</label>
+      <input id="edit_status" placeholder="例如: 营业中">
+      
+      <label>备注 (Remarks)</label>
+      <input id="edit_remarks">
+      
+      <label>图片链接 (Images) - 每行一个链接</label>
+      <textarea id="edit_images" rows="4" placeholder="https://..."></textarea>
+      
+      <div style="margin-top:20px; display:flex; gap:12px;">
+        <button id="saveBtn" class="btn-filled" style="flex:1; justify-content:center;" onclick="saveEdit()">
+          <span class="material-symbols-rounded">cloud_upload</span> 云端保存
+        </button>
+        <button id="delBtn" class="btn-filled delete hidden" onclick="deletePOI()">删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ⚠️ 替换为你的 Cloudflare Worker 地址
+const API = "https://wispy-base-018b.1693076637.workers.dev/"; 
+
+let fullMapData = {}; 
+let editingIndex = null;
+let pendingCoords = null; // 用于存储 URL 传入的 x, z
+
+window.onload = () => {
+  const savedPwd = localStorage.getItem("map_admin_pwd");
+  if(savedPwd) document.getElementById("pwd").value = savedPwd;
+  
+  // 拦截 URL 参数: ?x=220&z=943
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('x') && urlParams.has('z')) {
+    pendingCoords = {
+      x: parseInt(urlParams.get('x')),
+      z: parseInt(urlParams.get('z'))
+    };
+  }
+}
+
+async function login(){
+  const password = document.getElementById("pwd").value.trim();
+  if(!password) return;
+
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "login", password })
+    });
+    const data = await res.json();
+    if(!data.success) return alert("口令错误");
+
+    localStorage.setItem("map_admin_pwd", password);
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("topActions").classList.remove("hidden");
+    
+    await loadData();
+
+    // 如果通过传参访问，登录且加载数据后直接进入添加页面
+    if (pendingCoords) {
+      addPOI(pendingCoords.x, pendingCoords.z);
+      pendingCoords = null; // 消费掉
+    } else {
+      document.getElementById("listPage").classList.remove("hidden");
+    }
+    
+  } catch(e) { alert("网络异常"); }
+}
+
+async function loadData(){
+  const box = document.getElementById("poiList");
+  box.innerHTML = `读取数据中...`;
+  
+  try {
+    const res = await fetch(API);
+    fullMapData = await res.json();
+    
+    // 初始化确保字段存在
+    if(!fullMapData.pois) fullMapData.pois = [];
+    
+    renderList();
+  } catch(e) {
+    box.innerHTML = "读取失败，如果仓库未初始化JSON，请确认已上传默认结构。";
+  }
+}
+
+function renderList(){
+  const box = document.getElementById("poiList");
+  box.innerHTML = "";
+  
+  if(!fullMapData.pois || fullMapData.pois.length === 0) {
+    box.innerHTML = "暂无数据"; return;
+  }
+
+  fullMapData.pois.forEach((p, index) => {
+    const div = document.createElement("div");
+    div.className = "poi-item";
+    div.innerHTML = `
+      <div class="poi-info">
+        <div class="poi-title">${p.name} <span style="font-size:12px; font-weight:normal; background:var(--md-sys-color-primary-container); padding:2px 6px; border-radius:6px; color:var(--text-sub);">${p.type}</span></div>
+        <div class="poi-desc">ID: ${p.id} | X: ${p.x} Z: ${p.z}</div>
+      </div>
+      <button class="btn-filled secondary" style="padding:6px 16px; border-radius:12px;" onclick="editPOI(${index})">修改</button>
+    `;
+    box.appendChild(div);
+  });
+}
+
+function editPOI(index){
+  editingIndex = index;
+  const p = fullMapData.pois[index];
+
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+  document.getElementById("delBtn").classList.remove("hidden");
+  document.getElementById("edit_id").disabled = true; // 修改时不允许改ID
+
+  document.getElementById("edit_id").value = p.id || "";
+  document.getElementById("edit_name").value = p.name || "";
+  document.getElementById("edit_type").value = p.type || "other";
+  document.getElementById("edit_x").value = p.x || 0;
+  document.getElementById("edit_z").value = p.z || 0;
+  document.getElementById("edit_min").value = p.minZoom !== undefined ? p.minZoom : -2;
+  document.getElementById("edit_max").value = p.maxZoom !== undefined ? p.maxZoom : 0;
+  document.getElementById("edit_status").value = p.status || "";
+  document.getElementById("edit_remarks").value = p.remarks || "";
+  document.getElementById("edit_images").value = (p.images || []).join("\n");
+}
+
+function addPOI(prefillX = "", prefillZ = ""){
+  editingIndex = -1; // -1 代表新增
+
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+  document.getElementById("delBtn").classList.add("hidden");
+  document.getElementById("edit_id").disabled = false;
+
+  document.getElementById("edit_id").value = "poi_" + Date.now(); // 自动生成一个ID
+  document.getElementById("edit_name").value = "";
+  document.getElementById("edit_type").value = "landmark";
+  document.getElementById("edit_x").value = prefillX;
+  document.getElementById("edit_z").value = prefillZ;
+  document.getElementById("edit_min").value = -2;
+  document.getElementById("edit_max").value = 0;
+  document.getElementById("edit_status").value = "";
+  document.getElementById("edit_remarks").value = "";
+  document.getElementById("edit_images").value = "";
+}
+
+function back(){
+  document.getElementById("editPage").classList.add("hidden");
+  document.getElementById("listPage").classList.remove("hidden");
+  renderList();
+}
+
+async function saveEdit(){
+  const id = document.getElementById("edit_id").value.trim();
+  if(!id) return alert("ID 不能为空");
+
+  const newPoi = {
+    id: id,
+    name: document.getElementById("edit_name").value.trim(),
+    type: document.getElementById("edit_type").value,
+    x: parseInt(document.getElementById("edit_x").value) || 0,
+    z: parseInt(document.getElementById("edit_z").value) || 0,
+    minZoom: parseInt(document.getElementById("edit_min").value) || -2,
+    maxZoom: parseInt(document.getElementById("edit_max").value) || 0,
+    status: document.getElementById("edit_status").value.trim(),
+    remarks: document.getElementById("edit_remarks").value.trim(),
+    images: document.getElementById("edit_images").value.split("\n").map(s=>s.trim()).filter(s=>s)
+  };
+
+  // 更新本地内存中的 JSON
+  if(editingIndex === -1) {
+    if(fullMapData.pois.find(p => p.id === id)) return alert("ID 已存在，请更换");
+    fullMapData.pois.push(newPoi);
+  } else {
+    fullMapData.pois[editingIndex] = newPoi;
+  }
+
+  await syncToServer();
+}
+
+async function deletePOI(){
+  if(!confirm("确定要删除这个地标吗？")) return;
+  fullMapData.pois.splice(editingIndex, 1);
+  await syncToServer();
+}
+
+async function syncToServer(){
+  const btn = document.getElementById("saveBtn");
+  btn.innerHTML = `保存中...`; btn.disabled = true;
+
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "save", newJson: fullMapData })
+    });
+
+    if(!res.ok){
+      alert("保存失败: " + await res.text());
+    } else {
+      back();
+    }
+  } catch(e) {
+    alert("网络错误");
+  } finally {
+    btn.innerHTML = `<span class="material-symbols-rounded">cloud_upload</span> 云端保存`; 
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
