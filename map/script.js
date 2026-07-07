@@ -426,7 +426,7 @@ function showContextMenu(screenX, screenY) {
     contextMenu.animate([{opacity:0, transform:'translateY(10px)'}, {opacity:1, transform:'translateY(0)'}], {duration: 200, fill: 'forwards'});
 }
 
-function addLocationRedirect() { window.location.href = `add_marker.html?x=${window.lastClickedCoords.x}&z=${window.lastClickedCoords.z}`; }
+function addLocationRedirect() { window.location.href = `admin.html?x=${window.lastClickedCoords.x}&z=${window.lastClickedCoords.z}`; }
 
 // 路线规划系统
 function setRouteStart() { routeState.start = { ...window.lastClickedCoords }; openRoutePanel(); hideMenus(); }
