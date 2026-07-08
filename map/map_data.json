@@ -57,12 +57,12 @@
       ]
     },
     {
-      "id": "poi_1783478875664",
+      "id": "poi_ysshltd",
       "name": "英沙石化有限公司",
-      "type": "other",
-      "x": -17842,
-      "z": -9130,
-      "minZoom": -2,
+      "type": "landmark",
+      "x": -17898,
+      "z": -9049,
+      "minZoom": -5,
       "maxZoom": 1,
       "status": "建设中",
       "remarks": "test",
