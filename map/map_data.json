@@ -7,25 +7,18 @@
   },
   "regions": [
     {
-      "id": "reg1",
-      "name": "北方城 (主城)",
+      "name": "北方城",
+      "type": "city",
       "x": 0,
       "z": 0,
-      "minZoom": -6,
-      "maxZoom": -3
     }
   ],
   "pois": [
     {
-      "id": "poi1",
       "type": "supermarket",
       "name": "FairPrice l Koon",
       "x": 120,
       "z": 250,
-      "minZoom": -2,
-      "maxZoom": 0,
-      "rating": 4.3,
-      "reviews": 1343,
       "status": "营业中 · 09:00 开始",
       "website": "https://example.com",
       "remarks": "提供新鲜蔬菜和日常用品",
@@ -35,7 +28,6 @@
       ]
     },
     {
-      "id": "poi2",
       "name": "英沙水门桥凯悦酒店",
       "type": "hotel",
       "x": -14259,
@@ -55,27 +47,12 @@
         "https://s3.bmp.ovh/2026/07/07/EhYaXsB2.png",
         "https://s3.bmp.ovh/2026/07/07/dvYLS3Ti.png"
       ]
-    },
-    {
-      "id": "poi_ysshltd",
-      "name": "英沙石化有限公司",
-      "type": "landmark",
-      "x": -17898,
-      "z": -9049,
-      "minZoom": -3,
-      "maxZoom": 1,
-      "status": "建设中",
-      "remarks": "test",
-      "images": []
     }
   ],
   "roads": [
     {
-      "id": "rd1",
       "type": "highway",
       "name": "列宁大道",
-      "minZoom": -4,
-      "maxZoom": 0,
       "points": [
         {
           "x": -500,
@@ -92,11 +69,8 @@
       ]
     },
     {
-      "id": "rd2",
       "type": "expressway",
       "name": "青叶大道",
-      "minZoom": -4,
-      "maxZoom": 0,
       "points": [
         {
           "x": -22,
@@ -118,8 +92,6 @@
       "id": "sub1",
       "name": "1号线",
       "color": "#E53935",
-      "minZoom": -3,
-      "maxZoom": 0,
       "stations": [
         {
           "name": "中心广场站",
