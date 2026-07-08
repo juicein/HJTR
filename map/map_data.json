@@ -55,6 +55,18 @@
         "https://s3.bmp.ovh/2026/07/07/EhYaXsB2.png",
         "https://s3.bmp.ovh/2026/07/07/dvYLS3Ti.png"
       ]
+    },
+    {
+      "id": "poi_1783478875664",
+      "name": "英沙石化有限公司",
+      "type": "other",
+      "x": -17842,
+      "z": -9130,
+      "minZoom": -2,
+      "maxZoom": 1,
+      "status": "建设中",
+      "remarks": "test",
+      "images": []
     }
   ],
   "roads": [
