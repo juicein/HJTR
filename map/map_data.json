@@ -67,6 +67,18 @@
       "status": "建设中",
       "remarks": "test",
       "images": []
+    },
+    {
+      "id": "poi_1783479120359",
+      "name": "英沙石化有限公司",
+      "type": "landmark",
+      "x": -14891,
+      "z": -6049,
+      "minZoom": -2,
+      "maxZoom": 0,
+      "status": "建设中",
+      "remarks": "test",
+      "images": []
     }
   ],
   "roads": [
