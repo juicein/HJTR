@@ -62,8 +62,8 @@
       "type": "landmark",
       "x": -17898,
       "z": -9049,
-      "minZoom": -5,
-      "maxZoom": 2,
+      "minZoom": -3,
+      "maxZoom": 1,
       "status": "建设中",
       "remarks": "test",
       "images": []
