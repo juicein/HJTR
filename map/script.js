@@ -1,114 +1,174 @@
 let mapConfig = { minZoom: -6, maxZoom: 0, defaultZoom: -1, imageFormat: "webp" };
-let appState = { x: 0, z: 0, zoom: -1, showCrosshair: true, showCoords: true };
+let appState = { x: -15151, z: -5714, zoom: -1, showCrosshair: true, showCoords: true, memoryEnabled: true, mapLayer: 'all' }; 
 let mapData = { regions: [], pois: [], roads: [], subways: [] };
 
-// 路由状态 (增加模式: road / transit)
-let routeState = { active: false, mode: 'road', start: null, end: null, path: [], picking: null };
-let roadGraph = new Map();
-let transitGraph = new Map();
+let routeState = { active: false, start: null, end: null, mode: 'drive', path: [], options: [] };
+let graphDrive = new Map();
+let graphTransit = new Map();
 
-// 手势与拖拽状态
 let isDragging = false;
 let dragStartX, dragStartZ, dragStartMouseX, dragStartMouseY;
 let longPressTimer;
-let initialPinchDist = null, initialPinchZoom = null;
+let initialPinchDist = null;
+let initialZoom = null;
+
+const BEZIER_RADIUS = 60; 
 
 const container = document.getElementById('map-container');
 const tileContainer = document.querySelector('.tile-container');
 const markerContainer = document.querySelector('.marker-container');
 const regionContainer = document.getElementById('region-container');
 const lineLayer = document.getElementById('line-layer');
-const coordsDisplay = document.getElementById('coords-display');
 const bottomSheet = document.getElementById('bottom-sheet');
-const routePlanner = document.getElementById('route-planner');
+const routePanel = document.getElementById('route-panel');
+const contextMenu = document.getElementById('context-menu');
+const searchResults = document.getElementById('search-results');
 
 const POI_TYPES = {
     'supermarket': '超市', 'hotel': '酒店', 'bank': '银行', 
     'school': '学校', 'government': '政府机关', 'mall': '商场', 
     'museum': '博物馆', 'park': '公园', 'restaurant': '餐厅', 
-    'cafe': '咖啡吧', 'subway_station': '地铁站'
+    'cafe': '咖啡吧', 'subway_station': '轨道交通站点'
 };
 
+// 动态解析类型对应的显示层级
+const ZOOM_LEVELS = {
+    'city': { min: -6, max: -3 },
+    'district': { min: -4, max: -1 },
+    'community': { min: -2, max: 0 }
+};
+
+// 屏蔽右键及默认原生系统选单
+window.addEventListener('contextmenu', e => e.preventDefault());
+
 function init() {
+    loadSettings();
+    document.getElementById('toggle-crosshair').checked = appState.showCrosshair;
+    document.getElementById('toggle-coords').checked = appState.showCoords;
+    document.getElementById('toggle-memory').checked = appState.memoryEnabled;
+    document.getElementById('crosshair').style.display = appState.showCrosshair ? 'block' : 'none';
+    document.getElementById('coords-display').style.display = appState.showCoords ? 'inline-block' : 'none';
+
     fetch('map_data.json').then(res => res.json()).then(data => {
         mapData = data;
-        if (data.settings?.origin) {
+        if (!appState.memoryEnabled && data.settings?.origin) {
             appState.x = data.settings.origin.x; appState.z = data.settings.origin.z;
         }
         buildGraphs();
         updateMap();
-    }).catch(e => { console.error("加载地图数据失败", e); updateMap(); });
+    }).catch(e => { console.error("加载地图数据失败", e); });
 }
 
-// ================= 路网与寻路 (支持道路与轨道双网) =================
+// 恢复我的位置
+document.getElementById('btn-my-location').onclick = () => {
+    if (mapData.settings && mapData.settings.origin) {
+        appState.x = mapData.settings.origin.x;
+        appState.z = mapData.settings.origin.z;
+        updateMap();
+    }
+};
+
+// 搜索功能实现
+document.getElementById('search-input').addEventListener('input', (e) => {
+    const val = e.target.value.trim().toLowerCase();
+    if (!val) { searchResults.style.display = 'none'; return; }
+    
+    let results = [];
+    mapData.pois.forEach(p => { if (p.name.toLowerCase().includes(val)) results.push(p); });
+    mapData.subways.forEach(s => {
+        s.stations.forEach(st => {
+            if (st.name.toLowerCase().includes(val)) results.push({ ...st, type: 'subway_station', icon: s.icon || s.logo });
+        });
+    });
+    
+    if (results.length > 0) {
+        searchResults.innerHTML = results.map((res, i) => `
+            <div class="search-item" data-idx="${i}">
+                <div class="icon"><span class="material-symbols-rounded">${res.type === 'subway_station' ? 'directions_subway' : 'location_on'}</span></div>
+                <div>
+                    <div style="font-weight:bold">${res.name}</div>
+                    <div style="font-size:12px; color:var(--md-sys-color-outline)">${POI_TYPES[res.type] || res.type}</div>
+                </div>
+            </div>
+        `).join('');
+        searchResults.style.display = 'block';
+        
+        document.querySelectorAll('.search-item').forEach(item => {
+            item.onclick = (ev) => {
+                const target = results[ev.currentTarget.dataset.idx];
+                appState.x = target.x; appState.z = target.z;
+                setZoom(-1);
+                searchResults.style.display = 'none';
+                openBottomSheet(target);
+                updateMap();
+            };
+        });
+    } else {
+        searchResults.innerHTML = '<div style="padding:16px; text-align:center; color:var(--md-sys-color-outline);">未找到结果</div>';
+        searchResults.style.display = 'block';
+    }
+});
+// 点击别处关闭搜索结果
+window.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.search-container')) searchResults.style.display = 'none';
+});
+
+// ================= 路网与寻路 (Dijkstra) =================
 function buildGraphs() {
-    roadGraph.clear(); transitGraph.clear();
+    graphDrive.clear(); graphTransit.clear();
     const addEdge = (graph, p1, p2) => {
         const k1 = `${p1.x},${p1.z}`; const k2 = `${p2.x},${p2.z}`;
-        const dist = Math.hypot(p1.x - p2.x, p1.z - p2.z);
+        const dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.z - p2.z, 2));
         if(!graph.has(k1)) graph.set(k1, []);
         if(!graph.has(k2)) graph.set(k2, []);
         graph.get(k1).push({ node: k2, dist, x: p2.x, z: p2.z });
         graph.get(k2).push({ node: k1, dist, x: p1.x, z: p1.z });
     };
 
-    mapData.roads?.forEach(r => {
-        for (let i = 0; i < r.points.length - 1; i++) addEdge(roadGraph, r.points[i], r.points[i+1]);
+    mapData.roads?.forEach(road => {
+        for (let i = 0; i < road.points.length - 1; i++) addEdge(graphDrive, road.points[i], road.points[i+1]);
     });
-    mapData.subways?.forEach(s => {
-        for (let i = 0; i < s.points.length - 1; i++) addEdge(transitGraph, s.points[i], s.points[i+1]);
+    mapData.subways?.forEach(sub => {
+        for (let i = 0; i < sub.points.length - 1; i++) addEdge(graphTransit, sub.points[i], sub.points[i+1]);
     });
 }
 
 function getNearestNode(graph, px, pz) {
     let nearest = null; let minD = Infinity;
-    graph.forEach((_, key) => {
+    graph.forEach((edges, key) => {
         const [x, z] = key.split(',').map(Number);
-        const d = Math.hypot(x - px, z - pz);
+        const d = Math.sqrt(Math.pow(x - px, 2) + Math.pow(z - pz, 2));
         if(d < minD) { minD = d; nearest = {x, z, key}; }
     });
     return nearest;
 }
 
-function calculateRoute(startX, startZ, endX, endZ, mode) {
-    const graph = mode === 'transit' ? transitGraph : roadGraph;
-    if (graph.size === 0) return [];
-
+function calculateRoute(graph, startX, startZ, endX, endZ) {
     const startNode = getNearestNode(graph, startX, startZ);
     const endNode = getNearestNode(graph, endX, endZ);
-    if (!startNode || !endNode) return [];
+    if (!startNode || !endNode) return null;
 
-    const distances = new Map();
-    const previous = new Map();
-    const unvisited = new Set(graph.keys());
-
-    graph.forEach((_, key) => distances.set(key, Infinity));
+    const distances = new Map(); const previous = new Map(); const unvisited = new Set();
+    graph.forEach((_, key) => { distances.set(key, Infinity); unvisited.add(key); });
     distances.set(startNode.key, 0);
 
     while (unvisited.size > 0) {
-        let curr = null, minD = Infinity;
-        unvisited.forEach(k => { if (distances.get(k) < minD) { minD = distances.get(k); curr = k; } });
-        if (!curr || curr === endNode.key) break;
-        unvisited.delete(curr);
+        let currKey = null; let minD = Infinity;
+        unvisited.forEach(key => { if (distances.get(key) < minD) { minD = distances.get(key); currKey = key; } });
+        if (!currKey || currKey === endNode.key) break;
+        unvisited.delete(currKey);
 
-        graph.get(curr).forEach(neighbor => {
-            const alt = distances.get(curr) + neighbor.dist;
-            if (alt < distances.get(neighbor.node)) {
-                distances.set(neighbor.node, alt);
-                previous.set(neighbor.node, curr);
-            }
+        graph.get(currKey).forEach(neighbor => {
+            const alt = distances.get(currKey) + neighbor.dist;
+            if (alt < distances.get(neighbor.node)) { distances.set(neighbor.node, alt); previous.set(neighbor.node, currKey); }
         });
     }
 
-    const path = []; let curr = endNode.key;
+    const path = []; let curr = endNode.key; let totalDist = distances.get(endNode.key);
     if (previous.has(curr) || curr === startNode.key) {
-        while (curr) {
-            const [x, z] = curr.split(',').map(Number);
-            path.unshift({x, z});
-            curr = previous.get(curr);
-        }
+        while (curr) { const [x, z] = curr.split(',').map(Number); path.unshift({x, z}); curr = previous.get(curr); }
     }
-    return path;
+    return { path, totalDist };
 }
 
 // ================= 核心渲染 =================
@@ -117,44 +177,40 @@ function updateMap() {
     const width = container.offsetWidth; const height = container.offsetHeight;
     const cx = appState.x * scale; const cz = appState.z * scale;
     
-    coordsDisplay.textContent = `X: ${Math.round(appState.x)}, Z: ${Math.round(appState.z)}`;
+    document.getElementById('coords-display').textContent = `X: ${Math.round(appState.x)}, Z: ${Math.round(appState.z)}`;
+    saveSettings();
 
     renderTiles(cx, cz, scale, width, height);
-    renderLines(cx, cz, scale, width, height);
     renderRegions(cx, cz, scale, width, height);
+    renderLines(cx, cz, scale, width, height);
     renderMarkers(cx, cz, scale, width, height);
     renderActiveRoute(cx, cz, scale, width, height);
 }
 
-// 动态贝塞尔曲线 (曲率 radius 可在代码中控制调整，当前设为 40 * scale)
-function generateSmoothPathD(points, scale, cx, cz, width, height, isSubway) {
-    if (points.length < 2) return { d: "", len: 0 };
+function generateSmoothPathD(points, scale, cx, cz, width, height) {
+    if (!points || points.length < 2) return { d: "", len: 0 };
     let d = ""; let totalLen = 0;
-    const radius = isSubway ? 60 : 40; // 地铁线弯道更大更平滑
-
-    const getScreenPt = (pt) => ({
-        x: (width / 2) + (pt.x * scale - cx),
-        y: (height / 2) + (pt.z * scale - cz)
-    });
+    
+    const getScreenPt = (pt) => ({ x: (width / 2) + (pt.x * scale - cx), y: (height / 2) + (pt.z * scale - cz) });
 
     for (let i = 0; i < points.length; i++) {
         const p = getScreenPt(points[i]);
-        if (i === 0) { d += `M ${p.x} ${p.y} `; } 
-        else if (i === points.length - 1) { 
-            d += `L ${p.x} ${p.y}`; 
-            totalLen += Math.hypot(p.x - getScreenPt(points[i-1]).x, p.y - getScreenPt(points[i-1]).y);
+        if (i === 0) {
+            d += `M ${p.x} ${p.y} `;
+        } else if (i === points.length - 1) {
+            d += `L ${p.x} ${p.y}`;
+            const pPrev = getScreenPt(points[i-1]);
+            totalLen += Math.sqrt(Math.pow(p.x - pPrev.x, 2) + Math.pow(p.y - pPrev.y, 2));
         } else {
             const pPrev = getScreenPt(points[i-1]);
             const pNext = getScreenPt(points[i+1]);
-            const d1 = Math.hypot(p.x - pPrev.x, p.y - pPrev.y);
-            const d2 = Math.hypot(pNext.x - p.x, pNext.y - p.y);
+            const d1 = Math.sqrt(Math.pow(p.x - pPrev.x, 2) + Math.pow(p.y - pPrev.y, 2));
+            const d2 = Math.sqrt(Math.pow(pNext.x - p.x, 2) + Math.pow(pNext.y - p.y, 2));
             totalLen += d1;
-
-            const r = Math.min(radius * scale, d1/2, d2/2); 
-            const q1x = p.x - (p.x - pPrev.x) * (r / d1);
-            const q1y = p.y - (p.y - pPrev.y) * (r / d1);
-            const q2x = p.x + (pNext.x - p.x) * (r / d2);
-            const q2y = p.y + (pNext.y - p.y) * (r / d2);
+            
+            const r = Math.min(BEZIER_RADIUS * scale, d1/2, d2/2); 
+            const q1x = p.x - (p.x - pPrev.x) * (r / d1); const q1y = p.y - (p.y - pPrev.y) * (r / d1);
+            const q2x = p.x + (pNext.x - p.x) * (r / d2); const q2y = p.y + (pNext.y - p.y) * (r / d2);
             
             d += `L ${q1x} ${q1y} Q ${p.x} ${p.y} ${q2x} ${q2y} `;
         }
@@ -162,46 +218,77 @@ function generateSmoothPathD(points, scale, cx, cz, width, height, isSubway) {
     return { d, len: totalLen };
 }
 
+function renderRegions(cx, cz, scale, width, height) {
+    regionContainer.innerHTML = '';
+    mapData.regions?.forEach(reg => {
+        const minZ = ZOOM_LEVELS[reg.type]?.min ?? -6;
+        const maxZ = ZOOM_LEVELS[reg.type]?.max ?? 0;
+        
+        if (appState.zoom < minZ || appState.zoom > maxZ) return;
+        const sx = (width / 2) + (reg.x * scale - cx);
+        const sy = (height / 2) + (reg.z * scale - cz);
+        
+        const el = document.createElement('div');
+        el.className = 'region-label';
+        el.style.left = `${sx}px`; el.style.top = `${sy}px`;
+        el.style.fontSize = `${Math.max(20, 60 + appState.zoom * 10)}px`;
+        el.textContent = reg.name;
+        regionContainer.appendChild(el);
+    });
+}
+
 function renderLines(cx, cz, scale, width, height) {
     lineLayer.innerHTML = '';
     
-    // 随比例缩放的路宽
-    const getLineWidth = (base) => Math.max(2, base * Math.pow(1.2, appState.zoom + 2));
-
     const drawLine = (lineData, isSubway) => {
-        const { d: pathD, len: pixelLength } = generateSmoothPathD(lineData.points, scale, cx, cz, width, height, isSubway);
-        const pathId = `path-${isSubway?'sub':'road'}-${lineData.name}`;
+        if (appState.mapLayer === 'raw') return;
+        if (appState.mapLayer === 'transit' && !isSubway) return;
+        if (appState.mapLayer === 'drive' && isSubway) return;
         
+        const pathData = generateSmoothPathD(lineData.points, scale, cx, cz, width, height);
+        if(!pathData.d) return;
+
+        const pathId = `path-${lineData.id || lineData.name}`;
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('id', pathId);
-        path.setAttribute('d', pathD);
+        path.setAttribute('d', pathData.d);
         path.setAttribute('fill', 'none');
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+        
+        let baseWidth = isSubway ? 6 : (lineData.type === 'highway' ? 10 : (lineData.type === 'expressway' ? 8 : (lineData.type === 'main' ? 6 : 4)));
+        let strokeW = Math.max(2, baseWidth + appState.zoom * 1.5); 
         
         if (isSubway) {
             path.setAttribute('stroke', lineData.color || '#E53935');
-            path.setAttribute('stroke-width', getLineWidth(5));
+            path.setAttribute('stroke-width', strokeW);
         } else {
-            let baseW = lineData.type === 'highway' ? 8 : (lineData.type === 'expressway' ? 6 : 4);
-            path.setAttribute('stroke', lineData.type === 'highway' ? 'rgba(255, 160, 0, 0.7)' : 'rgba(255, 255, 255, 0.6)');
-            path.setAttribute('stroke-width', getLineWidth(baseW));
+            let color = lineData.type === 'highway' ? '#fbbc04' : (lineData.type === 'expressway' ? '#fce8b2' : '#ffffff');
+            path.setAttribute('stroke', color);
+            path.setAttribute('stroke-width', strokeW);
+            
+            const borderPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            borderPath.setAttribute('d', pathData.d); borderPath.setAttribute('fill', 'none');
+            borderPath.setAttribute('stroke', '#dadce0'); borderPath.setAttribute('stroke-width', strokeW + 2);
+            lineLayer.appendChild(borderPath);
         }
-        path.setAttribute('stroke-linecap', 'round');
-        path.setAttribute('stroke-linejoin', 'round');
         lineLayer.appendChild(path);
 
-        // 动态多标签渲染逻辑 (根据线路像素长度，决定渲染多少个标签)
-        if (lineData.name && pixelLength > 150) {
-            const textNodesCount = Math.floor(pixelLength / 400) + 1; // 每 400 像素一个名字
+        // 根据比例与长度动态渲染多次文字
+        if (lineData.name && scale >= 0.1) {
             const textClass = isSubway ? 'subway-text' : 'road-text';
-
-            for(let i=1; i<=textNodesCount; i++) {
-                const offset = (i / (textNodesCount + 1)) * 100; // 均匀分布 25%, 50%, 75%...
-                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                text.setAttribute('class', textClass);
-                text.setAttribute('dy', 5);
-                text.innerHTML = `<textPath href="#${pathId}" startOffset="${offset}%">${lineData.name}</textPath>`;
-                lineLayer.appendChild(text);
+            const numLabels = Math.max(1, Math.floor(pathData.len / 400));
+            const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textEl.setAttribute('class', textClass);
+            textEl.setAttribute('dy', isSubway ? -strokeW : 5);
+            
+            let tspanHtml = '';
+            for(let i=1; i<=numLabels; i++) {
+                const offset = `${(i / (numLabels + 1)) * 100}%`;
+                tspanHtml += `<textPath href="#${pathId}" startOffset="${offset}">${lineData.name}</textPath>`;
             }
+            textEl.innerHTML = tspanHtml;
+            lineLayer.appendChild(textEl);
         }
     };
 
@@ -209,129 +296,143 @@ function renderLines(cx, cz, scale, width, height) {
     mapData.subways?.forEach(s => drawLine(s, true));
 }
 
-function renderRegions(cx, cz, scale, width, height) {
-    regionContainer.innerHTML = '';
-    mapData.regions?.forEach(reg => {
-        // 根据地区类型控制层级显示大小
-        let minZ = -6, maxZ = -2, fontSize = 32;
-        if(reg.type === 'city') { minZ = -6; maxZ = -3; fontSize = 48; }
-        else if(reg.type === 'district') { minZ = -4; maxZ = -1; fontSize = 28; }
-        else if(reg.type === 'community') { minZ = -2; maxZ = 0; fontSize = 18; }
-        
-        if(appState.zoom < minZ || appState.zoom > maxZ) return;
+function renderActiveRoute(cx, cz, scale, width, height) {
+    if (!routeState.active || !routeState.start || !routeState.end) return;
+    const getScreenPtStr = (x, z) => `${(width / 2) + (x * scale - cx)},${(height / 2) + (z * scale - cz)}`;
 
-        const sx = (width / 2) + (reg.x * scale - cx);
-        const sy = (height / 2) + (reg.z * scale - cz);
+    const startPx = getScreenPtStr(routeState.start.x, routeState.start.z);
+    const endPx = getScreenPtStr(routeState.end.x, routeState.end.z);
+    
+    let currentOption = routeState.options.find(o => o.selected);
+    if (currentOption && currentOption.path.length > 0) {
+        // 画出网络内的真实平滑道路
+        const pData = generateSmoothPathD(currentOption.path, scale, cx, cz, width, height);
+        const rp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        rp.setAttribute('d', pData.d); rp.setAttribute('fill', 'none');
+        rp.setAttribute('stroke', '#1a73e8'); rp.setAttribute('stroke-width', Math.max(4, 8 + appState.zoom)); 
+        rp.setAttribute('stroke-linecap', 'round'); rp.setAttribute('stroke-linejoin', 'round');
+        lineLayer.appendChild(rp);
+
+        // 真实道路起点/终点与用户点击点的虚线连接
+        const firstNode = getScreenPtStr(currentOption.path[0].x, currentOption.path[0].z);
+        const lastNode = getScreenPtStr(currentOption.path[currentOption.path.length-1].x, currentOption.path[currentOption.path.length-1].z);
         
+        lineLayer.innerHTML += `<path d="M ${startPx} L ${firstNode}" stroke="#8ab4f8" stroke-width="4" stroke-dasharray="8,8" />`;
+        lineLayer.innerHTML += `<path d="M ${lastNode} L ${endPx}" stroke="#8ab4f8" stroke-width="4" stroke-dasharray="8,8" />`;
+    } else {
+        // 彻底无路的纯直线虚线导航
+        lineLayer.innerHTML += `<path d="M ${startPx} L ${endPx}" stroke="#8ab4f8" stroke-width="4" stroke-dasharray="8,8" />`;
+    }
+
+    const createRouteMarker = (px, pz, isStart) => {
         const el = document.createElement('div');
-        el.className = 'region-label';
-        el.style.left = `${sx}px`; el.style.top = `${sy}px`;
-        el.style.fontSize = `${fontSize}px`;
-        el.innerText = reg.name;
-        regionContainer.appendChild(el);
-    });
+        el.className = 'map-marker';
+        el.style.left = `${px}px`; el.style.top = `${pz}px`;
+        const icon = isStart ? 'my_location' : 'location_on';
+        const color = isStart ? '#1a73e8' : '#d93025';
+        el.innerHTML = `<div class="marker-icon" style="background:${color}"><span class="material-symbols-rounded" style="font-size:18px;">${icon}</span></div>`;
+        markerContainer.appendChild(el);
+    };
+    createRouteMarker((width/2)+(routeState.start.x*scale-cx), (height/2)+(routeState.start.z*scale-cz), true);
+    createRouteMarker((width/2)+(routeState.end.x*scale-cx), (height/2)+(routeState.end.z*scale-cz), false);
 }
 
 function renderMarkers(cx, cz, scale, width, height) {
+    if(routeState.active) return; 
     markerContainer.innerHTML = '';
-    let allPois = [...(mapData.pois || [])];
     
-    // 把地铁站当作 POI 聚合渲染
+    let allPois = [...(mapData.pois || [])];
     mapData.subways?.forEach(sub => {
-        sub.stations?.forEach(st => {
-            allPois.push({ ...st, type: 'subway_station', brandLogo: sub.logo, remarks: `属于 ${sub.name}` });
-        });
+        if(sub.stations) sub.stations.forEach(st => allPois.push({ ...st, type: 'subway_station', icon: sub.icon || sub.logo }));
     });
 
     allPois.forEach(poi => {
+        let minZ = poi.minZoom ?? -3;
+        let maxZ = poi.maxZoom ?? 0;
+        
+        if (appState.zoom < minZ || appState.zoom > maxZ) return;
         const sx = (width / 2) + (poi.x * scale - cx);
         const sy = (height / 2) + (poi.z * scale - cz);
-        if (sx < -50 || sx > width + 50 || sy < -50 || sy > height + 50) return; 
+        
+        if (sx < -100 || sx > width + 100 || sy < -100 || sy > height + 100) return; 
         
         const el = document.createElement('div');
         el.className = 'map-marker';
+        if (sx > width - 120) el.classList.add('left-align');
+
         el.style.left = `${sx}px`; el.style.top = `${sy}px`;
         
         let icon = 'location_on'; let bgColor = 'var(--md-sys-color-primary)';
         if(poi.type === 'supermarket') icon = 'shopping_cart';
         if(poi.type === 'hotel') { icon = 'hotel'; bgColor = '#8E24AA'; }
-        if(poi.type === 'subway_station') { icon = 'directions_subway'; bgColor = '#E53935'; }
-        
-        let iconHtml = `<div class="marker-icon" style="background:${bgColor}"><span class="material-symbols-rounded" style="font-size: 16px;">${icon}</span></div>`;
-        if (poi.brandLogo && poi.type !== 'subway_station') { // 如果有品牌且不是地铁站(地铁站用特定风格)
-            iconHtml = `<div class="marker-icon"><img src="${poi.brandLogo}" class="transit-logo"></div>`;
+        if(poi.type === 'bank') icon = 'account_balance';
+        if(poi.type === 'subway_station') { icon = 'directions_subway'; bgColor = '#E53935'; } 
+
+        let iconHtml = `<div class="marker-icon" style="background:${bgColor}">`;
+        if (poi.icon) {
+            iconHtml += `<img src="${poi.icon}" style="width:100%; height:100%; object-fit:cover;">`;
+        } else {
+            iconHtml += `<span class="material-symbols-rounded" style="font-size: 18px;">${icon}</span>`;
         }
+        iconHtml += `</div>`;
 
         el.innerHTML = `${iconHtml}<div class="marker-label">${poi.name}</div>`;
-        el.onclick = (e) => { 
-            e.stopPropagation(); 
-            if(routeState.picking) { handleRoutePick(poi.name, poi.x, poi.z); }
-            else { openBottomSheet(poi); }
-        };
+        el.onclick = (e) => { e.stopPropagation(); openBottomSheet(poi); };
         markerContainer.appendChild(el);
     });
 }
 
-function renderActiveRoute(cx, cz, scale, width, height) {
-    if (!routeState.active || !routeState.start || !routeState.end) return;
-    const getScreenPt = (x, z) => `${(width / 2) + (x * scale - cx)},${(height / 2) + (z * scale - cz)}`;
-    
-    const color = routeState.mode === 'transit' ? '#E53935' : '#1976D2';
-
-    if (routeState.path.length > 0) {
-        const { d } = generateSmoothPathD(routeState.path, scale, cx, cz, width, height, routeState.mode === 'transit');
-        const rp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        rp.setAttribute('d', d);
-        rp.setAttribute('fill', 'none');
-        rp.setAttribute('stroke', color);
-        rp.setAttribute('stroke-width', 8);
-        rp.setAttribute('stroke-linecap', 'round');
-        lineLayer.appendChild(rp);
-    }
-
-    const startPx = getScreenPt(routeState.start.x, routeState.start.z);
-    const endPx = getScreenPt(routeState.end.x, routeState.end.z);
-    
-    // 没路网的地方连虚线
-    if (routeState.path.length > 0) {
-        const firstNode = getScreenPt(routeState.path[0].x, routeState.path[0].z);
-        const lastNode = getScreenPt(routeState.path[routeState.path.length-1].x, routeState.path[routeState.path.length-1].z);
-        lineLayer.innerHTML += `<path d="M ${startPx} L ${firstNode}" stroke="${color}" stroke-width="4" stroke-dasharray="8,8" />`;
-        lineLayer.innerHTML += `<path d="M ${lastNode} L ${endPx}" stroke="${color}" stroke-width="4" stroke-dasharray="8,8" />`;
-    } else {
-        lineLayer.innerHTML += `<path d="M ${startPx} L ${endPx}" stroke="${color}" stroke-width="4" stroke-dasharray="8,8" />`;
-    }
-}
-
-// ================= 交互事件与手势 (支持移动端防复制和双指缩放) =================
+// ================= 交互与手势事件 =================
 container.addEventListener('touchstart', (e) => { 
-    if(e.touches.length > 1) { e.preventDefault(); handlePinchStart(e); } 
-    else { startInteraction(e); }
+    if(e.touches.length === 2) { e.preventDefault(); handlePinchStart(e); } 
+    else startInteraction(e); 
 }, {passive: false});
 container.addEventListener('touchmove', (e) => { 
-    if(e.touches.length > 1) { e.preventDefault(); handlePinchMove(e); } 
+    if(e.touches.length === 2) { e.preventDefault(); handlePinchMove(e); } 
     else { e.preventDefault(); drag(e); }
 }, {passive: false});
-container.addEventListener('touchend', endInteraction);
+container.addEventListener('touchend', (e) => { initialPinchDist = null; endInteraction(); });
+
 container.addEventListener('mousedown', startInteraction);
 window.addEventListener('mousemove', drag);
 window.addEventListener('mouseup', endInteraction);
 
 function handlePinchStart(e) {
-    initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    initialPinchZoom = appState.zoom;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    initialPinchDist = Math.sqrt(dx*dx + dy*dy);
+    initialZoom = appState.zoom;
+    clearTimeout(longPressTimer);
 }
+
 function handlePinchMove(e) {
-    if(!initialPinchDist) return;
-    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+    if (!initialPinchDist) return;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
     const zoomDelta = Math.log2(dist / initialPinchDist);
-    let newZoom = Math.round(initialPinchZoom + zoomDelta);
-    setZoom(newZoom);
+    
+    if (Math.abs(zoomDelta) > 0.6) {
+        setZoom(Math.round(initialZoom + zoomDelta));
+        initialPinchDist = dist; initialZoom = appState.zoom;
+    }
 }
 
 function startInteraction(e) {
-    if (e.target.closest('.bottom-sheet') || e.target.closest('.context-menu') || e.target.closest('.route-planner-card')) return;
+    if (e.target.closest('.bottom-sheet') || e.target.closest('.context-menu') || e.target.closest('.route-panel')) return;
     hideMenus();
+
+    if (e.type === 'mousedown' && e.button === 1) {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY);
+        return;
+    }
+    if (e.button === 2) { 
+        e.preventDefault(); 
+        showContextMenu(e.clientX, e.clientY); 
+        return; 
+    }
+
     const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
     const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
     
@@ -340,22 +441,26 @@ function startInteraction(e) {
     dragStartX = appState.x; dragStartZ = appState.z;
     
     longPressTimer = setTimeout(() => {
-        isDragging = false; 
-        if(!routeState.picking) showContextMenu(clientX, clientY);
-    }, 500); // 长按触发自定义菜单，防止系统弹出
+        isDragging = false; showContextMenu(clientX, clientY);
+    }, 500); 
 }
 
 function drag(e) {
     if (!isDragging) return;
-    const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-    if (Math.abs(clientX - dragStartMouseX) > 5 || Math.abs(clientY - dragStartMouseY) > 5) { clearTimeout(longPressTimer); }
+    const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.includes('touch') ? e.touches[0].clientY : e.clientY;
+    
+    if (Math.abs(clientX - dragStartMouseX) > 5 || Math.abs(clientY - dragStartMouseY) > 5) {
+        clearTimeout(longPressTimer);
+    }
+
     const scale = Math.pow(2, appState.zoom);
     appState.x = dragStartX - ((clientX - dragStartMouseX) / scale);
     appState.z = dragStartZ - ((clientY - dragStartMouseY) / scale);
     requestAnimationFrame(updateMap);
 }
-function endInteraction() { clearTimeout(longPressTimer); isDragging = false; initialPinchDist = null; }
+
+function endInteraction() { clearTimeout(longPressTimer); isDragging = false; }
 
 function setZoom(newZoom) {
     newZoom = Math.max(mapConfig.minZoom, Math.min(mapConfig.maxZoom, newZoom));
@@ -369,101 +474,146 @@ container.addEventListener('wheel', (e) => {
     if (e.deltaY > 0) setZoom(appState.zoom - 1); else if (e.deltaY < 0) setZoom(appState.zoom + 1);
 }, { passive: false });
 
-
-// ================= UI 菜单与路线规划功能 =================
+// ================= 路由与菜单UI功能 =================
 function showContextMenu(screenX, screenY) {
     const scale = Math.pow(2, appState.zoom);
     const targetX = Math.round(appState.x + (screenX - container.offsetWidth/2) / scale);
     const targetZ = Math.round(appState.z + (screenY - container.offsetHeight/2) / scale);
-    const menu = document.getElementById('context-menu');
+    
     document.getElementById('ctx-coords').textContent = `${targetX}, ${targetZ}`;
-    menu.style.left = `${screenX}px`; menu.style.top = `${screenY}px`;
-    menu.style.display = 'block';
     window.lastClickedCoords = {x: targetX, z: targetZ, name: `${targetX}, ${targetZ}`};
+    
+    contextMenu.style.display = 'block';
+    const rect = contextMenu.getBoundingClientRect();
+    if (screenX + rect.width > window.innerWidth) screenX = window.innerWidth - rect.width - 10;
+    if (screenY + rect.height > window.innerHeight) screenY = window.innerHeight - rect.height - 10;
+    
+    contextMenu.style.left = `${screenX}px`; contextMenu.style.top = `${screenY+10}px`;
+    contextMenu.animate([{opacity:0, transform:'translateY(10px)'}, {opacity:1, transform:'translateY(0)'}], {duration: 200, fill: 'forwards'});
 }
 
-// 路线规划集成
-function openRoutePlanner() {
-    hideMenus(); document.querySelector('.search-box').style.display = 'none';
-    routePlanner.style.display = 'flex'; routeState.active = true;
+function addLocationRedirect() { window.location.href = `admin.html?x=${window.lastClickedCoords.x}&z=${window.lastClickedCoords.z}`; }
+
+function setRouteStart() { routeState.start = { ...window.lastClickedCoords }; openRoutePanel(); hideMenus(); }
+function setRouteEnd() { routeState.end = { ...window.lastClickedCoords }; openRoutePanel(); hideMenus(); }
+function swapRoute() { const temp = routeState.start; routeState.start = routeState.end; routeState.end = temp; generateRoutes(); }
+
+function openRoutePanel() {
+    routePanel.classList.add('active'); bottomSheet.classList.remove('active');
     document.getElementById('btn-exit-route').style.display = 'flex';
+    generateRoutes();
 }
-function closeRoutePlanner() {
-    routePlanner.style.display = 'none'; document.querySelector('.search-box').style.display = 'flex';
-    routeState = { active: false, mode: 'road', start: null, end: null, path: [], picking: null };
+function closeRoutePanel() {
+    routePanel.classList.remove('active');
+    routeState = { active: false, start: null, end: null, mode: 'drive', path: [], options: [] };
     document.getElementById('btn-exit-route').style.display = 'none';
-    document.getElementById('route-start-input').value = ''; document.getElementById('route-end-input').value = '';
     updateMap();
 }
-document.getElementById('btn-exit-route').onclick = closeRoutePlanner;
+document.getElementById('btn-exit-route').onclick = closeRoutePanel;
 
-function setRoutePoint(type) {
-    openRoutePlanner();
-    if(type === 'start') {
-        routeState.start = { x: window.lastClickedCoords.x, z: window.lastClickedCoords.z };
-        document.getElementById('route-start-input').value = window.lastClickedCoords.name;
+document.querySelectorAll('.route-tab').forEach(tab => {
+    tab.onclick = (e) => {
+        document.querySelectorAll('.route-tab').forEach(t => t.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        routeState.mode = e.currentTarget.dataset.mode;
+        generateRoutes();
+    };
+});
+
+function generateRoutes() {
+    document.getElementById('route-start-input').value = routeState.start ? routeState.start.name : '';
+    document.getElementById('route-end-input').value = routeState.end ? routeState.end.name : '';
+    
+    const listEl = document.getElementById('route-options-list');
+    if (!routeState.start || !routeState.end) {
+        listEl.innerHTML = '<div style="text-align:center; color:#888; padding:20px;">请完善起终点信息</div>';
+        return;
+    }
+
+    routeState.active = true; routeState.options = [];
+    
+    if (routeState.mode === 'drive') {
+        const res = calculateRoute(graphDrive, routeState.start.x, routeState.start.z, routeState.end.x, routeState.end.z);
+        if(res && res.path.length>0) routeState.options.push({ path: res.path, time: `${Math.ceil(res.totalDist/10)} 分钟`, desc: '推荐路线 · 驾车', selected: true });
+        routeState.options.push({ path: [], time: '直线导航', desc: '周围无可用路网接驳', selected: !res || res.path.length===0 });
+    } else if (routeState.mode === 'transit') {
+        const res = calculateRoute(graphTransit, routeState.start.x, routeState.start.z, routeState.end.x, routeState.end.z);
+        if(res && res.path.length>0) routeState.options.push({ path: res.path, time: `${Math.ceil(res.totalDist/15)} 分钟`, desc: '推荐轨道交通', selected: true });
+        else routeState.options.push({ path: [], time: '无换乘方案', desc: '附近无地铁站', selected: true });
     } else {
-        routeState.end = { x: window.lastClickedCoords.x, z: window.lastClickedCoords.z };
-        document.getElementById('route-end-input').value = window.lastClickedCoords.name;
+        routeState.options.push({ path: [], time: '直线步行', desc: '自由寻路', selected: true });
     }
-    checkAndRoute();
+
+    renderRouteOptions(listEl);
+    updateMap();
 }
 
-function setRouteMode(mode) {
-    routeState.mode = mode;
-    document.getElementById('mode-road').classList.toggle('active', mode === 'road');
-    document.getElementById('mode-transit').classList.toggle('active', mode === 'transit');
-    checkAndRoute();
-}
-
-function checkAndRoute() {
-    if (routeState.start && routeState.end) {
-        routeState.path = calculateRoute(routeState.start.x, routeState.start.z, routeState.end.x, routeState.end.z, routeState.mode);
-        updateMap();
-    }
-}
-
-document.getElementById('route-start-input').onclick = () => { routeState.picking = 'start'; alert("请在地图上点击选择起点"); }
-document.getElementById('route-end-input').onclick = () => { routeState.picking = 'end'; alert("请在地图上点击选择终点"); }
-
-function handleRoutePick(name, x, z) {
-    if(routeState.picking === 'start') {
-        routeState.start = {x, z}; document.getElementById('route-start-input').value = name;
-    } else if(routeState.picking === 'end') {
-        routeState.end = {x, z}; document.getElementById('route-end-input').value = name;
-    }
-    routeState.picking = null; checkAndRoute();
+function renderRouteOptions(container) {
+    container.innerHTML = '';
+    routeState.options.forEach((opt, idx) => {
+        const div = document.createElement('div');
+        div.className = `route-card ${opt.selected ? 'selected' : ''}`;
+        div.innerHTML = `<div><div class="time">${opt.time}</div><div class="desc">${opt.desc}</div></div><span class="material-symbols-rounded" style="color:var(--md-sys-color-primary)">${opt.selected ? 'check_circle' : 'chevron_right'}</span>`;
+        div.onclick = () => { routeState.options.forEach(o => o.selected = false); opt.selected = true; renderRouteOptions(container); updateMap(); };
+        container.appendChild(div);
+    });
 }
 
 function openBottomSheet(poi) {
     const content = document.getElementById('sheet-content');
-    const typeLabel = POI_TYPES[poi.type] || '地点';
-    const brandHtml = poi.brandLogo ? `<img src="${poi.brandLogo}" class="brand-logo">` : '';
-    let imagesHtml = (poi.images && poi.images.length > 0) ? `<div class="sheet-images">${poi.images.map(img => `<img src="${img}">`).join('')}</div>` : '';
+    const typeLabel = POI_TYPES[poi.type] || poi.type || '地点';
+    
+    let brandHtml = `<div class="brand-logo-container"><span class="material-symbols-rounded">image</span></div>`;
+    if (poi.icon) {
+        brandHtml = `<div class="brand-logo-container"><img src="${poi.icon}"></div>`;
+    }
+
+    const imgsHtml = poi.images ? `<div class="sheet-images">${poi.images.map(i=>`<img src="${i}">`).join('')}</div>` : '';
 
     content.innerHTML = `
         <div class="sheet-header-row">
             <div class="sheet-header">
                 <h2>${poi.name}</h2>
-                <div class="poi-type">${typeLabel} ${poi.status ? `· <span style="font-weight:normal; color:#555">${poi.status}</span>` : ''}</div>
+                <div class="poi-type">${typeLabel} ${poi.status ? `· <span style="font-weight:normal; color:var(--md-sys-color-outline)">${poi.status}</span>` : ''}</div>
             </div>
             ${brandHtml}
         </div>
         <div class="action-buttons">
-            <button class="action-btn" onclick="window.lastClickedCoords={x:${poi.x},z:${poi.z},name:'${poi.name}'}; setRoutePoint('end'); bottomSheet.classList.remove('active');"><div class="icon"><span class="material-symbols-rounded">directions</span></div>路线</button>
+            <button class="action-btn" onclick="window.lastClickedCoords={x:${poi.x},z:${poi.z},name:'${poi.name}'}; setRouteEnd();"><div class="icon"><span class="material-symbols-rounded">directions</span></div>路线</button>
             ${poi.website ? `<button class="action-btn" onclick="window.open('${poi.website}')"><div class="icon"><span class="material-symbols-rounded">language</span></div>网站</button>` : ''}
+            <button class="action-btn"><div class="icon"><span class="material-symbols-rounded">share</span></div>分享</button>
         </div>
-        ${imagesHtml}
-        ${poi.remarks ? `<div style="padding-top:16px; border-top:1px solid var(--md-sys-color-surface-container);"><p style="color: var(--md-sys-color-outline); line-height: 1.5;">${poi.remarks}</p></div>` : ''}
+        ${imgsHtml}
+        ${poi.remarks ? `<div style="padding-top:16px; border-top:1px solid var(--md-sys-color-surface-container); color:var(--md-sys-color-outline); line-height:1.5;">${poi.remarks}</div>` : ''}
     `;
-    bottomSheet.classList.add('active');
+    bottomSheet.classList.add('active'); routePanel.classList.remove('active');
 }
 
-function hideMenus() { bottomSheet.classList.remove('active'); document.getElementById('context-menu').style.display = 'none'; }
-function copyCoords() { const t = `${window.lastClickedCoords.x}, ${window.lastClickedCoords.z}`; navigator.clipboard.writeText(t); hideMenus(); alert("坐标已复制: " + t); }
+function hideMenus() { contextMenu.style.display = 'none'; bottomSheet.classList.remove('active'); }
+function copyCoords() {
+    const t = `${window.lastClickedCoords.x}, ${window.lastClickedCoords.z}`;
+    navigator.clipboard.writeText(t); hideMenus(); alert("已复制坐标: " + t);
+}
 
-// ================= 设置与底图渲染 =================
-function renderTiles(cx, cz, scale, width, height) {
+document.getElementById('btn-layers').onclick = () => document.getElementById('layers-modal').style.display = 'block';
+document.getElementById('btn-settings').onclick = () => document.getElementById('settings-modal').style.display = 'block';
+document.getElementById('btn-close-settings').onclick = () => document.getElementById('settings-modal').style.display = 'none';
+
+document.querySelectorAll('.layer-btn').forEach(btn => {
+    btn.onclick = (e) => {
+        document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        appState.mapLayer = e.currentTarget.dataset.layer;
+        document.getElementById('layers-modal').style.display = 'none';
+        updateMap();
+    };
+});
+
+document.getElementById('toggle-crosshair').onchange = (e) => { appState.showCrosshair = e.target.checked; document.getElementById('crosshair').style.display = e.target.checked?'block':'none'; saveSettings();};
+document.getElementById('toggle-coords').onchange = (e) => { appState.showCoords = e.target.checked; document.getElementById('coords-display').style.display = e.target.checked?'inline-block':'none'; saveSettings();};
+document.getElementById('toggle-memory').onchange = (e) => { appState.memoryEnabled = e.target.checked; saveSettings();};
+
+function renderTiles(cx, cz, scale, width, height) { 
     const txC = Math.floor(cx / 256); const tzC = Math.floor(cz / 256);
     const rX = Math.ceil(width / 2 / 256) + 1; const rZ = Math.ceil(height / 2 / 256) + 1;
     const needed = new Set();
@@ -482,12 +632,7 @@ function renderTiles(cx, cz, scale, width, height) {
     Array.from(tileContainer.children).forEach(img => { if (!needed.has(img.dataset.key)) img.remove(); });
 }
 
-document.getElementById('btn-my-location').onclick = () => { 
-    // 定位到 settings origin, 无则回原点
-    appState.x = mapData.settings?.origin?.x || 0; 
-    appState.z = mapData.settings?.origin?.z || 0; 
-    setZoom(-2); // 定位时稍微放大
-    updateMap(); 
-};
+function saveSettings() { localStorage.setItem('mapAppStateM3', JSON.stringify({ x: appState.x, z: appState.z, zoom: appState.zoom, showCrosshair: appState.showCrosshair, showCoords: appState.showCoords, memoryEnabled: appState.memoryEnabled })); }
+function loadSettings() { const s = localStorage.getItem('mapAppStateM3'); if(s) Object.assign(appState, JSON.parse(s)); }
 
-init();
+window.onload = init;
