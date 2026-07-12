@@ -41,7 +41,7 @@ function init() {
     document.getElementById('crosshair').style.display = appState.showCrosshair ? 'block' : 'none';
     document.getElementById('coords-display').style.display = appState.showCoords ? 'inline-block' : 'none';
 
-    fetch('map_data.json').then(res => res.json()).then(data => {
+    fetch('/map_data.json').then(res => res.json()).then(data => {
         mapData = data;
         
         // 首次打开或未开启记忆时，重置回原点
