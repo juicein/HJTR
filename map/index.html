@@ -9,14 +9,12 @@
 </head>
 <body>
     <div class="top-bar">
-        <div class="search-container">
-            <div class="search-box m3-surface">
-                <span class="material-symbols-rounded">search</span>
-                <input type="text" id="search-input" placeholder="搜索地点、地铁站...">
-                <button id="btn-layers" class="icon-btn"><span class="material-symbols-rounded">layers</span></button>
-                <button id="btn-settings" class="icon-btn"><span class="material-symbols-rounded">settings</span></button>
-            </div>
-            <div class="search-results m3-surface" id="search-results" style="display: none;"></div>
+        <div class="search-box m3-surface">
+            <!-- 根据MD3标准，可以在这里预留png logo位置，目前以search icon作为引导 -->
+            <span class="material-symbols-rounded">search</span>
+            <input type="text" id="search-input" placeholder="搜索地点、地铁站、道路...">
+            <button id="btn-layers" class="icon-btn"><span class="material-symbols-rounded">layers</span></button>
+            <button id="btn-settings" class="icon-btn"><span class="material-symbols-rounded">settings</span></button>
         </div>
         <div class="coords-display m3-surface" id="coords-display">X: 0, Z: 0</div>
     </div>
@@ -74,16 +72,25 @@
             <button class="route-tab" data-mode="transit"><span class="material-symbols-rounded">directions_subway</span></button>
             <button class="route-tab" data-mode="walk"><span class="material-symbols-rounded">directions_walk</span></button>
         </div>
-        <div class="route-options" id="route-options-list"></div>
+        <div class="route-options" id="route-options-list">
+            </div>
     </div>
 
     <div class="settings-modal m3-surface" id="layers-modal" style="display:none;">
         <h3>地图类型</h3>
         <div class="layer-options">
-            <button class="layer-btn active" data-layer="all"><span class="material-symbols-rounded">map</span><span>综合出行</span></button>
-            <button class="layer-btn" data-layer="transit"><span class="material-symbols-rounded">directions_subway</span><span>公交地图</span></button>
-            <button class="layer-btn" data-layer="drive"><span class="material-symbols-rounded">directions_car</span><span>驾车地图</span></button>
-            <button class="layer-btn" data-layer="raw"><span class="material-symbols-rounded">satellite</span><span>卫星/原图</span></button>
+            <button class="layer-btn active" data-layer="all">
+                <span class="material-symbols-rounded">map</span><span>综合出行</span>
+            </button>
+            <button class="layer-btn" data-layer="transit">
+                <span class="material-symbols-rounded">directions_subway</span><span>公交地图</span>
+            </button>
+            <button class="layer-btn" data-layer="drive">
+                <span class="material-symbols-rounded">directions_car</span><span>驾车地图</span>
+            </button>
+            <button class="layer-btn" data-layer="raw">
+                <span class="material-symbols-rounded">satellite</span><span>卫星/原图</span>
+            </button>
         </div>
         <button class="close-btn" onclick="document.getElementById('layers-modal').style.display='none'">关闭</button>
     </div>
