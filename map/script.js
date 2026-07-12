@@ -1,18 +1,20 @@
 let mapConfig = { minZoom: -6, maxZoom: 0, defaultZoom: -1, imageFormat: "webp" };
-let appState = { x: -15151, z: -5714, zoom: -1, showCrosshair: true, showCoords: true, memoryEnabled: true, mapLayer: 'all' }; 
-let mapData = { regions: [], pois: [], roads: [], subways: [] };
+let appState = { x: 0, z: 0, zoom: -1, showCrosshair: true, showCoords: true, memoryEnabled: true, mapLayer: 'all' }; // mapLayer: all, transit, drive, raw
+let mapData = { regions: [], pois: [], roads: [], subways: [], settings: {} };
 
+// 路由状态
 let routeState = { active: false, start: null, end: null, mode: 'drive', path: [], options: [] };
 let graphDrive = new Map();
 let graphTransit = new Map();
 
+// 手势与拖拽控制
 let isDragging = false;
 let dragStartX, dragStartZ, dragStartMouseX, dragStartMouseY;
 let longPressTimer;
 let initialPinchDist = null;
 let initialZoom = null;
 
-const BEZIER_RADIUS = 60; 
+const BEZIER_RADIUS = 60; // 控制弯道平滑的圆角曲度放大
 
 const container = document.getElementById('map-container');
 const tileContainer = document.querySelector('.tile-container');
@@ -22,7 +24,7 @@ const lineLayer = document.getElementById('line-layer');
 const bottomSheet = document.getElementById('bottom-sheet');
 const routePanel = document.getElementById('route-panel');
 const contextMenu = document.getElementById('context-menu');
-const searchResults = document.getElementById('search-results');
+const searchInput = document.getElementById('search-input');
 
 const POI_TYPES = {
     'supermarket': '超市', 'hotel': '酒店', 'bank': '银行', 
@@ -30,16 +32,6 @@ const POI_TYPES = {
     'museum': '博物馆', 'park': '公园', 'restaurant': '餐厅', 
     'cafe': '咖啡吧', 'subway_station': '轨道交通站点'
 };
-
-// 动态解析类型对应的显示层级
-const ZOOM_LEVELS = {
-    'city': { min: -6, max: -3 },
-    'district': { min: -4, max: -1 },
-    'community': { min: -2, max: 0 }
-};
-
-// 屏蔽右键及默认原生系统选单
-window.addEventListener('contextmenu', e => e.preventDefault());
 
 function init() {
     loadSettings();
@@ -51,66 +43,50 @@ function init() {
 
     fetch('map_data.json').then(res => res.json()).then(data => {
         mapData = data;
-        if (!appState.memoryEnabled && data.settings?.origin) {
-            appState.x = data.settings.origin.x; appState.z = data.settings.origin.z;
+        
+        // 首次打开或未开启记忆时，重置回原点
+        const isFirstLoad = !localStorage.getItem('mapAppStateM3');
+        if ((isFirstLoad || !appState.memoryEnabled) && data.settings?.origin) {
+            appState.x = data.settings.origin.x; 
+            appState.z = data.settings.origin.z;
         }
+
         buildGraphs();
         updateMap();
     }).catch(e => { console.error("加载地图数据失败", e); });
 }
 
-// 恢复我的位置
-document.getElementById('btn-my-location').onclick = () => {
-    if (mapData.settings && mapData.settings.origin) {
-        appState.x = mapData.settings.origin.x;
-        appState.z = mapData.settings.origin.z;
-        updateMap();
-    }
-};
-
-// 搜索功能实现
-document.getElementById('search-input').addEventListener('input', (e) => {
-    const val = e.target.value.trim().toLowerCase();
-    if (!val) { searchResults.style.display = 'none'; return; }
-    
-    let results = [];
-    mapData.pois.forEach(p => { if (p.name.toLowerCase().includes(val)) results.push(p); });
-    mapData.subways.forEach(s => {
-        s.stations.forEach(st => {
-            if (st.name.toLowerCase().includes(val)) results.push({ ...st, type: 'subway_station', icon: s.icon || s.logo });
-        });
-    });
-    
-    if (results.length > 0) {
-        searchResults.innerHTML = results.map((res, i) => `
-            <div class="search-item" data-idx="${i}">
-                <div class="icon"><span class="material-symbols-rounded">${res.type === 'subway_station' ? 'directions_subway' : 'location_on'}</span></div>
-                <div>
-                    <div style="font-weight:bold">${res.name}</div>
-                    <div style="font-size:12px; color:var(--md-sys-color-outline)">${POI_TYPES[res.type] || res.type}</div>
-                </div>
-            </div>
-        `).join('');
-        searchResults.style.display = 'block';
+// 搜索功能监听
+searchInput.addEventListener('keypress', (e) => {
+    if(e.key === 'Enter') {
+        const query = e.target.value.trim().toLowerCase();
+        if(!query) return;
         
-        document.querySelectorAll('.search-item').forEach(item => {
-            item.onclick = (ev) => {
-                const target = results[ev.currentTarget.dataset.idx];
-                appState.x = target.x; appState.z = target.z;
-                setZoom(-1);
-                searchResults.style.display = 'none';
-                openBottomSheet(target);
-                updateMap();
-            };
-        });
-    } else {
-        searchResults.innerHTML = '<div style="padding:16px; text-align:center; color:var(--md-sys-color-outline);">未找到结果</div>';
-        searchResults.style.display = 'block';
+        // 在地点和地铁站中搜索
+        let found = mapData.pois.find(p => p.name.toLowerCase().includes(query));
+        if(!found) {
+            for(let sub of mapData.subways) {
+                if(sub.stations) {
+                    found = sub.stations.find(s => s.name.toLowerCase().includes(query));
+                    if(found) {
+                        found.type = 'subway_station';
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if(found) {
+            appState.x = found.x; 
+            appState.z = found.z;
+            appState.zoom = -1; // 放大到能看清楚标注的层级
+            updateMap();
+            openBottomSheet(found);
+            searchInput.blur(); // 隐藏手机键盘
+        } else {
+            alert('未找到相关地点或地铁站');
+        }
     }
-});
-// 点击别处关闭搜索结果
-window.addEventListener('mousedown', (e) => {
-    if (!e.target.closest('.search-container')) searchResults.style.display = 'none';
 });
 
 // ================= 路网与寻路 (Dijkstra) =================
@@ -125,10 +101,10 @@ function buildGraphs() {
         graph.get(k2).push({ node: k1, dist, x: p1.x, z: p1.z });
     };
 
-    mapData.roads?.forEach(road => {
+    if(mapData.roads) mapData.roads.forEach(road => {
         for (let i = 0; i < road.points.length - 1; i++) addEdge(graphDrive, road.points[i], road.points[i+1]);
     });
-    mapData.subways?.forEach(sub => {
+    if(mapData.subways) mapData.subways.forEach(sub => {
         for (let i = 0; i < sub.points.length - 1; i++) addEdge(graphTransit, sub.points[i], sub.points[i+1]);
     });
 }
@@ -140,7 +116,8 @@ function getNearestNode(graph, px, pz) {
         const d = Math.sqrt(Math.pow(x - px, 2) + Math.pow(z - pz, 2));
         if(d < minD) { minD = d; nearest = {x, z, key}; }
     });
-    return nearest;
+    // 如果最近的节点距离超过 2000 个方块，则认为附近没路
+    return minD < 2000 ? nearest : null; 
 }
 
 function calculateRoute(graph, startX, startZ, endX, endZ) {
@@ -168,7 +145,7 @@ function calculateRoute(graph, startX, startZ, endX, endZ) {
     if (previous.has(curr) || curr === startNode.key) {
         while (curr) { const [x, z] = curr.split(',').map(Number); path.unshift({x, z}); curr = previous.get(curr); }
     }
-    return { path, totalDist };
+    return { path, totalDist, startNode, endNode };
 }
 
 // ================= 核心渲染 =================
@@ -220,18 +197,21 @@ function generateSmoothPathD(points, scale, cx, cz, width, height) {
 
 function renderRegions(cx, cz, scale, width, height) {
     regionContainer.innerHTML = '';
-    mapData.regions?.forEach(reg => {
-        const minZ = ZOOM_LEVELS[reg.type]?.min ?? -6;
-        const maxZ = ZOOM_LEVELS[reg.type]?.max ?? 0;
+    if(!mapData.regions) return;
+    mapData.regions.forEach(reg => {
+        // 根据重要程度（type）识别视野可见度
+        let minZoom = -2, maxZoom = 0;
+        if(reg.type === 'city') { minZoom = -6; maxZoom = -3; }
+        else if(reg.type === 'district') { minZoom = -4; maxZoom = -1; }
         
-        if (appState.zoom < minZ || appState.zoom > maxZ) return;
+        if (appState.zoom < minZoom || appState.zoom > maxZoom) return;
         const sx = (width / 2) + (reg.x * scale - cx);
         const sy = (height / 2) + (reg.z * scale - cz);
         
         const el = document.createElement('div');
         el.className = 'region-label';
         el.style.left = `${sx}px`; el.style.top = `${sy}px`;
-        el.style.fontSize = `${Math.max(20, 60 + appState.zoom * 10)}px`;
+        el.style.fontSize = `${Math.max(24, 80 + appState.zoom * 10)}px`;
         el.textContent = reg.name;
         regionContainer.appendChild(el);
     });
@@ -248,7 +228,8 @@ function renderLines(cx, cz, scale, width, height) {
         const pathData = generateSmoothPathD(lineData.points, scale, cx, cz, width, height);
         if(!pathData.d) return;
 
-        const pathId = `path-${lineData.id || lineData.name}`;
+        // 生成唯一ID以便挂载文字
+        const pathId = `path-${Math.random().toString(36).substr(2, 9)}`;
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('id', pathId);
         path.setAttribute('d', pathData.d);
@@ -274,13 +255,15 @@ function renderLines(cx, cz, scale, width, height) {
         }
         lineLayer.appendChild(path);
 
-        // 根据比例与长度动态渲染多次文字
-        if (lineData.name && scale >= 0.1) {
+        // 文字标注多点平铺 - 按照地图比例尺动态判断数量
+        if (lineData.name && scale >= 0.05) {
             const textClass = isSubway ? 'subway-text' : 'road-text';
-            const numLabels = Math.max(1, Math.floor(pathData.len / 400));
+            const distancePerLabel = 400; // 每 400 像素间隔一个文字
+            const numLabels = Math.max(1, Math.floor(pathData.len / distancePerLabel));
+            
             const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             textEl.setAttribute('class', textClass);
-            textEl.setAttribute('dy', isSubway ? -strokeW : 5);
+            textEl.setAttribute('dy', isSubway ? -(strokeW+2) : 5); // 轨道线文字在上方，道路线居中
             
             let tspanHtml = '';
             for(let i=1; i<=numLabels; i++) {
@@ -292,36 +275,41 @@ function renderLines(cx, cz, scale, width, height) {
         }
     };
 
-    mapData.roads?.forEach(r => drawLine(r, false));
-    mapData.subways?.forEach(s => drawLine(s, true));
+    if(mapData.roads) mapData.roads.forEach(r => drawLine(r, false));
+    if(mapData.subways) mapData.subways.forEach(s => drawLine(s, true));
 }
 
 function renderActiveRoute(cx, cz, scale, width, height) {
     if (!routeState.active || !routeState.start || !routeState.end) return;
-    const getScreenPtStr = (x, z) => `${(width / 2) + (x * scale - cx)},${(height / 2) + (z * scale - cz)}`;
+    const getScreenPt = (x, z) => `${(width / 2) + (x * scale - cx)},${(height / 2) + (z * scale - cz)}`;
 
-    const startPx = getScreenPtStr(routeState.start.x, routeState.start.z);
-    const endPx = getScreenPtStr(routeState.end.x, routeState.end.z);
+    const drawRoutePath = (pathObj, color) => {
+        if(!pathObj || pathObj.path.length === 0) return;
+        const pData = generateSmoothPathD(pathObj.path, scale, cx, cz, width, height);
+        const rp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        rp.setAttribute('d', pData.d); rp.setAttribute('fill', 'none');
+        rp.setAttribute('stroke', color); rp.setAttribute('stroke-width', Math.max(4, 8 + appState.zoom)); 
+        rp.setAttribute('stroke-linecap', 'round'); rp.setAttribute('stroke-linejoin', 'round');
+        lineLayer.appendChild(rp);
+    };
+
+    const startPx = getScreenPt(routeState.start.x, routeState.start.z);
+    const endPx = getScreenPt(routeState.end.x, routeState.end.z);
     
     let currentOption = routeState.options.find(o => o.selected);
     if (currentOption && currentOption.path.length > 0) {
-        // 画出网络内的真实平滑道路
-        const pData = generateSmoothPathD(currentOption.path, scale, cx, cz, width, height);
-        const rp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        rp.setAttribute('d', pData.d); rp.setAttribute('fill', 'none');
-        rp.setAttribute('stroke', '#1a73e8'); rp.setAttribute('stroke-width', Math.max(4, 8 + appState.zoom)); 
-        rp.setAttribute('stroke-linecap', 'round'); rp.setAttribute('stroke-linejoin', 'round');
-        lineLayer.appendChild(rp);
-
-        // 真实道路起点/终点与用户点击点的虚线连接
-        const firstNode = getScreenPtStr(currentOption.path[0].x, currentOption.path[0].z);
-        const lastNode = getScreenPtStr(currentOption.path[currentOption.path.length-1].x, currentOption.path[currentOption.path.length-1].z);
+        // 渲染主路段
+        drawRoutePath(currentOption, '#1a73e8');
         
-        lineLayer.innerHTML += `<path d="M ${startPx} L ${firstNode}" stroke="#8ab4f8" stroke-width="4" stroke-dasharray="8,8" />`;
-        lineLayer.innerHTML += `<path d="M ${lastNode} L ${endPx}" stroke="#8ab4f8" stroke-width="4" stroke-dasharray="8,8" />`;
+        // 渲染无路段时的接驳虚线 (起点到上车点，下车点到终点)
+        const firstNode = getScreenPt(currentOption.path[0].x, currentOption.path[0].z);
+        const lastNode = getScreenPt(currentOption.path[currentOption.path.length-1].x, currentOption.path[currentOption.path.length-1].z);
+        
+        lineLayer.innerHTML += `<path d="M ${startPx} L ${firstNode}" stroke="#1a73e8" stroke-width="4" stroke-dasharray="8,8" />`;
+        lineLayer.innerHTML += `<path d="M ${lastNode} L ${endPx}" stroke="#1a73e8" stroke-width="4" stroke-dasharray="8,8" />`;
     } else {
-        // 彻底无路的纯直线虚线导航
-        lineLayer.innerHTML += `<path d="M ${startPx} L ${endPx}" stroke="#8ab4f8" stroke-width="4" stroke-dasharray="8,8" />`;
+        // 如果完全没有路网支持，就像 Google Map 一样直线虚线
+        lineLayer.innerHTML += `<path d="M ${startPx} L ${endPx}" stroke="#1a73e8" stroke-width="4" stroke-dasharray="8,8" />`;
     }
 
     const createRouteMarker = (px, pz, isStart) => {
@@ -338,22 +326,22 @@ function renderActiveRoute(cx, cz, scale, width, height) {
 }
 
 function renderMarkers(cx, cz, scale, width, height) {
-    if(routeState.active) return; 
+    if(routeState.active) return; // 规划路线时隐藏普通标注防干扰
     markerContainer.innerHTML = '';
     
     let allPois = [...(mapData.pois || [])];
-    mapData.subways?.forEach(sub => {
-        if(sub.stations) sub.stations.forEach(st => allPois.push({ ...st, type: 'subway_station', icon: sub.icon || sub.logo }));
+    if(mapData.subways) mapData.subways.forEach(sub => {
+        if(sub.stations) sub.stations.forEach(st => allPois.push({ ...st, type: 'subway_station', icon: sub.logo }));
     });
 
     allPois.forEach(poi => {
-        let minZ = poi.minZoom ?? -3;
-        let maxZ = poi.maxZoom ?? 0;
-        
+        // 判断可见性：带有 important=true 属性的允许在缩小视图时依然可见
+        let minZ = poi.important ? -6 : -2;
+        let maxZ = 0;
         if (appState.zoom < minZ || appState.zoom > maxZ) return;
+        
         const sx = (width / 2) + (poi.x * scale - cx);
         const sy = (height / 2) + (poi.z * scale - cz);
-        
         if (sx < -100 || sx > width + 100 || sy < -100 || sy > height + 100) return; 
         
         const el = document.createElement('div');
@@ -368,12 +356,8 @@ function renderMarkers(cx, cz, scale, width, height) {
         if(poi.type === 'bank') icon = 'account_balance';
         if(poi.type === 'subway_station') { icon = 'directions_subway'; bgColor = '#E53935'; } 
 
-        let iconHtml = `<div class="marker-icon" style="background:${bgColor}">`;
-        if (poi.icon) {
-            iconHtml += `<img src="${poi.icon}" style="width:100%; height:100%; object-fit:cover;">`;
-        } else {
-            iconHtml += `<span class="material-symbols-rounded" style="font-size: 18px;">${icon}</span>`;
-        }
+        let iconHtml = `<div class="marker-icon" style="background:${bgColor}"><span class="material-symbols-rounded" style="font-size: 18px;">${icon}</span>`;
+        if (poi.icon) iconHtml += `<img src="${poi.icon}" class="company-logo">`;
         iconHtml += `</div>`;
 
         el.innerHTML = `${iconHtml}<div class="marker-label">${poi.name}</div>`;
@@ -419,18 +403,11 @@ function handlePinchMove(e) {
 }
 
 function startInteraction(e) {
-    if (e.target.closest('.bottom-sheet') || e.target.closest('.context-menu') || e.target.closest('.route-panel')) return;
+    if (e.target.closest('.bottom-sheet') || e.target.closest('.context-menu') || e.target.closest('.route-panel') || e.target.closest('.top-bar')) return;
     hideMenus();
 
     if (e.type === 'mousedown' && e.button === 1) {
-        e.preventDefault();
-        showContextMenu(e.clientX, e.clientY);
-        return;
-    }
-    if (e.button === 2) { 
-        e.preventDefault(); 
-        showContextMenu(e.clientX, e.clientY); 
-        return; 
+        e.preventDefault(); showContextMenu(e.clientX, e.clientY); return;
     }
 
     const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
@@ -442,7 +419,7 @@ function startInteraction(e) {
     
     longPressTimer = setTimeout(() => {
         isDragging = false; showContextMenu(clientX, clientY);
-    }, 500); 
+    }, 600);
 }
 
 function drag(e) {
@@ -474,6 +451,16 @@ container.addEventListener('wheel', (e) => {
     if (e.deltaY > 0) setZoom(appState.zoom - 1); else if (e.deltaY < 0) setZoom(appState.zoom + 1);
 }, { passive: false });
 
+// 位置跳转
+document.getElementById('btn-my-location').onclick = () => {
+    if(mapData.settings?.origin) {
+        appState.x = mapData.settings.origin.x;
+        appState.z = mapData.settings.origin.z;
+        appState.zoom = -1;
+        updateMap();
+    }
+};
+
 // ================= 路由与菜单UI功能 =================
 function showContextMenu(screenX, screenY) {
     const scale = Math.pow(2, appState.zoom);
@@ -494,6 +481,7 @@ function showContextMenu(screenX, screenY) {
 
 function addLocationRedirect() { window.location.href = `admin.html?x=${window.lastClickedCoords.x}&z=${window.lastClickedCoords.z}`; }
 
+// 路线规划系统
 function setRouteStart() { routeState.start = { ...window.lastClickedCoords }; openRoutePanel(); hideMenus(); }
 function setRouteEnd() { routeState.end = { ...window.lastClickedCoords }; openRoutePanel(); hideMenus(); }
 function swapRoute() { const temp = routeState.start; routeState.start = routeState.end; routeState.end = temp; generateRoutes(); }
@@ -530,16 +518,17 @@ function generateRoutes() {
         return;
     }
 
-    routeState.active = true; routeState.options = [];
+    routeState.active = true;
+    routeState.options = [];
     
     if (routeState.mode === 'drive') {
         const res = calculateRoute(graphDrive, routeState.start.x, routeState.start.z, routeState.end.x, routeState.end.z);
-        if(res && res.path.length>0) routeState.options.push({ path: res.path, time: `${Math.ceil(res.totalDist/10)} 分钟`, desc: '推荐路线 · 驾车', selected: true });
-        routeState.options.push({ path: [], time: '直线导航', desc: '周围无可用路网接驳', selected: !res || res.path.length===0 });
+        if(res && res.path.length>0) routeState.options.push({ path: res.path, time: `${Math.ceil(res.totalDist/10)} 分钟`, desc: '最快路线 · 驾车', selected: true });
+        else routeState.options.push({ path: [], time: '直线导航', desc: '周围没有找到路网，按直线指引', selected: true });
     } else if (routeState.mode === 'transit') {
         const res = calculateRoute(graphTransit, routeState.start.x, routeState.start.z, routeState.end.x, routeState.end.z);
         if(res && res.path.length>0) routeState.options.push({ path: res.path, time: `${Math.ceil(res.totalDist/15)} 分钟`, desc: '推荐轨道交通', selected: true });
-        else routeState.options.push({ path: [], time: '无换乘方案', desc: '附近无地铁站', selected: true });
+        else routeState.options.push({ path: [], time: '无换乘方案', desc: '附近无直达轨交系统', selected: true });
     } else {
         routeState.options.push({ path: [], time: '直线步行', desc: '自由寻路', selected: true });
     }
@@ -561,13 +550,10 @@ function renderRouteOptions(container) {
 
 function openBottomSheet(poi) {
     const content = document.getElementById('sheet-content');
-    const typeLabel = POI_TYPES[poi.type] || poi.type || '地点';
-    
-    let brandHtml = `<div class="brand-logo-container"><span class="material-symbols-rounded">image</span></div>`;
-    if (poi.icon) {
-        brandHtml = `<div class="brand-logo-container"><img src="${poi.icon}"></div>`;
-    }
-
+    const typeLabel = POI_TYPES[poi.type] || '地点';
+    // 支持 brandLogo 或者 icon 均可
+    const iconSrc = poi.icon || poi.brandLogo;
+    const brandHtml = iconSrc ? `<img src="${iconSrc}" class="brand-logo">` : `<div class="brand-logo" style="display:flex;align-items:center;justify-content:center;color:#ccc;"><span class="material-symbols-rounded">image</span></div>`;
     const imgsHtml = poi.images ? `<div class="sheet-images">${poi.images.map(i=>`<img src="${i}">`).join('')}</div>` : '';
 
     content.innerHTML = `
@@ -584,7 +570,7 @@ function openBottomSheet(poi) {
             <button class="action-btn"><div class="icon"><span class="material-symbols-rounded">share</span></div>分享</button>
         </div>
         ${imgsHtml}
-        ${poi.remarks ? `<div style="padding-top:16px; border-top:1px solid var(--md-sys-color-surface-container); color:var(--md-sys-color-outline); line-height:1.5;">${poi.remarks}</div>` : ''}
+        ${poi.remarks ? `<div style="padding-top:16px; border-top:1px solid var(--md-sys-color-surface-container); color:var(--md-sys-color-outline)">${poi.remarks}</div>` : ''}
     `;
     bottomSheet.classList.add('active'); routePanel.classList.remove('active');
 }
@@ -595,6 +581,7 @@ function copyCoords() {
     navigator.clipboard.writeText(t); hideMenus(); alert("已复制坐标: " + t);
 }
 
+// ================= 设置与图层 =================
 document.getElementById('btn-layers').onclick = () => document.getElementById('layers-modal').style.display = 'block';
 document.getElementById('btn-settings').onclick = () => document.getElementById('settings-modal').style.display = 'block';
 document.getElementById('btn-close-settings').onclick = () => document.getElementById('settings-modal').style.display = 'none';
@@ -632,7 +619,7 @@ function renderTiles(cx, cz, scale, width, height) {
     Array.from(tileContainer.children).forEach(img => { if (!needed.has(img.dataset.key)) img.remove(); });
 }
 
-function saveSettings() { localStorage.setItem('mapAppStateM3', JSON.stringify({ x: appState.x, z: appState.z, zoom: appState.zoom, showCrosshair: appState.showCrosshair, showCoords: appState.showCoords, memoryEnabled: appState.memoryEnabled })); }
 function loadSettings() { const s = localStorage.getItem('mapAppStateM3'); if(s) Object.assign(appState, JSON.parse(s)); }
+function saveSettings() { if(appState.memoryEnabled) localStorage.setItem('mapAppStateM3', JSON.stringify(appState)); else localStorage.removeItem('mapAppStateM3'); }
 
-window.onload = init;
+init();
