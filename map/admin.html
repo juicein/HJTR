@@ -1,474 +1,467 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>地图数据资源库</title>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-  <style>
-    :root {
-      --md-sys-color-primary: #006495;
-      --md-sys-color-on-primary: #ffffff;
-      --md-sys-color-primary-container: #cbe6ff;
-      --md-sys-color-on-primary-container: #001e30;
-      --md-sys-color-secondary-container: #d6e4f7;
-      --md-sys-color-on-secondary-container: #131c2b;
-      --md-sys-color-surface: #fdfcff;
-      --md-sys-color-on-surface: #1a1c1e;
-      --md-sys-color-surface-variant: #e2e2e5;
-      --md-sys-color-error: #ba1a1a;
-      --md-sys-color-error-container: #ffdad6;
-      --glass-bg: rgba(253, 252, 255, 0.85);
-      --glass-border: rgba(0, 100, 149, 0.1);
-      --radius-lg: 24px;
-      --radius-md: 16px;
-      --radius-sm: 8px;
-    }
-    
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-    body { background-color: #f2f6fc; color: var(--md-sys-color-on-surface); -webkit-tap-highlight-color: transparent; }
-    .hidden { display: none !important; }
-    
-    /* Top App Bar */
-    .top-app-bar {
-      position: sticky; top: 0; z-index: 100;
-      background: var(--glass-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--glass-border); padding: 16px 20px;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .top-app-bar h1 { font-size: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>地图数据管理中心</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
-    /* Layout & Cards */
-    .container { padding: 16px; max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
-    .card {
-      background: var(--md-sys-color-surface); border-radius: var(--radius-md);
-      padding: 16px; margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.02);
-      border: 1px solid var(--glass-border); position: relative;
-    }
-    
-    /* Typography & Chips */
-    .chip-group { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; margin-bottom: 8px; scrollbar-width: none; }
-    .chip-group::-webkit-scrollbar { display: none; }
-    .chip {
-      padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;
-      background: var(--md-sys-color-surface); border: 1px solid #d1d5db;
-      color: #4b5563; white-space: nowrap; cursor: pointer; transition: all 0.2s;
-    }
-    .chip.active { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
+<style>
+/* Material 3 Expressive 色彩系统 */
+:root {
+  --md-sys-color-primary: #006874;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #97f0ff;
+  --md-sys-color-on-primary-container: #001f24;
+  --md-sys-color-surface: #f8fdff;
+  --md-sys-color-surface-container: #eaf6fa;
+  --md-sys-color-outline: #6f797a;  
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: 1px solid rgba(0, 0, 0, 0.05);
+  --text-main: #191c1d;
+  --text-sub: #3f484a;
+}
 
-    /* Buttons */
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px; border: none; cursor: pointer;
-      font-size: 15px; font-weight: 500; transition: 0.2s; border-radius: var(--radius-sm); padding: 10px 20px;
-    }
-    .btn-primary { background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border-radius: 24px; }
-    .btn-tonal { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); }
-    .btn-error { background: var(--md-sys-color-error-container); color: var(--md-sys-color-error); }
-    .btn-icon { background: none; color: inherit; padding: 8px; border-radius: 50%; }
-    .fab {
-      position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px;
-      background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container);
-      border-radius: 20px; display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); cursor: pointer; border: none; z-index: 90;
-    }
-
-    /* Forms */
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 13px; color: #64748b; margin-bottom: 6px; font-weight: 500; }
-    input, select, textarea {
-      width: 100%; padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid #cbd5e1;
-      font-size: 16px; background: var(--md-sys-color-surface); transition: 0.2s; font-family: inherit;
-    }
-    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--md-sys-color-primary); box-shadow: 0 0 0 3px var(--md-sys-color-primary-container); }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --md-sys-color-surface: #191c1d;
+    --md-sys-color-surface-container: #1e2526;
+    --md-sys-color-on-primary-container: #ffffff;
+    --md-sys-color-primary-container: #006874;
+    --md-sys-color-primary: #4fd8eb;
+    --md-sys-color-outline: #899294;
     
-    /* Dynamic List */
-    .dynamic-list-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; background: #f8fafc; padding: 8px; border-radius: 8px; border: 1px dashed #cbd5e1; }
-    .dynamic-list-item input { padding: 8px 12px; font-size: 14px; }
-    
-    /* Utility */
-    .flex-row { display: flex; gap: 12px; align-items: center; }
-    .item-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-    .item-subtitle { font-size: 13px; color: #64748b; margin-bottom: 12px; }
-    .badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; background: #e2e8f0; font-weight: normal; }
+    --glass-bg: rgba(30, 30, 30, 0.75);
+    --glass-border: 1px solid rgba(255, 255, 255, 0.1);
+    --text-main: #e1e3e3;
+    --text-sub: #bfc8c9;
+  }
+}
 
-    /* Login Screen */
-    #loginPage { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
-    .login-card { background: white; padding: 32px; border-radius: 24px; width: 100%; max-width: 400px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-  </style>
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--md-sys-color-surface-container);
+  color: var(--text-main);
+  margin: 0; padding: 0; padding-top: 64px; line-height: 1.5;
+}
+
+/* 顶部导航 */
+.top-app-bar {
+  position: fixed; top: 0; left: 0; right: 0; height: 64px;
+  background: var(--md-sys-color-surface);
+  display: flex; align-items: center; padding: 0 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1000; gap: 12px;
+}
+.title { flex: 1; font-size: 20px; font-weight: 600; color: var(--md-sys-color-primary); }
+
+.icon-btn {
+  background: transparent; border: none; color: var(--text-sub);
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: 0.2s;
+}
+.icon-btn:hover { background: var(--md-sys-color-surface-container); color: var(--md-sys-color-primary); }
+
+/* 容器与卡片 */
+.container { padding: 20px; max-width: 800px; margin: 0 auto; }
+.card {
+  background: var(--glass-bg); border: var(--glass-border);
+  border-radius: 24px; padding: 24px; margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04); backdrop-filter: blur(12px);
+}
+h2 { font-weight: 600; color: var(--md-sys-color-primary); margin-top: 0; }
+
+/* 按钮 */
+button.btn-filled {
+  padding: 12px 24px; border: none; border-radius: 24px;
+  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+  font-weight: 600; cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+button.btn-filled:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+button.delete { background: #ba1a1a; color: #ffffff; }
+button.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+
+/* 表单控件 */
+input, select, textarea {
+  width: 100%; padding: 14px 16px; margin: 8px 0 16px 0;
+  border-radius: 16px; border: 1px solid var(--md-sys-color-outline);
+  background: var(--md-sys-color-surface); color: var(--text-main);
+  box-sizing: border-box; font-size: 15px; font-family: inherit; transition: 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
+}
+label { font-size: 14px; color: var(--text-sub); font-weight: 600; }
+textarea { resize: vertical; min-height: 100px; }
+
+/* Checkbox Switch Style */
+.switch-label { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; cursor: pointer; font-size: 15px;}
+.switch-label input[type="checkbox"] {
+  appearance: none; width: 48px; height: 28px; margin:0;
+  background: var(--md-sys-color-outline); border-radius: 14px; position: relative;
+  outline: none; cursor: pointer; transition: 0.3s; border: none;
+}
+.switch-label input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px;
+  background: #fff; border-radius: 50%; transition: 0.3s;
+}
+.switch-label input[type="checkbox"]:checked { background: var(--md-sys-color-primary); }
+.switch-label input[type="checkbox"]:checked::after { transform: translateX(20px); }
+
+/* 列表样式 */
+.poi-item { padding-bottom: 16px; border-bottom: 1px solid var(--md-sys-color-outline); margin-bottom: 16px; }
+.poi-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.poi-title { font-size: 18px; font-weight: 600; color: var(--md-sys-color-primary); margin-bottom: 4px; display:flex; align-items:center; gap:8px;}
+.poi-desc { color: var(--text-sub); font-size: 14px; margin-bottom: 12px; }
+.tag { font-size: 12px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 2px 8px; border-radius: 8px; }
+.tag.important { background: #ba1a1a; color: white; }
+
+.hidden { display: none !important; }
+.flex-row { display: flex; gap: 12px; }
+.flex-1 { flex: 1; }
+</style>
 </head>
 <body>
 
-<!-- Login Page -->
-<div id="loginPage">
-  <div class="login-card">
-    <span class="material-symbols-rounded" style="font-size: 48px; color: var(--md-sys-color-primary); margin-bottom: 16px;">map</span>
-    <h2 style="margin-bottom: 8px;">地图数据后台</h2>
-    <p style="color: #64748b; font-size: 14px; margin-bottom: 24px;">请输入管理口令以继续</p>
-    <div class="form-group">
-      <input type="password" id="pwd" placeholder="输入口令..." onkeypress="if(event.key==='Enter') login()">
-    </div>
-    <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 14px;" onclick="login()">验证登录</button>
-  </div>
-</div>
-
-<!-- Main App (Hidden initially) -->
-<div id="mainApp" class="hidden">
-  <header class="top-app-bar">
-    <h1><span class="material-symbols-rounded">map</span> 地图数据器</h1>
-    <button class="btn btn-primary" onclick="saveToCloud()"><span class="material-symbols-rounded">cloud_upload</span> 同步云端</button>
-  </header>
-
-  <div class="container" id="listView">
-    <div class="chip-group" id="tabs">
-      <button class="chip active" onclick="switchTab('pois')">POI 地点</button>
-      <button class="chip" onclick="switchTab('regions')">区域规划</button>
-      <button class="chip" onclick="switchTab('roads')">道路</button>
-      <button class="chip" onclick="switchTab('subways')">地铁线路</button>
-      <button class="chip" onclick="switchTab('settings')">全局设置</button>
-    </div>
-
-    <div id="dataList"></div>
-    <button class="fab" id="fabAdd" onclick="openEdit(-1)"><span class="material-symbols-rounded">add</span></button>
-  </div>
-
-  <!-- Editor View (Hidden initially) -->
-  <div class="container hidden" id="editView">
-    <button class="btn btn-tonal" style="margin-bottom: 16px;" onclick="closeEdit()">
-      <span class="material-symbols-rounded">arrow_back</span> 返回取消
+<header class="top-app-bar">
+  <div class="title">地图中心 - 兴趣点(POI)管理</div>
+  <div id="topActions" class="hidden">
+    <button class="icon-btn" onclick="addNewPOI()" title="新增地点">
+      <span class="material-symbols-rounded">add_location</span>
     </button>
-    <div class="card" id="editorForm">
-      <!-- Dynamic inputs generated here -->
+  </div>
+</header>
+
+<div class="container">
+  <!-- 登录页 -->
+  <div id="loginBox" class="card">
+    <h2 style="margin-bottom: 16px;">身份验证</h2>
+    <input id="pwd" type="password" placeholder="输入管理员口令">
+    <button class="btn-filled" onclick="login()">
+      <span class="material-symbols-rounded">login</span> 登录系统
+    </button>
+  </div>
+
+  <!-- 列表页 -->
+  <div id="listPage" class="hidden">
+    <div class="card" style="padding: 16px 24px;">
+      <div style="position: relative;">
+        <span class="material-symbols-rounded" style="position: absolute; left: 14px; top: 14px; color: var(--text-sub);">search</span>
+        <input id="searchInput" placeholder="搜索地点名称..." oninput="renderList()" style="padding-left: 44px; margin-bottom: 0;">
+      </div>
+    </div>
+    <div class="card" id="poiList"></div>
+  </div>
+
+  <!-- 编辑/新增页 -->
+  <div id="editPage" class="hidden">
+    <button class="btn-filled secondary" onclick="backToList()" style="margin-bottom: 16px;">
+      <span class="material-symbols-rounded">arrow_back</span> 返回
+    </button>
+    
+    <div class="card">
+      <h2 id="editTitle">编辑地点</h2>
+      
+      <label>地点名称 *</label>
+      <input id="poi_name" placeholder="例如：英沙水门桥凯悦酒店">
+
+      <label>地点类型 (Type) *</label>
+      <input id="poi_type" placeholder="例如：hotel, supermarket">
+
+      <div class="flex-row">
+        <div class="flex-1">
+          <label>坐标 X *</label>
+          <input id="poi_x" type="number" placeholder="例如：-14259">
+        </div>
+        <div class="flex-1">
+          <label>坐标 Z *</label>
+          <input id="poi_z" type="number" placeholder="例如：-5677">
+        </div>
+      </div>
+
+      <label>营业状态 (Status)</label>
+      <input id="poi_status" placeholder="例如：营业中 · 24小时服务">
+
+      <label>官方网站 (Website)</label>
+      <input id="poi_website" type="url" placeholder="https://...">
+
+      <label class="switch-label">
+        <input type="checkbox" id="poi_important">
+        <span>设为重点地标 (Important)</span>
+      </label>
+
+      <label>备注详情 (Remarks)</label>
+      <textarea id="poi_remarks" placeholder="输入介绍详情..."></textarea>
+
+      <label>图片链接 (Images) - 每行填入一条链接</label>
+      <textarea id="poi_images" placeholder="https://...&#10;https://..."></textarea>
+
+      <div style="margin-top:24px; border-top:1px solid var(--glass-border); padding-top:20px;">
+        <button id="saveBtn" class="btn-filled" style="width:100%; justify-content:center;" onclick="saveData()">
+          <span class="material-symbols-rounded">cloud_upload</span> 云端保存
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-// ==================== 配置 ====================
-const API = "https://你的_CLOUDFLARE_WORKER_URL"; // ！！！请在此处替换你的后端地址！！！
-let mapData = {
-  settings: { origin: { x: 0, z: 0 } },
-  regions: [], pois: [], roads: [], subways: []
-};
-let currentTab = 'pois';
+// ⚠️ 请修改为你的 Worker 域名
+const API = "https://your-worker-url.workers.dev";
+
+let mapData = null; // 存放完整的 JSON 数据
 let editingIndex = -1; // -1 表示新增
 
-// ==================== 初始化与登录 ====================
+// URL传参检测：?x=220&z=943
+const urlParams = new URLSearchParams(window.location.search);
+const targetX = urlParams.get('x');
+const targetZ = urlParams.get('z');
+
 window.onload = () => {
   const savedPwd = localStorage.getItem("map_admin_pwd");
   if(savedPwd) document.getElementById("pwd").value = savedPwd;
-  
-  // 检查是否是通过 URL 传参来添加 Marker 的
-  checkUrlParams();
-};
+}
 
-async function login() {
-  const pwd = document.getElementById("pwd").value.trim();
-  if(!pwd) return;
-  
-  // 先拉取数据，测试密码只需在保存时严格校验，但为了体验，我们假装验证并进入
-  localStorage.setItem("map_admin_pwd", pwd);
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("mainApp").classList.remove("hidden");
-  
-  await loadData();
+async function login(){
+  const password = document.getElementById("pwd").value.trim();
+  if(!password) return;
+  const btn = event.target.closest('button');
+  btn.innerHTML = `<span class="material-symbols-rounded">hourglass_empty</span> 验证中...`;
 
-  // 如果有 URL 参数，直接进入新增模式
-  if(window._autoAddParams) {
-    switchTab('pois');
-    openEdit(-1, window._autoAddParams);
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "login", password })
+    });
+    const data = await res.json();
+    if(!data.success){
+      alert("口令错误或权限不足");
+      btn.innerHTML = `<span class="material-symbols-rounded">login</span> 登录系统`;
+      return;
+    }
+    localStorage.setItem("map_admin_pwd", password);
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("topActions").classList.remove("hidden");
+    document.getElementById("listPage").classList.remove("hidden");
+    loadData();
+  } catch(e) {
+    alert("网络请求失败");
+    btn.innerHTML = `<span class="material-symbols-rounded">login</span> 登录系统`;
   }
 }
 
-function checkUrlParams() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const x = urlParams.get('x');
-  const z = urlParams.get('z');
-  if(x !== null && z !== null) {
-    window._autoAddParams = { x: parseInt(x), z: parseInt(z) };
-  }
-}
-
-async function loadData() {
-  const list = document.getElementById("dataList");
-  list.innerHTML = `<div style="text-align:center; padding:40px;"><span class="material-symbols-rounded" style="font-size:40px; animation:spin 2s linear infinite;">sync</span><p>拉取数据中...</p></div>`;
+async function loadData(){
+  const box = document.getElementById("poiList");
+  box.innerHTML = `<div style="text-align:center; padding:40px;"><span class="material-symbols-rounded" style="font-size: 48px; animation: spin 2s linear infinite;">sync</span><p>正在同步云端数据...</p></div>`;
+  
   try {
     const res = await fetch(API);
-    const data = await res.json();
-    mapData = { ...mapData, ...data };
-    renderList();
-  } catch(e) {
-    list.innerHTML = `<p style="color:var(--md-sys-color-error); text-align:center;">网络异常，无法获取数据</p>`;
-  }
-}
-
-// ==================== 列表渲染 ====================
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  event.target.classList.add('active');
-  
-  const fab = document.getElementById("fabAdd");
-  if(tab === 'settings') fab.classList.add('hidden');
-  else fab.classList.remove('hidden');
-  
-  renderList();
-}
-
-function renderList() {
-  const list = document.getElementById("dataList");
-  list.innerHTML = "";
-
-  if(currentTab === 'settings') {
-    list.innerHTML = `
-      <div class="card">
-        <div class="item-title"><span class="material-symbols-rounded">my_location</span> 原点坐标 (Origin)</div>
-        <div class="item-subtitle">X: ${mapData.settings.origin.x} | Z: ${mapData.settings.origin.origin?.z || mapData.settings.origin.z}</div>
-        <button class="btn btn-tonal" onclick="openEdit(0)"><span class="material-symbols-rounded">edit</span> 修改设置</button>
-      </div>`;
-    return;
-  }
-
-  const items = mapData[currentTab] || [];
-  if(items.length === 0) {
-    list.innerHTML = `<div style="text-align:center; padding:30px; color:#64748b;">暂无数据</div>`;
-    return;
-  }
-
-  items.forEach((item, index) => {
-    let title = item.name || item.id || '未命名';
-    let sub = "";
+    mapData = await res.json(); // 解析拿到的完整 JSON
     
-    if(currentTab === 'pois') sub = `坐标: [${item.x}, ${item.z}] | 类型: ${item.type || '无'}`;
-    else if(currentTab === 'regions') sub = `坐标: [${item.x}, ${item.z}] | 类型: ${item.type || '无'}`;
-    else if(currentTab === 'roads') sub = `节点数: ${(item.points||[]).length} | 类型: ${item.type}`;
-    else if(currentTab === 'subways') sub = `站点数: ${(item.stations||[]).length} | 颜色: ${item.color}`;
+    // 如果 URL 中带有 x 和 z 传参，加载完毕后直接跳入新增模式
+    if (targetX !== null && targetZ !== null && !sessionStorage.getItem('paramHandled')) {
+        sessionStorage.setItem('paramHandled', 'true'); // 确保刷新不重复触发
+        addNewPOI(targetX, targetZ);
+    } else {
+        renderList();
+    }
+  } catch(e) {
+    box.innerHTML = "<p style='color:#ba1a1a; text-align:center;'>获取数据失败，请重试。</p>";
+  }
+}
 
-    list.innerHTML += `
-      <div class="card">
-        <div class="item-title">${title} <span class="badge">${currentTab}</span></div>
-        <div class="item-subtitle">${sub}</div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn btn-tonal" onclick="openEdit(${index})"><span class="material-symbols-rounded" style="font-size:18px;">edit</span> 编辑</button>
-          <button class="btn btn-error" onclick="deleteItem(${index})"><span class="material-symbols-rounded" style="font-size:18px;">delete</span> 删除</button>
-        </div>
+function renderList(){
+  const box = document.getElementById("poiList");
+  box.innerHTML = "";
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  
+  let pois = mapData.pois || [];
+  let visible = pois;
+  
+  if(q) {
+    visible = pois.filter(p => p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q));
+  }
+
+  if(visible.length === 0) {
+    box.innerHTML = `<div style="text-align:center; padding: 30px; color:var(--text-sub);"><p>没有找到相关地点</p></div>`;
+    return;
+  }
+
+  visible.forEach(p => {
+    // 找到在原始数组中的真实索引
+    const realIndex = pois.indexOf(p);
+    
+    const impTag = p.important ? `<span class="tag important">★ 重点</span>` : '';
+    const div = document.createElement("div");
+    div.className = "poi-item";
+    div.innerHTML = `
+      <div class="poi-title">
+        ${p.name} <span class="tag">${p.type}</span> ${impTag}
+      </div>
+      <div class="poi-desc">
+        📍 坐标: (X: ${p.x}, Z: ${p.z})<br>
+        🕒 状态: ${p.status || '无'}<br>
+        ${p.website ? `🌐 网站: <a href="${p.website}" target="_blank">${p.website}</a>` : ''}
+      </div>
+      <div class="flex-row">
+        <button class="btn-filled secondary" style="padding: 6px 16px;" onclick="editPOI(${realIndex})">编辑</button>
+        <button class="btn-filled delete" style="padding: 6px 16px;" onclick="deletePOI(${realIndex})">删除</button>
       </div>
     `;
+    box.appendChild(div);
   });
 }
 
-function deleteItem(index) {
-  if(!confirm("确定要删除此项目吗？（需要点击同步云端后生效）")) return;
-  mapData[currentTab].splice(index, 1);
-  renderList();
+// 触发新增
+function addNewPOI(prefX = "", prefZ = "") {
+  editingIndex = -1;
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("topActions").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+  document.getElementById("editTitle").innerText = "新增地点 (POI)";
+
+  // 清空/预填表单
+  document.getElementById("poi_name").value = "";
+  document.getElementById("poi_type").value = "";
+  document.getElementById("poi_x").value = prefX;
+  document.getElementById("poi_z").value = prefZ;
+  document.getElementById("poi_status").value = "";
+  document.getElementById("poi_website").value = "";
+  document.getElementById("poi_remarks").value = "";
+  document.getElementById("poi_important").checked = false;
+  document.getElementById("poi_images").value = "";
 }
 
-// ==================== 动态表单生成 ====================
-function openEdit(index, autoData = null) {
+// 触发编辑
+function editPOI(index) {
   editingIndex = index;
-  document.getElementById("listView").classList.add("hidden");
-  document.getElementById("editView").classList.remove("hidden");
+  const p = mapData.pois[index];
+
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("topActions").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+  document.getElementById("editTitle").innerText = "编辑地点: " + p.name;
+
+  document.getElementById("poi_name").value = p.name || "";
+  document.getElementById("poi_type").value = p.type || "";
+  document.getElementById("poi_x").value = p.x;
+  document.getElementById("poi_z").value = p.z;
+  document.getElementById("poi_status").value = p.status || "";
+  document.getElementById("poi_website").value = p.website || "";
+  document.getElementById("poi_remarks").value = p.remarks || "";
+  document.getElementById("poi_important").checked = p.important === true;
   
-  const formBox = document.getElementById("editorForm");
-  formBox.innerHTML = `<h3 style="margin-bottom:16px;">${index === -1 ? '新增' : '编辑'} ${currentTab}</h3>`;
-  
-  let data = index === -1 ? {} : mapData[currentTab][index];
-  if(currentTab === 'settings') data = mapData.settings;
-  if(autoData) data = { ...data, ...autoData }; // 注入 URL 参数
-
-  let html = '';
-
-  if(currentTab === 'settings') {
-    html += buildInput('origin_x', '原点 X', data.origin?.x || 0, 'number');
-    html += buildInput('origin_z', '原点 Z', data.origin?.z || 0, 'number');
-  } 
-  else if(currentTab === 'regions') {
-    html += buildInput('name', '区域名称', data.name);
-    html += buildInput('type', '类型 (如 city)', data.type);
-    html += buildInput('x', '坐标 X', data.x, 'number');
-    html += buildInput('z', '坐标 Z', data.z, 'number');
-  }
-  else if(currentTab === 'pois') {
-    html += buildInput('name', '地点名称', data.name);
-    html += buildInput('type', '类型 (如 supermarket, hotel)', data.type);
-    html += `<div class="flex-row">
-               <div style="flex:1">${buildInput('x', '坐标 X', data.x, 'number')}</div>
-               <div style="flex:1">${buildInput('z', '坐标 Z', data.z, 'number')}</div>
-             </div>`;
-    html += buildInput('status', '营业状态', data.status);
-    html += buildInput('website', '网站连接 (可选)', data.website);
-    html += buildTextArea('remarks', '备注描述', data.remarks);
-    html += buildDynamicList('images', '图片链接列表', data.images || [], '输入图片URL');
-  }
-  else if(currentTab === 'roads') {
-    html += buildInput('name', '道路名称', data.name);
-    html += buildInput('type', '类型 (如 highway, expressway)', data.type);
-    html += buildDynamicListXY('points', '道路节点', data.points || []);
-  }
-  else if(currentTab === 'subways') {
-    html += buildInput('id', '线路ID (如 sub1)', data.id);
-    html += buildInput('name', '线路名称', data.name);
-    html += `<div class="form-group">
-               <label>标识颜色</label>
-               <div class="flex-row">
-                 <input type="color" id="f_color_picker" value="${data.color || '#000000'}" style="width:50px; padding:0; height:40px;" oninput="document.getElementById('f_color').value = this.value.toUpperCase()">
-                 <input type="text" id="f_color" value="${data.color || '#000000'}" style="flex:1;">
-               </div>
-             </div>`;
-    html += buildDynamicListStation('stations', '停靠站点', data.stations || []);
-    html += buildDynamicListXY('points', '线路轨道节点', data.points || []);
-  }
-
-  html += `<button class="btn btn-primary" style="width:100%; margin-top:24px; padding:16px; justify-content:center; font-size:16px;" onclick="saveLocalEdit()">保存更改 (暂存本地)</button>`;
-  formBox.innerHTML += html;
-}
-
-// ---- 表单组件辅助函数 ----
-function buildInput(id, label, val = "", type = "text") {
-  return `<div class="form-group"><label>${label}</label><input type="${type}" id="f_${id}" value="${val}"></div>`;
-}
-function buildTextArea(id, label, val = "") {
-  return `<div class="form-group"><label>${label}</label><textarea id="f_${id}" rows="3">${val}</textarea></div>`;
-}
-
-// 针对单一字符串的数组 (如 images)
-function buildDynamicList(id, label, arr, placeholder) {
-  let html = `<div class="form-group" id="list_${id}"><label>${label}</label>`;
-  arr.forEach(val => {
-    html += `<div class="dynamic-list-item"><input type="text" value="${val}" style="flex:1" placeholder="${placeholder}"><button class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--md-sys-color-error)"><span class="material-symbols-rounded">close</span></button></div>`;
-  });
-  html += `</div><button class="btn btn-tonal" style="font-size:13px; padding:6px 12px;" onclick="addSingleListItem('${id}', '${placeholder}')"><span class="material-symbols-rounded" style="font-size:16px">add</span> 添加</button>`;
-  return html;
-}
-function addSingleListItem(id, placeholder) {
-  const div = document.createElement('div'); div.className = 'dynamic-list-item';
-  div.innerHTML = `<input type="text" value="" style="flex:1" placeholder="${placeholder}"><button class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--md-sys-color-error)"><span class="material-symbols-rounded">close</span></button>`;
-  document.getElementById(`list_${id}`).appendChild(div);
-}
-
-// 针对 {x, z} 对象的数组 (如 points)
-function buildDynamicListXY(id, label, arr) {
-  let html = `<div class="form-group" id="list_${id}"><label>${label}</label>`;
-  arr.forEach(pt => {
-    html += `<div class="dynamic-list-item"><input type="number" placeholder="X" value="${pt.x}" class="_x"><input type="number" placeholder="Z" value="${pt.z}" class="_z"><button class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--md-sys-color-error)"><span class="material-symbols-rounded">close</span></button></div>`;
-  });
-  html += `</div><button class="btn btn-tonal" style="font-size:13px; padding:6px 12px;" onclick="addXYListItem('${id}')"><span class="material-symbols-rounded" style="font-size:16px">add</span> 添加节点</button>`;
-  return html;
-}
-function addXYListItem(id) {
-  const div = document.createElement('div'); div.className = 'dynamic-list-item';
-  div.innerHTML = `<input type="number" placeholder="X" class="_x"><input type="number" placeholder="Z" class="_z"><button class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--md-sys-color-error)"><span class="material-symbols-rounded">close</span></button>`;
-  document.getElementById(`list_${id}`).appendChild(div);
-}
-
-// 针对 {name, x, z} 对象的数组 (如 stations)
-function buildDynamicListStation(id, label, arr) {
-  let html = `<div class="form-group" id="list_${id}"><label>${label}</label>`;
-  arr.forEach(st => {
-    html += `<div class="dynamic-list-item"><input type="text" placeholder="站名" value="${st.name}" class="_n" style="flex:1.5"><input type="number" placeholder="X" value="${st.x}" class="_x" style="flex:1"><input type="number" placeholder="Z" value="${st.z}" class="_z" style="flex:1"><button class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--md-sys-color-error)"><span class="material-symbols-rounded">close</span></button></div>`;
-  });
-  html += `</div><button class="btn btn-tonal" style="font-size:13px; padding:6px 12px;" onclick="addStationListItem('${id}')"><span class="material-symbols-rounded" style="font-size:16px">add</span> 添加站点</button>`;
-  return html;
-}
-function addStationListItem(id) {
-  const div = document.createElement('div'); div.className = 'dynamic-list-item';
-  div.innerHTML = `<input type="text" placeholder="站名" class="_n" style="flex:1.5"><input type="number" placeholder="X" class="_x" style="flex:1"><input type="number" placeholder="Z" class="_z" style="flex:1"><button class="btn-icon" onclick="this.parentElement.remove()" style="color:var(--md-sys-color-error)"><span class="material-symbols-rounded">close</span></button>`;
-  document.getElementById(`list_${id}`).appendChild(div);
-}
-
-// ==================== 保存数据逻辑 ====================
-function closeEdit() {
-  document.getElementById("editView").classList.add("hidden");
-  document.getElementById("listView").classList.remove("hidden");
-  // 清理可能由于自动跳转带上的 URL 参数
-  if(window.location.search) window.history.replaceState({}, document.title, window.location.pathname);
-}
-
-function saveLocalEdit() {
-  let newData = {};
-
-  if(currentTab === 'settings') {
-    mapData.settings.origin.x = Number(document.getElementById('f_origin_x').value);
-    mapData.settings.origin.z = Number(document.getElementById('f_origin_z').value);
+  // 图片数组转为换行文本
+  if (p.images && p.images.length > 0) {
+      document.getElementById("poi_images").value = p.images.join("\n");
   } else {
-    // 通用基础读取
-    const safeRead = (id, isNum = false) => {
-      const el = document.getElementById('f_' + id);
-      if(!el) return undefined;
-      return isNum ? Number(el.value) : el.value;
-    };
-
-    if(currentTab === 'regions') {
-      newData = { name: safeRead('name'), type: safeRead('type'), x: safeRead('x', true), z: safeRead('z', true) };
-    }
-    else if(currentTab === 'pois') {
-      newData = { 
-        name: safeRead('name'), type: safeRead('type'), x: safeRead('x', true), z: safeRead('z', true),
-        status: safeRead('status'), website: safeRead('website'), remarks: safeRead('remarks')
-      };
-      // 读取图片数组
-      newData.images = [];
-      document.querySelectorAll('#list_images .dynamic-list-item input').forEach(inp => { if(inp.value) newData.images.push(inp.value); });
-    }
-    else if(currentTab === 'roads') {
-      newData = { name: safeRead('name'), type: safeRead('type'), points: [] };
-      document.querySelectorAll('#list_points .dynamic-list-item').forEach(div => {
-        const x = div.querySelector('._x').value; const z = div.querySelector('._z').value;
-        if(x !== "" && z !== "") newData.points.push({ x: Number(x), z: Number(z) });
-      });
-    }
-    else if(currentTab === 'subways') {
-      newData = { id: safeRead('id'), name: safeRead('name'), color: safeRead('color'), stations: [], points: [] };
-      document.querySelectorAll('#list_stations .dynamic-list-item').forEach(div => {
-        const n = div.querySelector('._n').value; const x = div.querySelector('._x').value; const z = div.querySelector('._z').value;
-        if(n) newData.stations.push({ name: n, x: Number(x||0), z: Number(z||0) });
-      });
-      document.querySelectorAll('#list_points .dynamic-list-item').forEach(div => {
-        const x = div.querySelector('._x').value; const z = div.querySelector('._z').value;
-        if(x !== "" && z !== "") newData.points.push({ x: Number(x), z: Number(z) });
-      });
-    }
-
-    if(editingIndex === -1) {
-      mapData[currentTab].push(newData);
-    } else {
-      mapData[currentTab][editingIndex] = newData;
-    }
+      document.getElementById("poi_images").value = "";
   }
-
-  renderList();
-  closeEdit();
 }
 
-async function saveToCloud() {
-  const pwd = localStorage.getItem("map_admin_pwd");
-  const btn = event.target;
-  const oldText = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-rounded" style="animation:spin 2s linear infinite">sync</span> 同步中...`;
+function backToList() {
+  document.getElementById("editPage").classList.add("hidden");
+  document.getElementById("listPage").classList.remove("hidden");
+  document.getElementById("topActions").classList.remove("hidden");
+  renderList();
+}
+
+async function deletePOI(index) {
+  if(!confirm("确定要删除这个地点吗？删除后将直接同步至云端。")) return;
+  mapData.pois.splice(index, 1);
+  await pushToCloud();
+  renderList();
+}
+
+async function saveData() {
+  const name = document.getElementById("poi_name").value.trim();
+  const type = document.getElementById("poi_type").value.trim();
+  const x = parseInt(document.getElementById("poi_x").value, 10);
+  const z = parseInt(document.getElementById("poi_z").value, 10);
+  
+  if(!name || !type || isNaN(x) || isNaN(z)) {
+      alert("请完整填写名称、类型及 X/Z 坐标！");
+      return;
+  }
+
+  // 整理数据对象
+  const poiData = {
+      name: name,
+      type: type,
+      x: x,
+      z: z
+  };
+
+  const status = document.getElementById("poi_status").value.trim();
+  if(status) poiData.status = status;
+
+  const website = document.getElementById("poi_website").value.trim();
+  if(website) poiData.website = website;
+
+  const remarks = document.getElementById("poi_remarks").value.trim();
+  if(remarks) poiData.remarks = remarks;
+
+  const important = document.getElementById("poi_important").checked;
+  if(important) poiData.important = true;
+
+  const imgsRaw = document.getElementById("poi_images").value;
+  const images = imgsRaw.split('\n').map(l => l.trim()).filter(l => l !== "");
+  if(images.length > 0) poiData.images = images;
+
+  // 更新内存中的 JSON
+  if(!mapData.pois) mapData.pois = [];
+  
+  if (editingIndex === -1) {
+      mapData.pois.push(poiData); // 新增
+  } else {
+      mapData.pois[editingIndex] = poiData; // 修改
+  }
+
+  // 推送云端
+  const success = await pushToCloud();
+  if(success) {
+      backToList();
+  }
+}
+
+async function pushToCloud() {
+  const btn = document.getElementById("saveBtn") || document.createElement("button");
+  const oldHtml = btn.innerHTML;
+  btn.innerHTML = `<span class="material-symbols-rounded" style="animation: spin 2s linear infinite;">sync</span> 保存中...`;
   btn.disabled = true;
 
   try {
     const res = await fetch(API, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: pwd, data: mapData })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "save", newJson: mapData })
     });
-    const result = await res.json();
-    if(result.success) {
-      alert("✅ 已成功同步到云端");
-    } else {
-      alert("❌ 同步失败: " + result.msg);
+
+    if(!res.ok){
+      alert("云端保存失败: " + await res.text());
+      btn.innerHTML = oldHtml;
+      btn.disabled = false;
+      return false;
     }
-  } catch(e) {
-    alert("❌ 网络错误: " + e.message);
-  } finally {
-    btn.innerHTML = oldText;
+    
+    btn.innerHTML = oldHtml;
     btn.disabled = false;
+    return true;
+  } catch(e) {
+    alert("网络请求失败: " + e.message);
+    btn.innerHTML = oldHtml;
+    btn.disabled = false;
+    return false;
   }
 }
 </script>
+
 <style>
-  @keyframes spin { 100% { transform: rotate(360deg); } }
+/* 添加一个简单的旋转动画供加载使用 */
+@keyframes spin { 100% { transform: rotate(360deg); } }
 </style>
 </body>
 </html>
