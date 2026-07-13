@@ -45,6 +45,13 @@
         "https://s3.bmp.ovh/2026/07/07/EhYaXsB2.png",
         "https://s3.bmp.ovh/2026/07/07/dvYLS3Ti.png"
       ]
+    },
+    {
+      "name": "聚龙广场",
+      "type": "mall",
+      "x": -15710,
+      "z": -5737,
+      "important": true
     }
   ],
   "roads": [
