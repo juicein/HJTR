@@ -126,7 +126,7 @@ textarea { resize: vertical; min-height: 100px; }
 <body>
 
 <header class="top-app-bar">
-  <div class="title">地图中心 - 兴趣点(POI)管理</div>
+  <div class="title">地图中心管理</div>
   <div id="topActions" class="hidden">
     <button class="icon-btn" onclick="addNewPOI()" title="新增地点">
       <span class="material-symbols-rounded">add_location</span>
@@ -165,7 +165,7 @@ textarea { resize: vertical; min-height: 100px; }
       <h2 id="editTitle">编辑地点</h2>
       
       <label>地点名称 *</label>
-      <input id="poi_name" placeholder="例如：英沙水门桥凯悦酒店">
+      <input id="poi_name" placeholder="例如：英沙酒店">
 
       <label>地点类型 (Type) *</label>
       <input id="poi_type" placeholder="例如：hotel, supermarket">
@@ -209,7 +209,7 @@ textarea { resize: vertical; min-height: 100px; }
 
 <script>
 // ⚠️ 请修改为你的 Worker 域名
-const API = "https://your-worker-url.workers.dev";
+const API = "https://wispy-base-018b.1693076637.workers.dev/";
 
 let mapData = null; // 存放完整的 JSON 数据
 let editingIndex = -1; // -1 表示新增
