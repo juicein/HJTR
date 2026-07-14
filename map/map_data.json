@@ -1,1 +1,132 @@
-undefined
+{
+  "settings": {
+    "origin": {
+      "x": -15151,
+      "z": -5714
+    }
+  },
+  "regions": [
+    {
+      "name": "北方城",
+      "type": "city",
+      "x": 0,
+      "z": 0
+    }
+  ],
+  "pois": [
+    {
+      "type": "supermarket",
+      "name": "FairPrice l Koon",
+      "x": 120,
+      "z": 250,
+      "status": "营业中 · 09:00 开始",
+      "website": "https://example.com",
+      "remarks": "提供新鲜蔬菜和日常用品",
+      "images": [
+        "https://via.placeholder.com/300x200?text=Image+1",
+        "https://via.placeholder.com/150x200?text=Image+2"
+      ]
+    },
+    {
+      "name": "英沙水门桥凯悦酒店",
+      "type": "hotel",
+      "x": -14259,
+      "z": -5677,
+      "status": "营业中 · 24小时服务",
+      "remarks": "在英沙水门桥凯悦酒店，您可以感受到舒适住宿及便捷地段带来的旅游喜悦。位于水门桥商业及旅游心脏地带，这所英沙水门桥酒店临近铁路和快轨车站，让您自由穿梭英沙每个角落。立即体验凯悦酒店带给您的优悦旅游乐趣。",
+      "images": [
+        "https://s3.bmp.ovh/2026/07/07/30SpaPeX.png",
+        "https://s3.bmp.ovh/2026/07/07/EDHP4jdx.png",
+        "https://s3.bmp.ovh/2026/07/07/Kldz6geV.png",
+        "https://s3.bmp.ovh/2026/07/07/BaosQYKq.png",
+        "https://s3.bmp.ovh/2026/07/07/hSGIxBxD.png",
+        "https://s3.bmp.ovh/2026/07/07/Ox0PZewC.png",
+        "https://s3.bmp.ovh/2026/07/07/nSG5cJJE.png",
+        "https://s3.bmp.ovh/2026/07/07/EhYaXsB2.png",
+        "https://s3.bmp.ovh/2026/07/07/dvYLS3Ti.png"
+      ]
+    },
+    {
+      "name": "聚龙广场",
+      "type": "mall",
+      "x": -15710,
+      "z": -5737,
+      "important": true
+    }
+  ],
+  "roads": [
+    {
+      "type": "highway",
+      "name": "列宁大道",
+      "points": [
+        {
+          "x": -500,
+          "z": 0
+        },
+        {
+          "x": 0,
+          "z": 0
+        },
+        {
+          "x": 500,
+          "z": 0
+        }
+      ]
+    },
+    {
+      "type": "expressway",
+      "name": "青叶大道",
+      "points": [
+        {
+          "x": -22,
+          "z": -500
+        },
+        {
+          "x": -22,
+          "z": 1695
+        },
+        {
+          "x": -22,
+          "z": 800
+        }
+      ]
+    }
+  ],
+  "subways": [
+    {
+      "id": "sub1",
+      "name": "1号线",
+      "color": "#E53935",
+      "stations": [
+        {
+          "name": "中心广场站",
+          "x": 0,
+          "z": 0
+        },
+        {
+          "name": "东区站",
+          "x": 300,
+          "z": 150
+        }
+      ],
+      "points": [
+        {
+          "x": 0,
+          "z": 0
+        },
+        {
+          "x": 300,
+          "z": 150
+        },
+        {
+          "x": 800,
+          "z": -508
+        },
+        {
+          "x": -600,
+          "z": -2600
+        }
+      ]
+    }
+  ]
+}
