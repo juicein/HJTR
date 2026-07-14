@@ -3,38 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>地图数据管理中心</title>
+<title>地图数据管理系统 M3 Expressive</title>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
 
 <style>
-/* Material 3 Expressive 色彩系统 */
 :root {
-  --md-sys-color-primary: #006874;
+  --md-sys-color-primary: #00639b;
   --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #97f0ff;
-  --md-sys-color-on-primary-container: #001f24;
-  --md-sys-color-surface: #f8fdff;
-  --md-sys-color-surface-container: #eaf6fa;
-  --md-sys-color-outline: #6f797a;  
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: 1px solid rgba(0, 0, 0, 0.05);
-  --text-main: #191c1d;
-  --text-sub: #3f484a;
+  --md-sys-color-primary-container: #cee5ff;
+  --md-sys-color-on-primary-container: #001d35;
+  --md-sys-color-surface: #f8f9ff;
+  --md-sys-color-surface-container: #edf0f7;
+  --md-sys-color-outline: #72777f;  
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: 1px solid rgba(0, 0, 0, 0.08);
+  --text-main: #191c20;
+  --text-sub: #43474e;
+  --color-poi: #006874;
+  --color-region: #984061;
+  --color-road: #6b5e00;
+  --color-subway: #4b624b;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --md-sys-color-surface: #191c1d;
-    --md-sys-color-surface-container: #1e2526;
+    --md-sys-color-surface: #101418;
+    --md-sys-color-surface-container: #1c2024;
     --md-sys-color-on-primary-container: #ffffff;
-    --md-sys-color-primary-container: #006874;
-    --md-sys-color-primary: #4fd8eb;
-    --md-sys-color-outline: #899294;
-    
-    --glass-bg: rgba(30, 30, 30, 0.75);
+    --md-sys-color-primary-container: #004b77;
+    --md-sys-color-primary: #96ccff;
+    --md-sys-color-outline: #8c9199;
+    --glass-bg: rgba(28, 32, 36, 0.85);
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-    --text-main: #e1e3e3;
-    --text-sub: #bfc8c9;
+    --text-main: #e2e2e9;
+    --text-sub: #c3c7cf;
   }
 }
 
@@ -42,182 +44,162 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   background: var(--md-sys-color-surface-container);
   color: var(--text-main);
-  margin: 0; padding: 0; padding-top: 64px; line-height: 1.5;
+  margin: 0; padding: 0;
+  padding-top: 64px;
+  line-height: 1.5;
 }
 
-/* 顶部导航 */
+/* --- Material 3 Top App Bar --- */
 .top-app-bar {
   position: fixed; top: 0; left: 0; right: 0; height: 64px;
   background: var(--md-sys-color-surface);
   display: flex; align-items: center; padding: 0 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index: 1000; gap: 12px;
 }
-.title { flex: 1; font-size: 20px; font-weight: 600; color: var(--md-sys-color-primary); }
-
+.top-app-bar .title {
+  flex: 1; font-size: 20px; font-weight: 600; color: var(--md-sys-color-primary);
+}
 .icon-btn {
   background: transparent; border: none; color: var(--text-sub);
-  width: 48px; height: 48px; border-radius: 50%;
+  width: 44px; height: 44px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: 0.2s;
+  cursor: pointer; transition: background 0.2s;
 }
 .icon-btn:hover { background: var(--md-sys-color-surface-container); color: var(--md-sys-color-primary); }
 
-/* 容器与卡片 */
-.container { padding: 20px; max-width: 800px; margin: 0 auto; }
+.container { padding: 16px; max-width: 800px; margin: 0 auto; }
 .card {
   background: var(--glass-bg); border: var(--glass-border);
-  border-radius: 24px; padding: 24px; margin-bottom: 20px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.04); backdrop-filter: blur(12px);
+  border-radius: 24px; padding: 24px; margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03); backdrop-filter: blur(12px);
 }
-h2 { font-weight: 600; color: var(--md-sys-color-primary); margin-top: 0; }
 
-/* 按钮 */
-button.btn-filled {
-  padding: 12px 24px; border: none; border-radius: 24px;
-  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
-  font-weight: 600; cursor: pointer; transition: all 0.2s;
-  display: inline-flex; align-items: center; gap: 8px;
+/* M3 Tab Segmented Chips */
+.tabs-container {
+  display: flex; gap: 8px; overflow-x: auto; padding: 8px 0 16px 0;
 }
-button.btn-filled:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-button.delete { background: #ba1a1a; color: #ffffff; }
-button.secondary { background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); }
+.tab-chip {
+  background: var(--md-sys-color-surface); color: var(--text-sub);
+  border: 1px solid var(--md-sys-color-outline); border-radius: 16px;
+  padding: 8px 16px; white-space: nowrap; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px; font-weight: 500; transition: all 0.2s;
+}
+.tab-chip.active {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  border-color: transparent; font-weight: 600;
+}
 
-/* 表单控件 */
+/* Inputs & Form components */
 input, select, textarea {
-  width: 100%; padding: 14px 16px; margin: 8px 0 16px 0;
-  border-radius: 16px; border: 1px solid var(--md-sys-color-outline);
+  width: 100%; padding: 12px 16px; margin: 6px 0 16px 0;
+  border-radius: 12px; border: 1px solid var(--md-sys-color-outline);
   background: var(--md-sys-color-surface); color: var(--text-main);
-  box-sizing: border-box; font-size: 15px; font-family: inherit; transition: 0.2s;
+  box-sizing: border-box; font-size: 15px;
 }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--md-sys-color-primary);
   box-shadow: 0 0 0 2px var(--md-sys-color-primary-container);
 }
-label { font-size: 14px; color: var(--text-sub); font-weight: 600; }
-textarea { resize: vertical; min-height: 100px; }
+label { font-size: 14px; color: var(--text-sub); font-weight: 600; display: block;}
+.checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.checkbox-row input { width: auto; margin: 0; }
 
-/* Checkbox Switch Style */
-.switch-label { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; cursor: pointer; font-size: 15px;}
-.switch-label input[type="checkbox"] {
-  appearance: none; width: 48px; height: 28px; margin:0;
-  background: var(--md-sys-color-outline); border-radius: 14px; position: relative;
-  outline: none; cursor: pointer; transition: 0.3s; border: none;
+/* Dynamic List Inputs */
+.dynamic-row {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
 }
-.switch-label input[type="checkbox"]::after {
-  content: ''; position: absolute; top: 4px; left: 4px; width: 20px; height: 20px;
-  background: #fff; border-radius: 50%; transition: 0.3s;
-}
-.switch-label input[type="checkbox"]:checked { background: var(--md-sys-color-primary); }
-.switch-label input[type="checkbox"]:checked::after { transform: translateX(20px); }
+.dynamic-row input { margin: 0; }
 
-/* 列表样式 */
-.poi-item { padding-bottom: 16px; border-bottom: 1px solid var(--md-sys-color-outline); margin-bottom: 16px; }
-.poi-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
-.poi-title { font-size: 18px; font-weight: 600; color: var(--md-sys-color-primary); margin-bottom: 4px; display:flex; align-items:center; gap:8px;}
-.poi-desc { color: var(--text-sub); font-size: 14px; margin-bottom: 12px; }
-.tag { font-size: 12px; background: var(--md-sys-color-primary-container); color: var(--md-sys-color-on-primary-container); padding: 2px 8px; border-radius: 8px; }
-.tag.important { background: #ba1a1a; color: white; }
+/* Buttons */
+button.btn-filled {
+  padding: 12px 24px; border: none; border-radius: 20px;
+  background: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary);
+  font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+}
+button.btn-filled.secondary {
+  background: var(--md-sys-color-surface-container); color: var(--md-sys-color-primary);
+  border: 1px solid var(--md-sys-color-outline);
+}
+button.btn-filled.delete { background: #ba1a1a; color: #ffffff; }
+button.btn-filled:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.item-list-card {
+  padding: 16px; border-bottom: 1px solid var(--glass-border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.item-list-card:last-child { border-bottom: none; }
+.item-info .name { font-weight: 600; font-size: 16px; color: var(--md-sys-color-primary);}
+.item-info .meta { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+.badge {
+  display: inline-block; padding: 2px 6px; border-radius: 6px;
+  font-size: 11px; font-weight: bold; background: var(--md-sys-color-surface-container);
+}
 
 .hidden { display: none !important; }
-.flex-row { display: flex; gap: 12px; }
-.flex-1 { flex: 1; }
+@keyframes spin { from {transform:rotate(0deg);} to {transform:rotate(360deg);} }
 </style>
 </head>
 <body>
 
 <header class="top-app-bar">
-  <div class="title">地图中心管理</div>
+  <div class="title">地图数据修改器</div>
   <div id="topActions" class="hidden">
-    <button class="icon-btn" onclick="addNewPOI()" title="新增地点">
-      <span class="material-symbols-rounded">add_location</span>
-    </button>
+    <button class="icon-btn" onclick="openAddForm()" title="新增数据"><span class="material-symbols-rounded">add_circle</span></button>
+    <button class="icon-btn" onclick="loadMapData()" title="刷新云端"><span class="material-symbols-rounded">refresh</span></button>
   </div>
 </header>
 
 <div class="container">
-  <!-- 登录页 -->
+  <!-- 身份验证面板 -->
   <div id="loginBox" class="card">
-    <h2 style="margin-bottom: 16px;">身份验证</h2>
-    <input id="pwd" type="password" placeholder="输入管理员口令">
-    <button class="btn-filled" onclick="login()">
-      <span class="material-symbols-rounded">login</span> 登录系统
-    </button>
+    <h2>身份验证</h2>
+    <input id="pwd" type="password" placeholder="输入地图管理员口令">
+    <button class="btn-filled" onclick="login()"><span class="material-symbols-rounded">login</span>验证登录</button>
   </div>
 
-  <!-- 列表页 -->
+  <!-- 主列表面板 -->
   <div id="listPage" class="hidden">
-    <div class="card" style="padding: 16px 24px;">
-      <div style="position: relative;">
-        <span class="material-symbols-rounded" style="position: absolute; left: 14px; top: 14px; color: var(--text-sub);">search</span>
-        <input id="searchInput" placeholder="搜索地点名称..." oninput="renderList()" style="padding-left: 44px; margin-bottom: 0;">
-      </div>
+    <div class="tabs-container">
+      <button class="tab-chip active" id="tab-pois" onclick="switchTab('pois')"><span class="material-symbols-rounded">location_on</span>地点 (POIs)</button>
+      <button class="tab-chip" id="tab-regions" onclick="switchTab('regions')"><span class="material-symbols-rounded">layers</span>区域</button>
+      <button class="tab-chip" id="tab-roads" onclick="switchTab('roads')"><span class="material-symbols-rounded">edit_road</span>道路</button>
+      <button class="tab-chip" id="tab-subways" onclick="switchTab('subways')"><span class="material-symbols-rounded">directions_subway</span>地铁</button>
+      <button class="tab-chip" id="tab-settings" onclick="switchTab('settings')"><span class="material-symbols-rounded">settings</span>全局配置</button>
     </div>
-    <div class="card" id="poiList"></div>
+
+    <div class="card" style="padding: 12px 16px; margin-bottom: 12px;" id="searchBarBlock">
+      <input id="searchInput" placeholder="全局搜索名称或属性..." oninput="renderList()" style="margin: 0;">
+    </div>
+
+    <div class="card" id="dataContainer" style="padding: 0;"></div>
   </div>
 
-  <!-- 编辑/新增页 -->
+  <!-- 编辑与新增面板 -->
   <div id="editPage" class="hidden">
-    <button class="btn-filled secondary" onclick="backToList()" style="margin-bottom: 16px;">
-      <span class="material-symbols-rounded">arrow_back</span> 返回
+    <button class="btn-filled secondary" onclick="closeEditor()" style="margin-bottom: 16px;">
+      <span class="material-symbols-rounded">arrow_back</span> 取消返回
     </button>
     
-    <div class="card">
-      <h2 id="editTitle">编辑地点</h2>
-      
-      <label>地点名称 *</label>
-      <input id="poi_name" placeholder="例如：英沙酒店">
-
-      <label>地点类型 (Type) *</label>
-      <input id="poi_type" placeholder="例如：hotel, supermarket">
-
-      <div class="flex-row">
-        <div class="flex-1">
-          <label>坐标 X *</label>
-          <input id="poi_x" type="number" placeholder="例如：-14259">
-        </div>
-        <div class="flex-1">
-          <label>坐标 Z *</label>
-          <input id="poi_z" type="number" placeholder="例如：-5677">
-        </div>
-      </div>
-
-      <label>营业状态 (Status)</label>
-      <input id="poi_status" placeholder="例如：营业中 · 24小时服务">
-
-      <label>官方网站 (Website)</label>
-      <input id="poi_website" type="url" placeholder="https://...">
-
-      <label class="switch-label">
-        <input type="checkbox" id="poi_important">
-        <span>设为重点地标 (Important)</span>
-      </label>
-
-      <label>备注详情 (Remarks)</label>
-      <textarea id="poi_remarks" placeholder="输入介绍详情..."></textarea>
-
-      <label>图片链接 (Images) - 每行填入一条链接</label>
-      <textarea id="poi_images" placeholder="https://...&#10;https://..."></textarea>
-
-      <div style="margin-top:24px; border-top:1px solid var(--glass-border); padding-top:20px;">
-        <button id="saveBtn" class="btn-filled" style="width:100%; justify-content:center;" onclick="saveData()">
-          <span class="material-symbols-rounded">cloud_upload</span> 云端保存
-        </button>
-      </div>
+    <div class="card" id="formWrapper">
+      <!-- 动态表单将由 JS 实时渲染注入 -->
     </div>
+
+    <button id="saveBtn" class="btn-filled" style="width:100%; justify-content:center; padding: 16px;" onclick="commitSave()">
+      <span class="material-symbols-rounded">cloud_upload</span> 同步云端保存
+    </button>
   </div>
 </div>
 
 <script>
-// ⚠️ 请修改为你的 Worker 域名
-const API = "https://wispy-base-018b.1693076637.workers.dev/";
+// 改为你自己的 Cloudflare Worker 地址
+const API = "https://orange-king-0a98-hjtr-bus-api.1693076637.workers.dev"; 
 
-let mapData = null; // 存放完整的 JSON 数据
-let editingIndex = -1; // -1 表示新增
-
-// URL传参检测：?x=220&z=943
-const urlParams = new URLSearchParams(window.location.search);
-const targetX = urlParams.get('x');
-const targetZ = urlParams.get('z');
+let mapData = { settings: {}, regions: [], pois: [], roads: [], subways: [] };
+let currentTab = "pois"; 
+let editingIndex = null; 
+let oldItemBackup = null; 
+let urlParamsProcessed = false;
 
 window.onload = () => {
   const savedPwd = localStorage.getItem("map_admin_pwd");
@@ -227,8 +209,6 @@ window.onload = () => {
 async function login(){
   const password = document.getElementById("pwd").value.trim();
   if(!password) return;
-  const btn = event.target.closest('button');
-  btn.innerHTML = `<span class="material-symbols-rounded">hourglass_empty</span> 验证中...`;
 
   try {
     const res = await fetch(API, {
@@ -238,230 +218,369 @@ async function login(){
     });
     const data = await res.json();
     if(!data.success){
-      alert("口令错误或权限不足");
-      btn.innerHTML = `<span class="material-symbols-rounded">login</span> 登录系统`;
+      alert("密码验证失效！");
       return;
     }
+
     localStorage.setItem("map_admin_pwd", password);
     document.getElementById("loginBox").classList.add("hidden");
-    document.getElementById("topActions").classList.remove("hidden");
     document.getElementById("listPage").classList.remove("hidden");
-    loadData();
+    document.getElementById("topActions").classList.remove("hidden");
+
+    await loadMapData();
+    checkUrlParams(); // 数据加载后检查 URL 传参
   } catch(e) {
-    alert("网络请求失败");
-    btn.innerHTML = `<span class="material-symbols-rounded">login</span> 登录系统`;
+    alert("网络连接 Worker 发生错误");
   }
 }
 
-async function loadData(){
-  const box = document.getElementById("poiList");
-  box.innerHTML = `<div style="text-align:center; padding:40px;"><span class="material-symbols-rounded" style="font-size: 48px; animation: spin 2s linear infinite;">sync</span><p>正在同步云端数据...</p></div>`;
-  
+async function loadMapData(){
+  const box = document.getElementById("dataContainer");
+  box.innerHTML = `<p style="text-align:center;padding:24px;color:var(--text-sub)">正在拉取 GitHub 地图数据...</p>`;
   try {
     const res = await fetch(API);
-    mapData = await res.json(); // 解析拿到的完整 JSON
-    
-    // 如果 URL 中带有 x 和 z 传参，加载完毕后直接跳入新增模式
-    if (targetX !== null && targetZ !== null && !sessionStorage.getItem('paramHandled')) {
-        sessionStorage.setItem('paramHandled', 'true'); // 确保刷新不重复触发
-        addNewPOI(targetX, targetZ);
-    } else {
-        renderList();
-    }
+    mapData = await res.json();
+    renderList();
   } catch(e) {
-    box.innerHTML = "<p style='color:#ba1a1a; text-align:center;'>获取数据失败，请重试。</p>";
+    box.innerHTML = `<p style="text-align:center;padding:24px;color:#ba1a1a">拉取数据失败，请确认您的 Worker 已配置 GitHub Token</p>`;
+  }
+}
+
+function switchTab(tabName) {
+  currentTab = tabName;
+  document.querySelectorAll(".tab-chip").forEach(el => el.classList.remove("active"));
+  document.getElementById(`tab-${tabName}`).classList.add("active");
+  
+  if(tabName === "settings") {
+    document.getElementById("searchBarBlock").classList.add("hidden");
+    openSettingsDirectly();
+  } else {
+    document.getElementById("searchBarBlock").classList.remove("hidden");
+    renderList();
   }
 }
 
 function renderList(){
-  const box = document.getElementById("poiList");
+  const box = document.getElementById("dataContainer");
   box.innerHTML = "";
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  
-  let pois = mapData.pois || [];
-  let visible = pois;
-  
-  if(q) {
-    visible = pois.filter(p => p.name.toLowerCase().includes(q) || p.type.toLowerCase().includes(q));
-  }
+  if(currentTab === "settings") return;
 
-  if(visible.length === 0) {
-    box.innerHTML = `<div style="text-align:center; padding: 30px; color:var(--text-sub);"><p>没有找到相关地点</p></div>`;
+  const arr = mapData[currentTab] || [];
+  const query = document.getElementById("searchInput").value.trim().toLowerCase();
+
+  const filtered = arr.filter(item => {
+    if(!query) return true;
+    return (item.name && item.name.toLowerCase().includes(query)) || 
+           (item.type && item.type.toLowerCase().includes(query));
+  });
+
+  if(filtered.length === 0) {
+    box.innerHTML = `<p style="text-align:center;padding:24px;color:var(--text-sub)">暂无匹配的要素数据</p>`;
     return;
   }
 
-  visible.forEach(p => {
-    // 找到在原始数组中的真实索引
-    const realIndex = pois.indexOf(p);
-    
-    const impTag = p.important ? `<span class="tag important">★ 重点</span>` : '';
+  filtered.forEach((item, idx) => {
+    const realIndex = arr.indexOf(item);
     const div = document.createElement("div");
-    div.className = "poi-item";
+    div.className = "item-list-card";
+    
+    let metaText = "";
+    if(currentTab === "pois" || currentTab === "regions") {
+      metaText = `坐标: (${item.x}, ${item.z}) | 类型: <span class="badge">${item.type}</span>`;
+      if(item.important) metaText += ` | ⭐重要`;
+    } else if(currentTab === "roads") {
+      metaText = `节点数: ${item.points?.length || 0} | 类型: ${item.type}`;
+    } else if(currentTab === "subways") {
+      metaText = `站点数: ${item.stations?.length || 0} | 轨道颜色: <span style="color:${item.color}">■</span> ${item.color}`;
+    }
+
     div.innerHTML = `
-      <div class="poi-title">
-        ${p.name} <span class="tag">${p.type}</span> ${impTag}
+      <div class="item-info">
+        <div class="name">${item.name || '未命名要素'}</div>
+        <div class="meta">${metaText}</div>
       </div>
-      <div class="poi-desc">
-        📍 坐标: (X: ${p.x}, Z: ${p.z})<br>
-        🕒 状态: ${p.status || '无'}<br>
-        ${p.website ? `🌐 网站: <a href="${p.website}" target="_blank">${p.website}</a>` : ''}
-      </div>
-      <div class="flex-row">
-        <button class="btn-filled secondary" style="padding: 6px 16px;" onclick="editPOI(${realIndex})">编辑</button>
-        <button class="btn-filled delete" style="padding: 6px 16px;" onclick="deletePOI(${realIndex})">删除</button>
+      <div>
+        <button class="btn-filled secondary" style="padding:6px 12px; font-size:13px;" onclick="openEditForm(${realIndex})">修改</button>
+        <button class="btn-filled delete" style="padding:6px 12px; font-size:13px;" onclick="deleteItem(${realIndex})">删除</button>
       </div>
     `;
     box.appendChild(div);
   });
 }
 
-// 触发新增
-function addNewPOI(prefX = "", prefZ = "") {
-  editingIndex = -1;
-  document.getElementById("listPage").classList.add("hidden");
-  document.getElementById("topActions").classList.add("hidden");
-  document.getElementById("editPage").classList.remove("hidden");
-  document.getElementById("editTitle").innerText = "新增地点 (POI)";
-
-  // 清空/预填表单
-  document.getElementById("poi_name").value = "";
-  document.getElementById("poi_type").value = "";
-  document.getElementById("poi_x").value = prefX;
-  document.getElementById("poi_z").value = prefZ;
-  document.getElementById("poi_status").value = "";
-  document.getElementById("poi_website").value = "";
-  document.getElementById("poi_remarks").value = "";
-  document.getElementById("poi_important").checked = false;
-  document.getElementById("poi_images").value = "";
-}
-
-// 触发编辑
-function editPOI(index) {
-  editingIndex = index;
-  const p = mapData.pois[index];
-
-  document.getElementById("listPage").classList.add("hidden");
-  document.getElementById("topActions").classList.add("hidden");
-  document.getElementById("editPage").classList.remove("hidden");
-  document.getElementById("editTitle").innerText = "编辑地点: " + p.name;
-
-  document.getElementById("poi_name").value = p.name || "";
-  document.getElementById("poi_type").value = p.type || "";
-  document.getElementById("poi_x").value = p.x;
-  document.getElementById("poi_z").value = p.z;
-  document.getElementById("poi_status").value = p.status || "";
-  document.getElementById("poi_website").value = p.website || "";
-  document.getElementById("poi_remarks").value = p.remarks || "";
-  document.getElementById("poi_important").checked = p.important === true;
-  
-  // 图片数组转为换行文本
-  if (p.images && p.images.length > 0) {
-      document.getElementById("poi_images").value = p.images.join("\n");
-  } else {
-      document.getElementById("poi_images").value = "";
+// 检查传入的坐标参数
+function checkUrlParams() {
+  if (urlParamsProcessed) return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const x = urlParams.get('x');
+  const z = urlParams.get('z');
+  if (x !== null && z !== null) {
+    urlParamsProcessed = true;
+    switchTab('pois');
+    openAddForm();
+    // 异步等待 DOM 节点渲染后灌入坐标
+    setTimeout(() => {
+      if(document.getElementById('inp_x')) document.getElementById('inp_x').value = x;
+      if(document.getElementById('inp_z')) document.getElementById('inp_z').value = z;
+    }, 50);
   }
 }
 
-function backToList() {
+function openAddForm() {
+  editingIndex = null;
+  oldItemBackup = null;
+  buildForm(currentTab, {});
+  showEditorView();
+}
+
+function openEditForm(index) {
+  editingIndex = index;
+  const rawItem = mapData[currentTab][index];
+  oldItemBackup = JSON.parse(JSON.stringify(rawItem)); // 深拷贝备份用于并发锁校验
+  buildForm(currentTab, rawItem);
+  showEditorView();
+}
+
+function openSettingsDirectly() {
+  editingIndex = 0;
+  oldItemBackup = JSON.parse(JSON.stringify(mapData.settings || {}));
+  buildForm("settings", mapData.settings || {});
+  showEditorView();
+}
+
+function showEditorView() {
+  document.getElementById("listPage").classList.add("hidden");
+  document.getElementById("editPage").classList.remove("hidden");
+  document.getElementById("topActions").classList.add("hidden");
+}
+
+function closeEditor() {
   document.getElementById("editPage").classList.add("hidden");
   document.getElementById("listPage").classList.remove("hidden");
   document.getElementById("topActions").classList.remove("hidden");
   renderList();
 }
 
-async function deletePOI(index) {
-  if(!confirm("确定要删除这个地点吗？删除后将直接同步至云端。")) return;
-  mapData.pois.splice(index, 1);
-  await pushToCloud();
-  renderList();
+// 动态构建 M3 表单渲染结构
+function buildForm(tab, data) {
+  const wrapper = document.getElementById("formWrapper");
+  wrapper.innerHTML = "";
+
+  if (tab === "settings") {
+    wrapper.innerHTML = `
+      <h2>修改全局通用配置</h2>
+      <label>世界中心原点 X</label>
+      <input type="number" id="set_x" value="${data.origin?.x || 0}">
+      <label>世界中心原点 Z</label>
+      <input type="number" id="set_z" value="${data.origin?.z || 0}">
+    `;
+  }
+  else if (tab === "regions") {
+    wrapper.innerHTML = `
+      <h2>${editingIndex!==null?'修改':'新增'}区域信息</h2>
+      <label>区域名称</label><input id="inp_name" value="${data.name || ''}">
+      <label>区域类型 (如 city, town)</label><input id="inp_type" value="${data.type || 'city'}">
+      <label>中心点坐标 X</label><input type="number" id="inp_x" value="${data.x || 0}">
+      <label>中心点坐标 Z</label><input type="number" id="inp_z" value="${data.z || 0}">
+    `;
+  }
+  else if (tab === "pois") {
+    const imgStr = data.images ? data.images.join("\n") : "";
+    wrapper.innerHTML = `
+      <h2>${editingIndex!==null?'修改':'新增'}地点 (POI)</h2>
+      <label>地点名称</label><input id="inp_name" value="${data.name || ''}">
+      <label>地点类型 (如 supermarket, hotel)</label><input id="inp_type" value="${data.type || 'shop'}">
+      <label>坐标 X</label><input type="number" id="inp_x" value="${data.x || 0}">
+      <label>坐标 Z</label><input type="number" id="inp_z" value="${data.z || 0}">
+      <div class="checkbox-row">
+        <input type="checkbox" id="inp_important" ${data.important?'checked':''}>
+        <label for="inp_important">标记为重要地标 (⭐)</label>
+      </div>
+      <label>运营状态 / 服务时间</label><input id="inp_status" value="${data.status || '营业中'}">
+      <label>官方网站</label><input id="inp_website" value="${data.website || ''}">
+      <label>简介与备注信息</label><textarea id="inp_remarks" rows="3">${data.remarks || ''}</textarea>
+      <label>相册图片 URL 列表 (一行一个图片链接)</label>
+      <textarea id="inp_images" rows="4" placeholder="https://...">${imgStr}</textarea>
+    `;
+  }
+  else if (tab === "roads") {
+    wrapper.innerHTML = `
+      <h2>${editingIndex!==null?'修改':'新增'}道路线条</h2>
+      <label>道路名称</label><input id="inp_name" value="${data.name || ''}">
+      <label>道路级别 (如 highway, expressway)</label><input id="inp_type" value="${data.type || 'street'}">
+      <label>空间拓扑点阵序列</label>
+      <div id="pointsBox"></div>
+      <button class="btn-filled secondary" style="padding:6px 12px;margin-top:8px;" onclick="addCoordinateRow('pointsBox', 0, 0)">+ 追加延伸坐标点</button>
+    `;
+    if(data.points) data.points.forEach(p => addCoordinateRow('pointsBox', p.x, p.z));
+  }
+  else if (tab === "subways") {
+    wrapper.innerHTML = `
+      <h2>${editingIndex!==null?'修改':'新增'}地铁线路</h2>
+      <label>地铁线路 ID</label><input id="inp_id" value="${data.id || ''}">
+      <label>线路名称</label><input id="inp_name" value="${data.name || ''}">
+      <label>标识颜色代码 (Hex/RGB)</label>
+      <div class="dynamic-row">
+        <input id="inp_color" value="${data.color || '#FF0000'}">
+        <input type="color" value="${data.color || '#FF0000'}" oninput="document.getElementById('inp_color').value=this.value">
+      </div>
+      
+      <label style="margin-top:12px;">沿途经停站点控制</label>
+      <div id="stationsBox"></div>
+      <button class="btn-filled secondary" style="padding:6px 12px;margin-top:4px;" onclick="addStationRow( '', 0, 0)">+ 添加经停站点</button>
+
+      <label style="margin-top:16px;">空间完整走向折线点阵</label>
+      <div id="subPointsBox"></div>
+      <button class="btn-filled secondary" style="padding:6px 12px;margin-top:4px;" onclick="addCoordinateRow('subPointsBox', 0, 0)">+ 添加走向折点</button>
+    `;
+    if(data.stations) data.stations.forEach(s => addStationRow(s.name, s.x, s.z));
+    if(data.points) data.points.forEach(p => addCoordinateRow('subPointsBox', p.x, p.z));
+  }
 }
 
-async function saveData() {
-  const name = document.getElementById("poi_name").value.trim();
-  const type = document.getElementById("poi_type").value.trim();
-  const x = parseInt(document.getElementById("poi_x").value, 10);
-  const z = parseInt(document.getElementById("poi_z").value, 10);
-  
-  if(!name || !type || isNaN(x) || isNaN(z)) {
-      alert("请完整填写名称、类型及 X/Z 坐标！");
-      return;
-  }
-
-  // 整理数据对象
-  const poiData = {
-      name: name,
-      type: type,
-      x: x,
-      z: z
-  };
-
-  const status = document.getElementById("poi_status").value.trim();
-  if(status) poiData.status = status;
-
-  const website = document.getElementById("poi_website").value.trim();
-  if(website) poiData.website = website;
-
-  const remarks = document.getElementById("poi_remarks").value.trim();
-  if(remarks) poiData.remarks = remarks;
-
-  const important = document.getElementById("poi_important").checked;
-  if(important) poiData.important = true;
-
-  const imgsRaw = document.getElementById("poi_images").value;
-  const images = imgsRaw.split('\n').map(l => l.trim()).filter(l => l !== "");
-  if(images.length > 0) poiData.images = images;
-
-  // 更新内存中的 JSON
-  if(!mapData.pois) mapData.pois = [];
-  
-  if (editingIndex === -1) {
-      mapData.pois.push(poiData); // 新增
-  } else {
-      mapData.pois[editingIndex] = poiData; // 修改
-  }
-
-  // 推送云端
-  const success = await pushToCloud();
-  if(success) {
-      backToList();
-  }
+// 辅助表单插入坐标输入子域
+function addCoordinateRow(containerId, x, z) {
+  const box = document.getElementById(containerId);
+  const div = document.createElement("div");
+  div.className = "dynamic-row coordinates-node";
+  div.innerHTML = `
+    <input type="number" placeholder="X" value="${x}" style="flex:1">
+    <input type="number" placeholder="Z" value="${z}" style="flex:1">
+    <button class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()"><span class="material-symbols-rounded">delete</span></button>
+  `;
+  box.appendChild(div);
 }
 
-async function pushToCloud() {
-  const btn = document.getElementById("saveBtn") || document.createElement("button");
-  const oldHtml = btn.innerHTML;
-  btn.innerHTML = `<span class="material-symbols-rounded" style="animation: spin 2s linear infinite;">sync</span> 保存中...`;
+// 辅助表单插入站点输入子域
+function addStationRow(name, x, z) {
+  const box = document.getElementById("stationsBox");
+  const div = document.createElement("div");
+  div.className = "dynamic-row station-node";
+  div.innerHTML = `
+    <input type="text" placeholder="站名" value="${name}" style="flex:2">
+    <input type="number" placeholder="X" value="${x}" style="flex:1">
+    <input type="number" placeholder="Z" value="${z}" style="flex:1">
+    <button class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()"><span class="material-symbols-rounded">delete</span></button>
+  `;
+  box.appendChild(div);
+}
+
+// 从当前 DOM 表单中搜集结构化 JSON 对象
+function collectFormData() {
+  const item = {};
+  if (currentTab === "settings") {
+    return {
+      origin: {
+        x: Number(document.getElementById("set_x").value),
+        z: Number(document.getElementById("set_z").value)
+      }
+    };
+  }
+
+  // 常规组件注入
+  if(document.getElementById("inp_name")) item.name = document.getElementById("inp_name").value.trim();
+  if(document.getElementById("inp_type")) item.type = document.getElementById("inp_type").value.trim();
+  if(document.getElementById("inp_x")) item.x = Number(document.getElementById("inp_x").value);
+  if(document.getElementById("inp_z")) item.z = Number(document.getElementById("inp_z").value);
+  if(document.getElementById("inp_important")) item.important = document.getElementById("inp_important").checked;
+  if(document.getElementById("inp_status")) item.status = document.getElementById("inp_status").value.trim();
+  if(document.getElementById("inp_website")) item.website = document.getElementById("inp_website").value.trim();
+  if(document.getElementById("inp_remarks")) item.remarks = document.getElementById("inp_remarks").value.trim();
+  
+  if(document.getElementById("inp_images")) {
+    item.images = document.getElementById("inp_images").value.split("\n").map(s => s.trim()).filter(Boolean);
+  }
+
+  // 搜集点阵集
+  if(document.getElementById("pointsBox") || document.getElementById("subPointsBox")) {
+    const boxId = currentTab === "roads" ? "pointsBox" : "subPointsBox";
+    item.points = [];
+    document.querySelectorAll(`#${boxId} .coordinates-node`).forEach(row => {
+      const inputs = row.querySelectorAll("input");
+      item.points.push({ x: Number(inputs[0].value), z: Number(inputs[1].value) });
+    });
+  }
+
+  // 地铁专用集
+  if(currentTab === "subways") {
+    item.id = document.getElementById("inp_id").value.trim();
+    item.color = document.getElementById("inp_color").value.trim();
+    item.stations = [];
+    document.querySelectorAll("#stationsBox .station-node").forEach(row => {
+      const inputs = row.querySelectorAll("input");
+      item.stations.push({
+        name: inputs[0].value.trim(),
+        x: Number(inputs[1].value),
+        z: Number(inputs[2].value)
+      });
+    });
+  }
+
+  return item;
+}
+
+async function commitSave() {
+  const newItem = collectFormData();
+  const action = (currentTab === "settings" || editingIndex !== null) ? "update" : "add";
+
+  const btn = document.getElementById("saveBtn");
+  btn.innerHTML = `<span class="material-symbols-rounded" style="animation:spin 2s linear infinite">sync</span> 正在写入 GitHub...`;
   btn.disabled = true;
 
   try {
     const res = await fetch(API, {
       method: "POST",
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: "save", newJson: mapData })
+      body: JSON.stringify({
+        mode: "save",
+        type: currentTab,
+        action,
+        oldItem: oldItemBackup,
+        newItem
+      })
     });
 
-    if(!res.ok){
-      alert("云端保存失败: " + await res.text());
-      btn.innerHTML = oldHtml;
-      btn.disabled = false;
-      return false;
+    if(!res.ok) {
+      alert("保存失败: " + await res.text());
+    } else {
+      // 前端本地状态同步更新
+      if(currentTab === "settings") {
+        mapData.settings = newItem;
+      } else {
+        if(action === "add") mapData[currentTab].push(newItem);
+        else mapData[currentTab][editingIndex] = newItem;
+      }
+      closeEditor();
     }
-    
-    btn.innerHTML = oldHtml;
-    btn.disabled = false;
-    return true;
   } catch(e) {
-    alert("网络请求失败: " + e.message);
-    btn.innerHTML = oldHtml;
+    alert("网络请求失败");
+  } finally {
+    btn.innerHTML = `<span class="material-symbols-rounded">cloud_upload</span> 同步云端保存`;
     btn.disabled = false;
-    return false;
+  }
+}
+
+async function deleteItem(index) {
+  if(!confirm("⚠️ 确认在 GitHub 仓库中抹除此要素项吗？")) return;
+  const oldItem = mapData[currentTab][index];
+
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: "save", type: currentTab, action: "delete", oldItem })
+    });
+
+    if(!res.ok) {
+      alert("删除失败: " + await res.text());
+    } else {
+      mapData[currentTab].splice(index, 1);
+      renderList();
+    }
+  } catch(e) {
+    alert("请求网络异常");
   }
 }
 </script>
-
-<style>
-/* 添加一个简单的旋转动画供加载使用 */
-@keyframes spin { 100% { transform: rotate(360deg); } }
-</style>
 </body>
 </html>
