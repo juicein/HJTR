@@ -195,6 +195,14 @@ button.btn-filled:hover { opacity: 0.9; transform: translateY(-1px); }
 // 改为你自己的 Cloudflare Worker 地址
 const API = "https://wispy-base-018b.1693076637.workers.dev"; 
 
+// POI 类型映射表
+const poiTypes = {
+  'supermarket': '超市', 'hotel': '酒店', 'bank': '银行', 
+  'school': '学校', 'government': '政府机关', 'mall': '商场', 
+  'museum': '博物馆', 'park': '公园', 'restaurant': '餐厅', 
+  'cafe': '咖啡吧', 'subway_station': '轨道交通站点'
+};
+
 let mapData = { settings: {}, regions: [], pois: [], roads: [], subways: [] };
 let currentTab = "pois"; 
 let editingIndex = null; 
@@ -270,7 +278,9 @@ function renderList(){
 
   const filtered = arr.filter(item => {
     if(!query) return true;
+    const typeLabel = poiTypes[item.type] || item.type || "";
     return (item.name && item.name.toLowerCase().includes(query)) || 
+           (typeLabel.toLowerCase().includes(query)) ||
            (item.type && item.type.toLowerCase().includes(query));
   });
 
@@ -285,9 +295,12 @@ function renderList(){
     div.className = "item-list-card";
     
     let metaText = "";
-    if(currentTab === "pois" || currentTab === "regions") {
-      metaText = `坐标: (${item.x}, ${item.z}) | 类型: <span class="badge">${item.type}</span>`;
+    if(currentTab === "pois") {
+      const typeDisplay = poiTypes[item.type] || item.type || '未知';
+      metaText = `坐标: (${item.x}, ${item.z}) | 类型: <span class="badge">${typeDisplay}</span>`;
       if(item.important) metaText += ` | ⭐重要`;
+    } else if(currentTab === "regions") {
+      metaText = `坐标: (${item.x}, ${item.z}) | 类型: <span class="badge">${item.type}</span>`;
     } else if(currentTab === "roads") {
       metaText = `节点数: ${item.points?.length || 0} | 类型: ${item.type}`;
     } else if(currentTab === "subways") {
@@ -308,7 +321,6 @@ function renderList(){
   });
 }
 
-// 检查传入的坐标参数
 function checkUrlParams() {
   if (urlParamsProcessed) return;
   const urlParams = new URLSearchParams(window.location.search);
@@ -318,7 +330,6 @@ function checkUrlParams() {
     urlParamsProcessed = true;
     switchTab('pois');
     openAddForm();
-    // 异步等待 DOM 节点渲染后灌入坐标
     setTimeout(() => {
       if(document.getElementById('inp_x')) document.getElementById('inp_x').value = x;
       if(document.getElementById('inp_z')) document.getElementById('inp_z').value = z;
@@ -336,7 +347,7 @@ function openAddForm() {
 function openEditForm(index) {
   editingIndex = index;
   const rawItem = mapData[currentTab][index];
-  oldItemBackup = JSON.parse(JSON.stringify(rawItem)); // 深拷贝备份用于并发锁校验
+  oldItemBackup = JSON.parse(JSON.stringify(rawItem));
   buildForm(currentTab, rawItem);
   showEditorView();
 }
@@ -385,11 +396,18 @@ function buildForm(tab, data) {
     `;
   }
   else if (tab === "pois") {
-    const imgStr = data.images ? data.images.join("\n") : "";
+    // 构建类型下拉菜单
+    let typeOptions = `<option value="">-- 请选择地点类型 --</option>`;
+    for (const [key, val] of Object.entries(poiTypes)) {
+      const selected = data.type === key ? 'selected' : '';
+      typeOptions += `<option value="${key}" ${selected}>${val}</option>`;
+    }
+
     wrapper.innerHTML = `
       <h2>${editingIndex!==null?'修改':'新增'}地点 (POI)</h2>
       <label>地点名称</label><input id="inp_name" value="${data.name || ''}">
-      <label>地点类型 (如 supermarket, hotel)</label><input id="inp_type" value="${data.type || 'shop'}">
+      <label>地点类型</label>
+      <select id="inp_type">${typeOptions}</select>
       <label>坐标 X</label><input type="number" id="inp_x" value="${data.x || 0}">
       <label>坐标 Z</label><input type="number" id="inp_z" value="${data.z || 0}">
       <div class="checkbox-row">
@@ -399,9 +417,16 @@ function buildForm(tab, data) {
       <label>运营状态 / 服务时间</label><input id="inp_status" value="${data.status || '营业中'}">
       <label>官方网站</label><input id="inp_website" value="${data.website || ''}">
       <label>简介与备注信息</label><textarea id="inp_remarks" rows="3">${data.remarks || ''}</textarea>
-      <label>相册图片 URL 列表 (一行一个图片链接)</label>
-      <textarea id="inp_images" rows="4" placeholder="https://...">${imgStr}</textarea>
+      
+      <label style="margin-top:12px;">相册图片</label>
+      <div id="imagesBox"></div>
+      <button class="btn-filled secondary" style="padding:6px 12px;margin-top:4px;" onclick="addImageRow('imagesBox', '')">+ 添加图片链接</button>
     `;
+    
+    // 初始化已有图片的可视化列表
+    if(data.images && data.images.length > 0) {
+      data.images.forEach(img => addImageRow('imagesBox', img));
+    }
   }
   else if (tab === "roads") {
     wrapper.innerHTML = `
@@ -438,6 +463,34 @@ function buildForm(tab, data) {
   }
 }
 
+// 辅助可视化图片组件：上移、下移与增加
+function addImageRow(containerId, url) {
+  const box = document.getElementById(containerId);
+  const div = document.createElement("div");
+  div.className = "dynamic-row image-node";
+  div.innerHTML = `
+    <input type="text" placeholder="https://..." value="${url}" style="flex:1">
+    <button type="button" class="icon-btn" onclick="moveRowUp(this)" title="上移"><span class="material-symbols-rounded">arrow_upward</span></button>
+    <button type="button" class="icon-btn" onclick="moveRowDown(this)" title="下移"><span class="material-symbols-rounded">arrow_downward</span></button>
+    <button type="button" class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()" title="删除"><span class="material-symbols-rounded">delete</span></button>
+  `;
+  box.appendChild(div);
+}
+
+function moveRowUp(btn) {
+  const row = btn.parentElement;
+  if (row.previousElementSibling) {
+    row.parentElement.insertBefore(row, row.previousElementSibling);
+  }
+}
+
+function moveRowDown(btn) {
+  const row = btn.parentElement;
+  if (row.nextElementSibling) {
+    row.parentElement.insertBefore(row.nextElementSibling, row);
+  }
+}
+
 // 辅助表单插入坐标输入子域
 function addCoordinateRow(containerId, x, z) {
   const box = document.getElementById(containerId);
@@ -446,7 +499,7 @@ function addCoordinateRow(containerId, x, z) {
   div.innerHTML = `
     <input type="number" placeholder="X" value="${x}" style="flex:1">
     <input type="number" placeholder="Z" value="${z}" style="flex:1">
-    <button class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()"><span class="material-symbols-rounded">delete</span></button>
+    <button type="button" class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()"><span class="material-symbols-rounded">delete</span></button>
   `;
   box.appendChild(div);
 }
@@ -460,7 +513,7 @@ function addStationRow(name, x, z) {
     <input type="text" placeholder="站名" value="${name}" style="flex:2">
     <input type="number" placeholder="X" value="${x}" style="flex:1">
     <input type="number" placeholder="Z" value="${z}" style="flex:1">
-    <button class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()"><span class="material-symbols-rounded">delete</span></button>
+    <button type="button" class="icon-btn" style="color:#ba1a1a" onclick="this.parentElement.remove()"><span class="material-symbols-rounded">delete</span></button>
   `;
   box.appendChild(div);
 }
@@ -487,8 +540,13 @@ function collectFormData() {
   if(document.getElementById("inp_website")) item.website = document.getElementById("inp_website").value.trim();
   if(document.getElementById("inp_remarks")) item.remarks = document.getElementById("inp_remarks").value.trim();
   
-  if(document.getElementById("inp_images")) {
-    item.images = document.getElementById("inp_images").value.split("\n").map(s => s.trim()).filter(Boolean);
+  // 搜集可视化的图片集
+  if(document.getElementById("imagesBox")) {
+    item.images = [];
+    document.querySelectorAll("#imagesBox .image-node input").forEach(input => {
+      const url = input.value.trim();
+      if(url) item.images.push(url);
+    });
   }
 
   // 搜集点阵集
