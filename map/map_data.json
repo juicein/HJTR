@@ -32,9 +32,9 @@
       "type": "hotel",
       "x": -14259,
       "z": -5677,
-     "important": true,
+      "important": true,
       "status": "营业中 · 24小时服务",
-    "website": "https://example.com",
+      "website": "https://example.com",
       "remarks": "在英沙水门桥凯悦酒店，您可以感受到舒适住宿及便捷地段带来的旅游喜悦。位于水门桥商业及旅游心脏地带，这所英沙水门桥酒店临近铁路和快轨车站，让您自由穿梭英沙每个角落。立即体验凯悦酒店带给您的优悦旅游乐趣。",
       "images": [
         "https://s3.bmp.ovh/2026/07/07/30SpaPeX.png",
@@ -47,6 +47,14 @@
         "https://s3.bmp.ovh/2026/07/07/EhYaXsB2.png",
         "https://s3.bmp.ovh/2026/07/07/dvYLS3Ti.png"
       ]
+    },
+    {
+      "name": "聚龙商场",
+      "type": "mall",
+      "x": -15719,
+      "z": -5708,
+      "status": "9:30-22:00",
+      "remarks": "始建于2023的商场"
     }
   ],
   "roads": [
