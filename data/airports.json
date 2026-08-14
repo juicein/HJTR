@@ -74,12 +74,12 @@
   "runways": 1
 },
 {
-  "name": "西苑江秋",
-  "code": "SYX",
+  "name": "林场京苑",
+  "code": "LGW",
   "lat": 27.5829,
   "lng": 114.3069,
   "aliases": ["云梦山河"],
-  "level": "4C",
+  "level": "4E",
   "runways": 1
 },
 {
@@ -448,7 +448,17 @@
    "aliases": ["云梦山河"],
    "level": "4F",
    "runways": 1
+}, 
+{ 
+   "name": "西京龙坪",
+   "code": "SLP",
+   "lat": 30.10398,
+   "lng": 115.97973,
+   "aliases": ["西京"],
+   "level": "4E",
+   "runways": 2
  }
  
 ]
+ 
  
