@@ -19,7 +19,7 @@
   "runways": 1
 },
 {
-  "name": "新裕艮山",
+  "name": "新裕艮山",                      
   "code": "GES",
   "lat": 30.69976,
   "lng": 122.83605,
@@ -457,8 +457,42 @@
    "aliases": ["西京"],
    "level": "4E",
    "runways": 2
+ },
+{ 
+   "name": "猫跃西城",
+   "code": "CHP",
+   "lat": 25.07602,
+   "lng": 121.23703,
+   "aliases": ["猫跃"],
+   "level": "4E",
+   "runways": 2
+},
+{ 
+   "name": "猫跃绿日",
+   "code": "GDA",
+   "lat": 25.06445,
+   "lng": 121.55778,
+   "aliases": ["猫跃"],
+   "level": "3C",
+   "runways": 1
+}, 
+{ 
+   "name": "鲨鱼猫出生点",
+   "code": "SCA",
+   "lat": 33.59718,
+   "lng": 130.44722,
+   "aliases": ["鲨鱼猫"],
+   "level": "4E",
+   "runways": 1
+}, 
+{ 
+   "name": "鸭城东门湾",
+   "code": "DMB",
+   "lat": 35.64199,
+   "lng": 116.75086,
+   "aliases": ["鸭城"],
+   "level": "4E",
+   "runways": 1
  }
  
 ]
- 
- 
