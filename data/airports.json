@@ -493,6 +493,26 @@
    "aliases": ["鸭城"],
    "level": "4E",
    "runways": 1
+},
+{ 
+   "name": "圣玛丽亚",
+   "code": "SNA",
+   "lat": 23.55222,
+   "lng": 116.52073,
+   "aliases": ["斯卡林特"],
+   "level": "4E",
+   "runways": 1
+},
+{ 
+   "name": "寰宇林檎",
+   "code": "HLQ",
+   "lat": 38.95273,
+   "lng": 282.55220,
+   "aliases": ["寰宇"],
+   "level": "4E",
+   "runways": 1
  }
  
 ]
+ 
+ 
