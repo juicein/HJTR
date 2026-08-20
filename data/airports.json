@@ -25,6 +25,7 @@
   "lng": 122.83605,
   "aliases": ["新裕"],
   "level": "3C",
+"ICAO": "ZSHS",
   "runways": 1
 },
 {
@@ -52,7 +53,8 @@
   "lat": 32.4650,
   "lng": 114.0450,
   "aliases": ["云梦山河", "平城"],
-  "level": "4C",
+  "level": "4D",
+"ICAO": "ZHPC",
   "runways": 1
 },
 {
@@ -62,6 +64,7 @@
   "lng": 119.66,
   "aliases": ["云梦山河"],
   "level": "4F",
+"ICAO": "ZSJZ",
   "runways": 2
 },
 {
@@ -70,7 +73,8 @@
   "lat": 25.7966,
   "lng": 113.0334,
   "aliases": ["云梦山河"],
-  "level": "4C",
+  "level": "4D",
+"ICAO": "ZHXJ",
   "runways": 1
 },
 {
@@ -80,6 +84,7 @@
   "lng": 114.3069,
   "aliases": ["云梦山河"],
   "level": "4E",
+"ICAO": "ZHLP",
   "runways": 1
 },
 {
@@ -88,7 +93,8 @@
   "lat": 28.5827,
   "lng": 121.3651,
   "aliases": ["云梦山河", "北江"],
-  "level": "4C",
+  "level": "4F",
+"ICAO": "ZSBK",
   "runways": 1
 },
 {
@@ -446,7 +452,8 @@
    "lat": 36.85068,
    "lng": 117.21194,
    "aliases": ["云梦山河"],
-   "level": "4F",
+"level": "4F",
+"ICAO": "ZSDG",
    "runways": 1
 }, 
 { 
@@ -510,6 +517,25 @@
    "lng": 282.55220,
    "aliases": ["寰宇"],
    "level": "4E",
+   "runways": 1
+}, 
+{ 
+   "name": "大潭",
+   "code": "TTX",
+   "lat": 31.91681,
+   "lng": 119.79377,
+   "aliases": ["大潭"],
+"level": "4F",
+"ICAO": "ZSDT",
+   "runways": 1
+},
+{ 
+   "name": "千梦辛山",
+   "code": "QMX",
+   "lat": 22.60767,
+   "lng": 108.19195,
+   "aliases": ["千梦"],
+"level": "4F",
    "runways": 1
  }
  
