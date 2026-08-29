@@ -48,12 +48,12 @@
 },
 {
  "name": "鄂渚梦泽机场",
- "code": "jjj",
-"lat": 41.19225,
- "lng": 122.33404,
+ "code": "MNZ",
+"lat": 30.92500,
+ "lng": 114.24167,
  "aliases": [""],
- "level": "4E",
- "ICAO": "999",
+ "level": "4D",
+ "ICAO": "ZHMZ",
  "runways": 1
 },
  
