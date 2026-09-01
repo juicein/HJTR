@@ -7,7 +7,10 @@
  "aliases": ["北联"],
  "level": "4E",
  "ICAO": "BKEE",
- "runways": 1
+ "runways": 1,
+"tourism_index": 65,
+"business_index": 80,
+"population": A
 },
 {
   "name": "千里马",
