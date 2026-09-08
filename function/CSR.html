@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sichuan Yuche | Sustainability & CSR</title>
+<style>
+:root{
+    --green:#163b32;
+    --green-light:#e8f0ec;
+    --accent:#9bb79e;
+    --cream:#f6f5f0;
+    --white:#ffffff;
+    --black:#14201c;
+    --gray:#66716c;
+    --line:#dfe5e1;
+}
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+html{
+    scroll-behavior:smooth;
+}
+body{
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Arial,
+        sans-serif;
+    color:var(--black);
+    background:#fff;
+    line-height:1.6;
+}
+a{
+    text-decoration:none;
+    color:inherit;
+}
+.container{
+    width:min(1180px,92%);
+    margin:auto;
+}
+/* =========================
+   NAVIGATION
+========================= */
+.navbar{
+    position:fixed;
+    top:0;
+    width:100%;
+    height:76px;
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(15px);
+    border-bottom:1px solid rgba(0,0,0,.07);
+    z-index:1000;
+}
+.nav-inner{
+    height:76px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+}
+.logo{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    font-weight:700;
+    letter-spacing:-.5px;
+}
+.logo-mark{
+    width:38px;
+    height:38px;
+    border-radius:10px;
+    background:var(--green);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-size:18px;
+}
+.logo-text span{
+    display:block;
+    font-size:10px;
+    letter-spacing:2px;
+    color:#738079;
+    font-weight:500;
+}
+.nav-links{
+    display:flex;
+    gap:30px;
+    align-items:center;
+    font-size:14px;
+    color:#3e4b46;
+}
+.nav-links a:hover{
+    color:var(--green);
+}
+.nav-button{
+    background:var(--green);
+    color:white;
+    padding:11px 18px;
+    border-radius:30px;
+}
+/* =========================
+   HERO
+========================= */
+.hero{
+    min-height:760px;
+    padding-top:76px;
+    background:
+        linear-gradient(
+            90deg,
+            rgba(12,35,29,.90),
+            rgba(12,35,29,.45),
+            rgba(12,35,29,.10)
+        ),
+        linear-gradient(135deg,#496d5e,#b5c8bc);
+    display:flex;
+    align-items:center;
+    color:white;
+}
+.hero-content{
+    max-width:780px;
+}
+.eyebrow{
+    text-transform:uppercase;
+    letter-spacing:3px;
+    font-size:12px;
+    font-weight:600;
+    margin-bottom:22px;
+    opacity:.8;
+}
+.hero h1{
+    font-size:clamp(48px,7vw,82px);
+    line-height:1.02;
+    letter-spacing:-3px;
+    margin-bottom:28px;
+}
+.hero p{
+    max-width:650px;
+    font-size:20px;
+    color:#edf4f0;
+    margin-bottom:38px;
+}
+.hero-buttons{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+}
+.btn{
+    padding:14px 23px;
+    border-radius:30px;
+    font-size:14px;
+    font-weight:600;
+    display:inline-block;
+}
+.btn-primary{
+    background:white;
+    color:var(--green);
+}
+.btn-outline{
+    border:1px solid rgba(255,255,255,.6);
+    color:white;
+}
+/* =========================
+   INTRO
+========================= */
+.intro{
+    padding:110px 0;
+}
+.intro-grid{
+    display:grid;
+    grid-template-columns:1fr 1.4fr;
+    gap:90px;
+}
+.section-label{
+    color:#6b8077;
+    text-transform:uppercase;
+    letter-spacing:2px;
+    font-size:12px;
+    font-weight:700;
+}
+.intro h2{
+    margin-top:15px;
+    font-size:46px;
+    line-height:1.1;
+    letter-spacing:-2px;
+}
+.intro-text{
+    font-size:19px;
+    color:var(--gray);
+}
+/* =========================
+   ESG
+========================= */
+.esg{
+    background:var(--cream);
+    padding:110px 0;
+}
+.section-heading{
+    max-width:700px;
+    margin-bottom:55px;
+}
+.section-heading h2{
+    font-size:48px;
+    line-height:1.1;
+    letter-spacing:-2px;
+    margin:12px 0 18px;
+}
+.section-heading p{
+    color:var(--gray);
+    font-size:17px;
+}
+.esg-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:22px;
+}
+.esg-card{
+    background:white;
+    padding:38px;
+    min-height:360px;
+    border:1px solid var(--line);
+    transition:.25s;
+}
+.esg-card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 20px 50px rgba(30,60,50,.08);
+}
+.esg-number{
+    font-size:13px;
+    color:#81958d;
+    margin-bottom:60px;
+}
+.esg-card h3{
+    font-size:27px;
+    margin-bottom:15px;
+}
+.esg-card p{
+    color:var(--gray);
+    font-size:15px;
+}
+.esg-list{
+    margin-top:25px;
+    list-style:none;
+}
+.esg-list li{
+    padding:8px 0;
+    border-top:1px solid var(--line);
+    font-size:14px;
+}
+/* =========================
+   TARGETS
+========================= */
+.targets{
+    padding:110px 0;
+}
+.target-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+}
+.target{
+    padding:40px 25px;
+    border-right:1px solid var(--line);
+}
+.target:last-child{
+    border-right:none;
+}
+.target-number{
+    font-size:42px;
+    font-weight:700;
+    color:var(--green);
+    letter-spacing:-2px;
+}
+.target h4{
+    margin:10px 0;
+    font-size:17px;
+}
+.target p{
+    font-size:13px;
+    color:var(--gray);
+}
+/* =========================
+   FEATURE
+========================= */
+.feature{
+    background:var(--green);
+    color:white;
+    padding:110px 0;
+}
+.feature-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:90px;
+    align-items:center;
+}
+.feature h2{
+    font-size:50px;
+    line-height:1.08;
+    letter-spacing:-2px;
+    margin:15px 0 25px;
+}
+.feature p{
+    color:#d5e1dc;
+    font-size:17px;
+}
+.feature-box{
+    background:#244b40;
+    padding:35px;
+    border:1px solid rgba(255,255,255,.12);
+}
+.feature-box h3{
+    margin-bottom:20px;
+}
+.check{
+    padding:14px 0;
+    border-top:1px solid rgba(255,255,255,.15);
+    font-size:14px;
+}
+.check::before{
+    content:"✓";
+    margin-right:12px;
+    color:#b9d1c3;
+}
+/* =========================
+   MATERIALS
+========================= */
+.materials{
+    padding:110px 0;
+}
+.material-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:24px;
+}
+.material-card{
+    min-height:360px;
+    padding:40px;
+    background:var(--green-light);
+    position:relative;
+    overflow:hidden;
+}
+.material-card.dark{
+    background:#202d28;
+    color:white;
+}
+.material-card h3{
+    font-size:30px;
+    margin-bottom:18px;
+}
+.material-card p{
+    color:#68766f;
+    max-width:480px;
+}
+.material-card.dark p{
+    color:#c3d0ca;
+}
+.material-tag{
+    position:absolute;
+    bottom:35px;
+    left:40px;
+    font-size:12px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+}
+/* =========================
+   PACKAGING
+========================= */
+.packaging{
+    padding:110px 0;
+    background:#f8f7f3;
+}
+.packaging-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:80px;
+    align-items:center;
+}
+.packaging h2{
+    font-size:48px;
+    line-height:1.1;
+    letter-spacing:-2px;
+    margin:15px 0 25px;
+}
+.packaging p{
+    color:var(--gray);
+    font-size:17px;
+}
+.packaging-process{
+    display:flex;
+    flex-direction:column;
+}
+.process{
+    display:grid;
+    grid-template-columns:70px 1fr;
+    padding:22px 0;
+    border-top:1px solid var(--line);
+}
+.process-number{
+    font-size:13px;
+    color:#8b9a93;
+}
+.process h4{
+    margin-bottom:5px;
+}
+.process p{
+    font-size:14px;
+}
+/* =========================
+   SOCIAL
+========================= */
+.social{
+    padding:110px 0;
+}
+.social-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:24px;
+}
+.social-card{
+    padding:35px;
+    border:1px solid var(--line);
+}
+.social-icon{
+    width:48px;
+    height:48px;
+    border-radius:50%;
+    background:var(--green-light);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:35px;
+}
+.social-card h3{
+    font-size:23px;
+    margin-bottom:14px;
+}
+.social-card p{
+    color:var(--gray);
+    font-size:14px;
+}
+/* =========================
+   GOVERNANCE
+========================= */
+.governance{
+    background:#f0f3f1;
+    padding:110px 0;
+}
+.gov-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:80px;
+}
+.gov-list{
+    margin-top:30px;
+}
+.gov-item{
+    padding:20px 0;
+    border-top:1px solid #d4ddd8;
+}
+.gov-item strong{
+    display:block;
+    margin-bottom:5px;
+}
+.gov-item span{
+    color:var(--gray);
+    font-size:14px;
+}
+/* =========================
+   KPI
+========================= */
+.kpi{
+    padding:110px 0;
+}
+.kpi-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:40px;
+}
+.kpi-table th,
+.kpi-table td{
+    text-align:left;
+    padding:18px 12px;
+    border-bottom:1px solid var(--line);
+}
+.kpi-table th{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:#718079;
+}
+.kpi-table td{
+    font-size:14px;
+}
+.status{
+    display:inline-block;
+    padding:5px 10px;
+    border-radius:20px;
+    background:#e8f0ec;
+    color:#31574a;
+    font-size:11px;
+}
+/* =========================
+   REPORT
+========================= */
+.report{
+    padding:90px 0;
+    background:var(--green);
+    color:white;
+}
+.report-inner{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:40px;
+}
+.report h2{
+    font-size:38px;
+    letter-spacing:-1px;
+}
+.report p{
+    color:#cbd8d2;
+    margin-top:8px;
+}
+/* =========================
+   FOOTER
+========================= */
+footer{
+    background:#0f211c;
+    color:white;
+    padding:65px 0 30px;
+}
+.footer-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr 1fr;
+    gap:50px;
+}
+.footer-brand p{
+    margin-top:20px;
+    max-width:350px;
+    color:#9eafa8;
+    font-size:14px;
+}
+footer h4{
+    margin-bottom:18px;
+}
+footer ul{
+    list-style:none;
+}
+footer li{
+    margin:10px 0;
+    color:#9eafa8;
+    font-size:13px;
+}
+.footer-bottom{
+    border-top:1px solid rgba(255,255,255,.1);
+    margin-top:50px;
+    padding-top:25px;
+    display:flex;
+    justify-content:space-between;
+    color:#81928b;
+    font-size:12px;
+}
+/* =========================
+   RESPONSIVE
+========================= */
+@media(max-width:850px){
+    .nav-links{
+        display:none;
+    }
+    .hero{
+        min-height:680px;
+    }
+    .hero h1{
+        font-size:52px;
+    }
+    .intro-grid,
+    .feature-grid,
+    .packaging-grid,
+    .gov-grid{
+        grid-template-columns:1fr;
+        gap:40px;
+    }
+    .esg-grid,
+    .social-grid{
+        grid-template-columns:1fr;
+    }
+    .target-grid{
+        grid-template-columns:1fr 1fr;
+    }
+    .target:nth-child(2){
+        border-right:none;
+    }
+    .target{
+        border-bottom:1px solid var(--line);
+    }
+    .material-grid{
+        grid-template-columns:1fr;
+    }
+    .footer-grid{
+        grid-template-columns:1fr 1fr;
+    }
+    .report-inner{
+        flex-direction:column;
+        align-items:flex-start;
+    }
+}
+@media(max-width:500px){
+    .hero h1{
+        font-size:43px;
+    }
+    .section-heading h2,
+    .intro h2,
+    .feature h2,
+    .packaging h2{
+        font-size:37px;
+    }
+    .target-grid{
+        grid-template-columns:1fr;
+    }
+    .target{
+        border-right:none;
+    }
+    .footer-grid{
+        grid-template-columns:1fr;
+    }
+}
+</style>
+</head>
+<body>
+<!-- =========================
+     NAVIGATION
+========================= -->
+<nav class="navbar">
+<div class="container nav-inner">
+<a href="#" class="logo">
+<div class="logo-mark">YC</div>
+<div class="logo-text">
+SICHUAN YUCHE
+<span>CONSTRUCTION ENGINEERING</span>
+</div>
+</a>
+<div class="nav-links">
+<a href="#strategy">Strategy</a>
+<a href="#environment">Environment</a>
+<a href="#materials">Materials</a>
+<a href="#social">People</a>
+<a href="#governance">Governance</a>
+<a href="#report" class="nav-button">
+Sustainability Report
+</a>
+</div>
+</div>
+</nav>
+<!-- =========================
+     HERO
+========================= -->
+<section class="hero">
+<div class="container">
+<div class="hero-content">
+<div class="eyebrow">
+SUSTAINABILITY · CSR · RESPONSIBLE RENOVATION
+</div>
+<h1>
+Building Better Homes.<br>
+Building a Better Future.
+</h1>
+<p>
+We are working to make residential renovation in Chengdu
+healthier, more transparent and more responsible —
+for families, communities and the environment.
+</p>
+<div class="hero-buttons">
+<a href="#strategy" class="btn btn-primary">
+Our Sustainability Strategy
+</a>
+<a href="#report" class="btn btn-outline">
+View Our Commitments
+</a>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     INTRO
+========================= -->
+<section class="intro">
+<div class="container intro-grid">
+<div>
+<div class="section-label">
+Our Responsibility
+</div>
+<h2>
+Renovation is more than building a home.
+</h2>
+</div>
+<div class="intro-text">
+<p>
+For families, a renovation project is closely connected to
+health, safety, comfort and long-term quality of life.
+For the environment, renovation also creates material
+consumption, packaging waste and construction waste.
+</p>
+<br>
+<p>
+Sichuan Yuche Construction Engineering Co., Ltd. is developing
+a more responsible residential renovation approach focused on
+three priorities: <strong>healthy homes, transparent materials
+and lower-waste renovation.</strong>
+</p>
+</div>
+</div>
+</section>
+<!-- =========================
+     ESG STRATEGY
+========================= -->
+<section class="esg" id="strategy">
+<div class="container">
+<div class="section-heading">
+<div class="section-label">
+Our ESG Strategy
+</div>
+<h2>
+Three pillars.<br>
+One long-term commitment.
+</h2>
+<p>
+Our sustainability framework connects environmental
+responsibility, social value and transparent governance
+with the everyday renovation experience of Chengdu families.
+</p>
+</div>
+<div class="esg-grid">
+<div class="esg-card">
+<div class="esg-number">01 / ENVIRONMENT</div>
+<h3>
+Lower Impact
+</h3>
+<p>
+Reduce unnecessary resource consumption and construction
+waste throughout the renovation process.
+</p>
+<ul class="esg-list">
+<li>Waste separation</li>
+<li>Material reuse</li>
+<li>Packaging reduction</li>
+<li>Responsible procurement</li>
+</ul>
+</div>
+<div class="esg-card">
+<div class="esg-number">02 / SOCIAL</div>
+<h3>
+Healthier Homes
+</h3>
+<p>
+Place family health, worker safety and community wellbeing
+at the centre of renovation decisions.
+</p>
+<ul class="esg-list">
+<li>Low-emission materials</li>
+<li>Family health information</li>
+<li>Worker safety</li>
+<li>Community engagement</li>
+</ul>
+</div>
+<div class="esg-card">
+<div class="esg-number">03 / GOVERNANCE</div>
+<h3>
+Build with Trust
+</h3>
+<p>
+Improve information transparency and create a more
+traceable renovation experience for customers.
+</p>
+<ul class="esg-list">
+<li>Material documentation</li>
+<li>Supplier evaluation</li>
+<li>Customer feedback</li>
+<li>KPI monitoring</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     TARGETS
+========================= -->
+<section class="targets">
+<div class="container">
+<div class="section-heading">
+<div class="section-label">
+2030 Direction
+</div>
+<h2>
+From commitments<br>
+to measurable action.
+</h2>
+<p>
+We are developing measurable indicators to monitor the
+environmental and social performance of residential
+renovation projects.
+</p>
+</div>
+<div class="target-grid">
+<div class="target">
+<div class="target-number">100%</div>
+<h4>
+Material Documentation
+</h4>
+<p>
+Priority renovation materials to be accompanied by
+available product, safety or environmental information.
+</p>
+</div>
+<div class="target">
+<div class="target-number">−20%</div>
+<h4>
+Unnecessary Packaging
+</h4>
+<p>
+Pilot target for reducing avoidable single-use protective
+packaging on selected renovation projects.
+</p>
+</div>
+<div class="target">
+<div class="target-number">100%</div>
+<h4>
+Waste Separation
+</h4>
+<p>
+Target for participating pilot projects to implement
+basic construction waste separation.
+</p>
+</div>
+<div class="target">
+<div class="target-number">1</div>
+<h4>
+Annual CSR Review
+</h4>
+<p>
+Publish an annual review of sustainability progress,
+lessons learned and areas requiring improvement.
+</p>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     HEALTHY HOME
+========================= -->
+<section class="feature" id="environment">
+<div class="container feature-grid">
+<div>
+<div class="section-label">
+Healthy Home Initiative
+</div>
+<h2>
+A healthier home starts with better information.
+</h2>
+<p>
+For parenting households, renovation decisions can affect
+indoor air quality and everyday wellbeing. Our approach is
+to provide clearer information about material characteristics
+and encourage informed choices rather than making unsupported
+health claims.
+</p>
+</div>
+<div class="feature-box">
+<h3>
+Our Material Health Approach
+</h3>
+<div class="check">
+Prioritise low-emission alternatives where suitable
+</div>
+<div class="check">
+Provide available product and certification information
+</div>
+<div class="check">
+Improve material traceability
+</div>
+<div class="check">
+Explain limitations and proper use
+</div>
+<div class="check">
+Collect customer feedback after renovation
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     MATERIALS
+========================= -->
+<section class="materials" id="materials">
+<div class="container">
+<div class="section-heading">
+<div class="section-label">
+Material Transparency
+</div>
+<h2>
+Know what goes<br>
+into your home.
+</h2>
+<p>
+We are developing a clearer material information process
+so customers can better understand what is selected,
+where it comes from and what information is available.
+</p>
+</div>
+<div class="material-grid">
+<div class="material-card">
+<h3>
+Material Passport
+</h3>
+<p>
+Selected materials can be documented with supplier,
+product name, specification, available certification and
+relevant environmental or health information.
+</p>
+<div class="material-tag">
+TRACEABILITY
+</div>
+</div>
+<div class="material-card dark">
+<h3>
+Responsible Procurement
+</h3>
+<p>
+Supplier selection can consider product quality, safety,
+documentation, environmental attributes and packaging
+requirements alongside cost and availability.
+</p>
+<div class="material-tag">
+SUPPLY CHAIN
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     PACKAGING
+========================= -->
+<section class="packaging">
+<div class="container packaging-grid">
+<div>
+<div class="section-label">
+Packaging Improvement
+</div>
+<h2>
+Less packaging.<br>
+More responsibility.
+</h2>
+<p>
+Renovation materials often require protective packaging.
+Our objective is not to eliminate necessary protection,
+but to reduce avoidable single-use materials while
+maintaining product safety.
+</p>
+</div>
+<div class="packaging-process">
+<div class="process">
+<div class="process-number">01</div>
+<div>
+<h4>Measure</h4>
+<p>
+Record major packaging materials used during selected
+renovation projects.
+</p>
+</div>
+</div>
+<div class="process">
+<div class="process-number">02</div>
+<div>
+<h4>Reduce</h4>
+<p>
+Identify unnecessary layers and avoid excessive
+single-use protective materials.
+</p>
+</div>
+</div>
+<div class="process">
+<div class="process-number">03</div>
+<div>
+<h4>Reuse</h4>
+<p>
+Explore reusable protection for suitable transportation
+and installation scenarios.
+</p>
+</div>
+</div>
+<div class="process">
+<div class="process-number">04</div>
+<div>
+<h4>Recycle</h4>
+<p>
+Separate recyclable packaging materials at project sites
+where practical.
+</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     SOCIAL
+========================= -->
+<section class="social" id="social">
+<div class="container">
+<div class="section-heading">
+<div class="section-label">
+People & Community
+</div>
+<h2>
+Creating value beyond<br>
+the renovation site.
+</h2>
+<p>
+Corporate responsibility is also about the people who
+design, build, live in and experience the spaces we create.
+</p>
+</div>
+<div class="social-grid">
+<div class="social-card">
+<div class="social-icon">01</div>
+<h3>
+Worker Safety
+</h3>
+<p>
+Promote safer working practices, appropriate protective
+equipment and basic safety awareness across renovation
+activities.
+</p>
+</div>
+<div class="social-card">
+<div class="social-icon">02</div>
+<h3>
+Customer Education
+</h3>
+<p>
+Help customers understand material information,
+renovation waste and practical ways to create a healthier
+living environment.
+</p>
+</div>
+<div class="social-card">
+<div class="social-icon">03</div>
+<h3>
+Local Community
+</h3>
+<p>
+Explore community initiatives that connect responsible
+renovation with local environmental awareness and
+neighbourhood wellbeing.
+</p>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     GOVERNANCE
+========================= -->
+<section class="governance" id="governance">
+<div class="container gov-grid">
+<div>
+<div class="section-label">
+Governance
+</div>
+<h2 style="font-size:48px;line-height:1.1;margin-top:15px;">
+Trust is built<br>
+through transparency.
+</h2>
+<p style="color:#66716c;margin-top:25px;">
+Sustainability commitments should be measurable,
+reviewable and open to improvement.
+</p>
+</div>
+<div class="gov-list">
+<div class="gov-item">
+<strong>Material Information</strong>
+<span>
+Maintain supporting documents where available and
+communicate limitations clearly.
+</span>
+</div>
+<div class="gov-item">
+<strong>Supplier Responsibility</strong>
+<span>
+Develop criteria for evaluating material suppliers and
+service partners.
+</span>
+</div>
+<div class="gov-item">
+<strong>Customer Feedback</strong>
+<span>
+Use customer feedback to identify problems and improve
+the renovation process.
+</span>
+</div>
+<div class="gov-item">
+<strong>Performance Review</strong>
+<span>
+Review sustainability indicators regularly and disclose
+progress honestly.
+</span>
+</div>
+</div>
+</div>
+</section>
+<!-- =========================
+     KPI
+========================= -->
+<section class="kpi">
+<div class="container">
+<div class="section-heading">
+<div class="section-label">
+Performance Dashboard
+</div>
+<h2>
+What we measure matters.
+</h2>
+<p>
+The following indicators form the proposed measurement
+framework for the sustainability pilot.
+</p>
+</div>
+<table class="kpi-table">
+<thead>
+<tr>
+<th>Area</th>
+<th>Indicator</th>
+<th>Measurement</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Materials</td>
+<td>Documented priority materials</td>
+<td>% of selected materials</td>
+<td><span class="status">Pilot</span></td>
+</tr>
+<tr>
+<td>Packaging</td>
+<td>Single-use protective packaging</td>
+<td>kg / project</td>
+<td><span class="status">Pilot</span></td>
+</tr>
+<tr>
+<td>Waste</td>
+<td>Separated construction waste</td>
+<td>% by weight</td>
+<td><span class="status">Pilot</span></td>
+</tr>
+<tr>
+<td>Customer</td>
+<td>Material information satisfaction</td>
+<td>Customer survey</td>
+<td><span class="status">Developing</span></td>
+</tr>
+<tr>
+<td>Suppliers</td>
+<td>Supplier sustainability screening</td>
+<td>% screened</td>
+<td><span class="status">Developing</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- =========================
+     REPORT
+========================= -->
+<section class="report" id="report">
+<div class="container report-inner">
+<div>
+<h2>
+Sustainability Report
+</h2>
+<p>
+Transparency means sharing progress — including what
+still needs to improve.
+</p>
+</div>
+<a href="#" class="btn btn-primary">
+View CSR Framework
+</a>
+</div>
+</section>
+<!-- =========================
+     FOOTER
+========================= -->
+<footer>
+<div class="container">
+<div class="footer-grid">
+<div class="footer-brand">
+<div class="logo">
+<div class="logo-mark">YC</div>
+<div class="logo-text">
+SICHUAN YUCHE
+<span>CONSTRUCTION ENGINEERING</span>
+</div>
+</div>
+<p>
+Residential renovation services for Chengdu families,
+with a growing commitment to healthier homes, material
+transparency and responsible construction.
+</p>
+</div>
+<div>
+<h4>Sustainability</h4>
+<ul>
+<li><a href="#strategy">ESG Strategy</a></li>
+<li><a href="#environment">Environment</a></li>
+<li><a href="#materials">Materials</a></li>
+<li><a href="#social">People</a></li>
+</ul>
+</div>
+<div>
+<h4>Responsibility</h4>
+<ul>
+<li>Healthy Homes</li>
+<li>Packaging</li>
+<li>Waste Management</li>
+<li>Supply Chain</li>
+</ul>
+</div>
+<div>
+<h4>Company</h4>
+<ul>
+<li>About Yuche</li>
+<li>Residential Renovation</li>
+<li>Contact</li>
+<li>Sustainability Report</li>
+</ul>
+</div>
+</div>
+<div class="footer-bottom">
+<span>
+© 2026 Sichuan Yuche Construction Engineering Co., Ltd.
+</span>
+<span>
+Sustainability · Responsibility · Transparency
+</span>
+</div>
+</div>
+</footer>
+</body>
+</html>
