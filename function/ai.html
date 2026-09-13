@@ -2,464 +2,500 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Text Analyzer</title>
 
-<title>AI Writing Risk Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 
 <style>
-:root{
-    --bg:#f4f7fb;
-    --card:rgba(255,255,255,.78);
-    --text:#172033;
-    --muted:#697386;
-    --border:rgba(20,35,60,.09);
-    --primary:#246bfd;
-    --primary2:#5b8cff;
-    --danger:#e85d75;
-    --warning:#e6a23c;
-    --success:#20a878;
-    --shadow:0 18px 50px rgba(31,52,90,.10);
-}
-
 *{
     box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+:root{
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --text:#172033;
+    --sub:#687386;
+    --line:#e6eaf0;
+    --primary:#315bea;
+    --primary-light:#eef2ff;
+    --danger:#ef4444;
+    --warning:#f59e0b;
+    --success:#16a34a;
 }
 
 body{
-    margin:0;
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",
-    "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    background:
-        radial-gradient(circle at 10% 0%,rgba(36,107,253,.12),transparent 30%),
-        radial-gradient(circle at 90% 10%,rgba(91,140,255,.10),transparent 28%),
-        var(--bg);
+    "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);
     color:var(--text);
     min-height:100vh;
 }
 
-button,input{
-    font:inherit;
-}
+/* Header */
 
-.container{
-    width:min(1180px,calc(100% - 32px));
-    margin:auto;
-}
-
-header{
-    padding:34px 0 22px;
-}
-
-.brand{
+.header{
+    height:72px;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--line);
     display:flex;
     align-items:center;
-    gap:14px;
+    justify-content:space-between;
+    padding:0 7%;
+    position:sticky;
+    top:0;
+    z-index:10;
 }
 
 .logo{
-    width:46px;
-    height:46px;
-    border-radius:14px;
-    display:grid;
-    place-items:center;
-    color:white;
-    font-weight:800;
-    font-size:19px;
-    background:linear-gradient(135deg,var(--primary),var(--primary2));
-    box-shadow:0 10px 25px rgba(36,107,253,.25);
-}
-
-h1{
-    margin:0;
-    font-size:27px;
-    letter-spacing:-.5px;
-}
-
-.subtitle{
-    margin:5px 0 0;
-    color:var(--muted);
-    font-size:14px;
-}
-
-.panel{
-    background:var(--card);
-    backdrop-filter:blur(25px);
-    -webkit-backdrop-filter:blur(25px);
-    border:1px solid var(--border);
-    border-radius:24px;
-    box-shadow:var(--shadow);
-}
-
-.upload{
-    padding:28px;
-    margin-bottom:18px;
-}
-
-.drop{
-    min-height:190px;
-    border:1.5px dashed rgba(36,107,253,.35);
-    border-radius:20px;
     display:flex;
-    flex-direction:column;
-    justify-content:center;
     align-items:center;
+    gap:11px;
+    font-weight:700;
+    font-size:20px;
+}
+
+.logo-icon{
+    width:36px;
+    height:36px;
+    border-radius:10px;
+    background:var(--primary);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:17px;
+    font-weight:800;
+}
+
+.header-right{
+    font-size:13px;
+    color:var(--sub);
+}
+
+/* Main */
+
+.container{
+    width:min(1080px,92%);
+    margin:42px auto 80px;
+}
+
+.hero{
     text-align:center;
-    cursor:pointer;
-    transition:.2s;
-    background:rgba(36,107,253,.035);
+    margin-bottom:34px;
 }
 
-.drop:hover,
-.drop.drag{
-    background:rgba(36,107,253,.08);
-    border-color:var(--primary);
-    transform:translateY(-1px);
-}
-
-.upload-icon{
-    width:58px;
-    height:58px;
-    border-radius:18px;
-    display:grid;
-    place-items:center;
-    background:rgba(36,107,253,.10);
-    color:var(--primary);
-    font-size:27px;
+.hero h1{
+    font-size:38px;
+    letter-spacing:-1px;
     margin-bottom:12px;
 }
 
-.drop strong{
-    font-size:17px;
+.hero p{
+    color:var(--sub);
+    font-size:15px;
 }
 
-.drop span{
-    color:var(--muted);
+/* Upload */
+
+.upload-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:35px;
+    box-shadow:0 10px 35px rgba(30,50,90,.06);
+}
+
+.drop-zone{
+    border:2px dashed #cfd6e4;
+    border-radius:18px;
+    min-height:250px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    transition:.25s;
+    background:#fafbfe;
+}
+
+.drop-zone:hover,
+.drop-zone.dragover{
+    border-color:var(--primary);
+    background:var(--primary-light);
+}
+
+.upload-icon{
+    width:65px;
+    height:65px;
+    border-radius:18px;
+    background:var(--primary-light);
+    color:var(--primary);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:29px;
+    margin-bottom:17px;
+}
+
+.drop-zone h3{
+    font-size:18px;
+    margin-bottom:8px;
+}
+
+.drop-zone p{
+    color:var(--sub);
     font-size:13px;
-    margin-top:7px;
 }
 
-input[type=file]{
+.file-input{
     display:none;
 }
 
-.files{
+.file-info{
+    display:none;
+    margin-top:18px;
+    padding:15px 18px;
+    border-radius:13px;
+    background:#f7f8fb;
+    border:1px solid var(--line);
+    align-items:center;
+    justify-content:space-between;
+}
+
+.file-info.active{
     display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin-top:15px;
 }
 
-.file{
-    padding:8px 12px;
-    border-radius:10px;
-    background:rgba(36,107,253,.08);
-    color:var(--primary);
-    font-size:13px;
-}
-
-.actions{
-    display:flex;
-    justify-content:flex-end;
-    gap:10px;
-    margin-top:16px;
-}
-
-.btn{
-    border:0;
-    padding:11px 18px;
-    border-radius:12px;
-    cursor:pointer;
-    transition:.2s;
+.file-name{
+    font-size:14px;
     font-weight:600;
 }
 
-.btn.primary{
+.file-size{
+    font-size:12px;
+    color:var(--sub);
+}
+
+.analyze-btn{
+    width:100%;
+    margin-top:20px;
+    height:52px;
+    border:0;
+    border-radius:13px;
     background:var(--primary);
     color:white;
-    box-shadow:0 8px 20px rgba(36,107,253,.22);
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    transition:.2s;
 }
 
-.btn.secondary{
-    background:rgba(20,35,60,.06);
-    color:var(--text);
-}
-
-.btn:hover{
+.analyze-btn:hover{
     transform:translateY(-1px);
+    filter:brightness(.96);
 }
 
-.dashboard{
+.analyze-btn:disabled{
+    opacity:.5;
+    cursor:not-allowed;
+}
+
+/* Loading */
+
+.loading{
     display:none;
+    margin-top:25px;
+    text-align:center;
 }
 
-.grid{
+.loading.active{
+    display:block;
+}
+
+.spinner{
+    width:38px;
+    height:38px;
+    border:3px solid #e5e9f1;
+    border-top-color:var(--primary);
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+    margin:auto;
+}
+
+@keyframes spin{
+    to{transform:rotate(360deg)}
+}
+
+.loading p{
+    margin-top:12px;
+    color:var(--sub);
+    font-size:13px;
+}
+
+/* Result */
+
+.result{
+    display:none;
+    margin-top:28px;
+}
+
+.result.active{
+    display:block;
+}
+
+.result-grid{
     display:grid;
-    grid-template-columns:1.05fr 1.95fr;
-    gap:18px;
+    grid-template-columns:330px 1fr;
+    gap:20px;
 }
 
-.score-card{
+.score-card,
+.analysis-card{
+    background:white;
+    border:1px solid var(--line);
+    border-radius:20px;
     padding:28px;
 }
 
-.score-title{
+.score-card{
     display:flex;
-    justify-content:space-between;
+    flex-direction:column;
     align-items:center;
-    margin-bottom:20px;
+    justify-content:center;
+    min-height:330px;
 }
 
-.score-title h2{
-    margin:0;
-    font-size:18px;
-}
-
-.badge{
-    padding:6px 10px;
-    border-radius:9px;
-    font-size:12px;
-    font-weight:700;
-}
-
-.badge.low{
-    color:#087a58;
-    background:rgba(32,168,120,.11);
-}
-
-.badge.medium{
-    color:#a06a12;
-    background:rgba(230,162,60,.13);
-}
-
-.badge.high{
-    color:#bd3c56;
-    background:rgba(232,93,117,.12);
-}
-
-.score{
+.score-ring{
     width:190px;
     height:190px;
     border-radius:50%;
-    margin:15px auto 22px;
-    display:grid;
-    place-items:center;
-    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     background:
-        conic-gradient(
-            var(--primary) calc(var(--score) * 1%),
-            rgba(36,107,253,.09) 0
-        );
+    conic-gradient(
+        var(--success) 0deg,
+        var(--success) var(--score-angle),
+        #edf0f4 var(--score-angle),
+        #edf0f4 360deg
+    );
+    position:relative;
 }
 
-.score::after{
+.score-ring::before{
     content:"";
     position:absolute;
-    inset:13px;
+    inset:12px;
+    background:#fff;
     border-radius:50%;
-    background:var(--card);
 }
 
-.score-content{
+.score-number{
     position:relative;
     z-index:2;
     text-align:center;
 }
 
-.score-number{
-    font-size:43px;
-    font-weight:800;
-    letter-spacing:-2px;
-}
-
-.score-unit{
-    font-size:12px;
-    color:var(--muted);
-}
-
-.description{
-    color:var(--muted);
-    text-align:center;
-    line-height:1.7;
-    font-size:13px;
-}
-
-.stats{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:10px;
-    margin-top:22px;
-}
-
-.stat{
-    padding:15px;
-    border-radius:15px;
-    background:rgba(20,35,60,.045);
-}
-
-.stat label{
+.score-number strong{
     display:block;
-    color:var(--muted);
+    font-size:43px;
+    line-height:1;
+}
+
+.score-number span{
+    display:block;
+    margin-top:7px;
     font-size:12px;
-    margin-bottom:5px;
+    color:var(--sub);
 }
 
-.stat strong{
-    font-size:19px;
-}
-
-.analysis{
-    padding:28px;
-}
-
-.section-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom:20px;
-}
-
-.section-head h2{
-    margin:0;
+.score-title{
+    margin-top:20px;
+    font-weight:700;
     font-size:18px;
 }
 
-.section-head span{
-    color:var(--muted);
-    font-size:12px;
+.score-description{
+    color:var(--sub);
+    font-size:13px;
+    margin-top:7px;
+    text-align:center;
+}
+
+/* Analysis */
+
+.analysis-card h2{
+    font-size:19px;
+    margin-bottom:22px;
 }
 
 .metric{
-    margin-bottom:20px;
+    margin-bottom:23px;
 }
 
 .metric-top{
     display:flex;
     justify-content:space-between;
-    margin-bottom:8px;
     font-size:13px;
-}
-
-.metric-top span:last-child{
-    font-weight:700;
+    margin-bottom:9px;
 }
 
 .bar{
     height:8px;
-    background:rgba(20,35,60,.07);
-    border-radius:20px;
+    background:#edf0f4;
+    border-radius:10px;
     overflow:hidden;
 }
 
-.bar i{
-    display:block;
+.bar-inner{
     height:100%;
     width:0;
-    background:linear-gradient(90deg,var(--primary),var(--primary2));
-    border-radius:inherit;
-    transition:1s ease;
+    border-radius:10px;
+    transition:1s;
+}
+
+.metric-note{
+    margin-top:7px;
+    color:var(--sub);
+    font-size:12px;
+}
+
+/* Details */
+
+.details{
+    margin-top:20px;
+    background:white;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:28px;
+}
+
+.details h2{
+    font-size:19px;
+    margin-bottom:18px;
 }
 
 .notice{
-    margin-top:20px;
-    padding:15px 16px;
-    border-radius:15px;
-    background:rgba(36,107,253,.055);
-    color:#536078;
+    background:#f8fafc;
+    border:1px solid var(--line);
+    padding:15px 17px;
+    border-radius:12px;
+    color:#596579;
     font-size:12px;
-    line-height:1.65;
+    line-height:1.7;
+    margin-bottom:20px;
 }
 
-.results{
-    margin-top:18px;
+.features{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
 }
 
-.results-card{
-    padding:28px;
+.feature{
+    border:1px solid var(--line);
+    border-radius:13px;
+    padding:17px;
 }
 
-table{
-    width:100%;
-    border-collapse:collapse;
-}
-
-th,td{
-    text-align:left;
-    padding:13px 10px;
-    border-bottom:1px solid var(--border);
-    font-size:13px;
-}
-
-th{
-    color:var(--muted);
+.feature-title{
     font-weight:600;
+    font-size:13px;
+    margin-bottom:6px;
 }
 
-.risk-dot{
-    display:inline-block;
-    width:8px;
-    height:8px;
-    border-radius:50%;
-    margin-right:7px;
+.feature-value{
+    font-size:22px;
+    font-weight:700;
 }
 
-.green{background:var(--success)}
-.yellow{background:var(--warning)}
-.red{background:var(--danger)}
+.feature-desc{
+    color:var(--sub);
+    font-size:11px;
+    margin-top:5px;
+}
 
-.empty{
-    color:var(--muted);
-    text-align:center;
+/* Text preview */
+
+.preview{
+    margin-top:20px;
+    background:white;
+    border:1px solid var(--line);
+    border-radius:20px;
     padding:28px;
 }
 
-footer{
-    text-align:center;
-    color:var(--muted);
-    font-size:11px;
-    padding:25px 0 35px;
+.preview h2{
+    font-size:19px;
+    margin-bottom:15px;
 }
 
-@media(max-width:850px){
-    .grid{
+.text-preview{
+    max-height:280px;
+    overflow:auto;
+    background:#fafbfc;
+    border:1px solid var(--line);
+    padding:18px;
+    border-radius:12px;
+    font-size:13px;
+    line-height:1.8;
+    color:#4b5563;
+    white-space:pre-wrap;
+}
+
+/* Footer */
+
+.footer{
+    text-align:center;
+    color:#8a94a6;
+    font-size:11px;
+    margin-top:35px;
+}
+
+/* Mobile */
+
+@media(max-width:760px){
+
+    .header{
+        padding:0 20px;
+    }
+
+    .header-right{
+        display:none;
+    }
+
+    .container{
+        margin-top:28px;
+    }
+
+    .hero h1{
+        font-size:29px;
+    }
+
+    .upload-card{
+        padding:18px;
+        border-radius:17px;
+    }
+
+    .drop-zone{
+        min-height:210px;
+    }
+
+    .result-grid{
         grid-template-columns:1fr;
     }
 
-    .upload,
-    .score-card,
-    .analysis,
-    .results-card{
-        padding:21px;
+    .features{
+        grid-template-columns:1fr;
     }
 
-    h1{
-        font-size:23px;
-    }
-}
-
-@media(max-width:520px){
-    .container{
-        width:min(100% - 20px,1180px);
-    }
-
-    header{
-        padding-top:22px;
-    }
-
-    .drop{
-        min-height:170px;
-    }
-
-    .actions{
-        flex-direction:column;
-    }
-
-    .btn{
-        width:100%;
-    }
-
-    th:nth-child(2),
-    td:nth-child(2){
-        display:none;
+    .score-card{
+        min-height:290px;
     }
 }
 </style>
@@ -467,520 +503,798 @@ footer{
 
 <body>
 
-<div class="container">
-
-<header>
-    <div class="brand">
-        <div class="logo">AI</div>
-        <div>
-            <h1>AI Writing Risk Analyzer</h1>
-            <div class="subtitle">
-                Professional local text analysis · HTML / CSS / TXT
-            </div>
-        </div>
+<header class="header">
+    <div class="logo">
+        <div class="logo-icon">AI</div>
+        AI Text Analyzer
+    </div>
+    <div class="header-right">
+        Document Analysis · DOCX
     </div>
 </header>
 
-<section class="panel upload">
+<main class="container">
 
-    <label class="drop" id="drop">
-        <div class="upload-icon">↑</div>
-        <strong>上传 HTML / CSS / TXT 文件</strong>
-        <span>支持多个文件 · 文件仅在当前浏览器中分析</span>
-        <input id="files" type="file" multiple accept=".html,.htm,.css,.txt">
-    </label>
+    <section class="hero">
+        <h1>AI Text Detection</h1>
+        <p>Upload your document and analyze its linguistic characteristics.</p>
+    </section>
 
-    <div class="files" id="fileList"></div>
+    <section class="upload-card">
 
-    <div class="actions">
-        <button class="btn secondary" onclick="clearAll()">清除</button>
-        <button class="btn primary" onclick="analyze()">开始分析</button>
+        <label class="drop-zone" id="dropZone">
+            <input
+                type="file"
+                id="fileInput"
+                class="file-input"
+                accept=".docx"
+            >
+
+            <div class="upload-icon">↑</div>
+
+            <h3>Upload your Word document</h3>
+
+            <p>
+                Drag & drop your .docx file here, or click to browse
+            </p>
+
+            <p style="margin-top:8px">
+                Maximum recommended size: 10 MB
+            </p>
+        </label>
+
+        <div class="file-info" id="fileInfo">
+            <div>
+                <div class="file-name" id="fileName"></div>
+                <div class="file-size" id="fileSize"></div>
+            </div>
+            <span>✓</span>
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn" disabled>
+            Analyze Document
+        </button>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">Extracting document content...</p>
+        </div>
+
+    </section>
+
+
+    <!-- RESULT -->
+
+    <section class="result" id="result">
+
+        <div class="result-grid">
+
+            <div class="score-card">
+
+                <div class="score-ring" id="scoreRing">
+
+                    <div class="score-number">
+                        <strong id="score">0%</strong>
+                        <span>AI probability</span>
+                    </div>
+
+                </div>
+
+                <div class="score-title" id="scoreTitle">
+                    Analysis Complete
+                </div>
+
+                <div class="score-description" id="scoreDescription">
+                    This result is an estimated linguistic analysis.
+                </div>
+
+            </div>
+
+
+            <div class="analysis-card">
+
+                <h2>Linguistic Analysis</h2>
+
+                <div class="metric">
+
+                    <div class="metric-top">
+                        <span>Sentence Uniformity</span>
+                        <strong id="uniformityValue">0%</strong>
+                    </div>
+
+                    <div class="bar">
+                        <div class="bar-inner"
+                             id="uniformityBar"></div>
+                    </div>
+
+                    <div class="metric-note">
+                        Measures how similar sentence structures are.
+                    </div>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <div class="metric-top">
+                        <span>Vocabulary Repetition</span>
+                        <strong id="repetitionValue">0%</strong>
+                    </div>
+
+                    <div class="bar">
+                        <div class="bar-inner"
+                             id="repetitionBar"></div>
+                    </div>
+
+                    <div class="metric-note">
+                        Measures repeated vocabulary patterns.
+                    </div>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <div class="metric-top">
+                        <span>Predictability</span>
+                        <strong id="predictabilityValue">0%</strong>
+                    </div>
+
+                    <div class="bar">
+                        <div class="bar-inner"
+                             id="predictabilityBar"></div>
+                    </div>
+
+                    <div class="metric-note">
+                        Estimates how predictable the writing structure is.
+                    </div>
+
+                </div>
+
+
+                <div class="metric">
+
+                    <div class="metric-top">
+                        <span>Structural Consistency</span>
+                        <strong id="structureValue">0%</strong>
+                    </div>
+
+                    <div class="bar">
+                        <div class="bar-inner"
+                             id="structureBar"></div>
+                    </div>
+
+                    <div class="metric-note">
+                        Evaluates consistency in paragraph and sentence style.
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="details">
+
+            <h2>Document Statistics</h2>
+
+            <div class="notice">
+                The score shown here is an experimental linguistic estimate,
+                not an official academic AI-detection result. AI detectors can
+                produce false positives and should not be treated as definitive
+                evidence of authorship.
+            </div>
+
+            <div class="features">
+
+                <div class="feature">
+                    <div class="feature-title">Words</div>
+                    <div class="feature-value" id="wordCount">0</div>
+                    <div class="feature-desc">Detected words</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Sentences</div>
+                    <div class="feature-value" id="sentenceCount">0</div>
+                    <div class="feature-desc">Detected sentences</div>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-title">Paragraphs</div>
+                    <div class="feature-value" id="paragraphCount">0</div>
+                    <div class="feature-desc">Detected paragraphs</div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="preview">
+
+            <h2>Document Preview</h2>
+
+            <div class="text-preview" id="textPreview"></div>
+
+        </div>
+
+    </section>
+
+
+    <div class="footer">
+        AI Text Analyzer · Linguistic estimation system
     </div>
 
-</section>
+</main>
 
-<section class="dashboard" id="dashboard">
-
-<div class="grid">
-
-    <div class="panel score-card">
-
-        <div class="score-title">
-            <h2>综合风险指数</h2>
-            <span id="badge" class="badge low">低风险</span>
-        </div>
-
-        <div class="score" id="scoreCircle" style="--score:0">
-            <div class="score-content">
-                <div class="score-number" id="score">0</div>
-                <div class="score-unit">RISK INDEX</div>
-            </div>
-        </div>
-
-        <div class="description" id="description">
-            等待分析
-        </div>
-
-        <div class="stats">
-            <div class="stat">
-                <label>字符数</label>
-                <strong id="chars">0</strong>
-            </div>
-
-            <div class="stat">
-                <label>单词数</label>
-                <strong id="words">0</strong>
-            </div>
-
-            <div class="stat">
-                <label>句子数</label>
-                <strong id="sentences">0</strong>
-            </div>
-
-            <div class="stat">
-                <label>段落数</label>
-                <strong id="paragraphs">0</strong>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="panel analysis">
-
-        <div class="section-head">
-            <h2>文本特征分析</h2>
-            <span>Local Analysis</span>
-        </div>
-
-        <div class="metric">
-            <div class="metric-top">
-                <span>句式规律性</span>
-                <span id="m1">0%</span>
-            </div>
-            <div class="bar"><i id="b1"></i></div>
-        </div>
-
-        <div class="metric">
-            <div class="metric-top">
-                <span>词汇重复程度</span>
-                <span id="m2">0%</span>
-            </div>
-            <div class="bar"><i id="b2"></i></div>
-        </div>
-
-        <div class="metric">
-            <div class="metric-top">
-                <span>句子长度一致性</span>
-                <span id="m3">0%</span>
-            </div>
-            <div class="bar"><i id="b3"></i></div>
-        </div>
-
-        <div class="metric">
-            <div class="metric-top">
-                <span>模板化表达</span>
-                <span id="m4">0%</span>
-            </div>
-            <div class="bar"><i id="b4"></i></div>
-        </div>
-
-        <div class="metric">
-            <div class="metric-top">
-                <span>整体 AI 风格风险</span>
-                <span id="m5">0%</span>
-            </div>
-            <div class="bar"><i id="b5"></i></div>
-        </div>
-
-        <div class="notice">
-            本页面分析的是文本统计与语言风格特征，并不等同于真实的
-            AI 来源判定。AI 检测器可能产生误判，因此结果应作为辅助参考。
-        </div>
-
-    </div>
-
-</div>
-
-<div class="panel results-card results">
-
-    <div class="section-head">
-        <h2>可疑文本片段</h2>
-        <span id="fragmentCount">0 个片段</span>
-    </div>
-
-    <div id="fragments" class="empty">
-        暂无需要关注的文本片段
-    </div>
-
-</div>
-
-</section>
-
-<footer>
-    AI Writing Risk Analyzer · Browser-side analysis · No file upload
-</footer>
-
-</div>
 
 <script>
 
-let selectedFiles = [];
+const fileInput = document.getElementById("fileInput");
+const dropZone = document.getElementById("dropZone");
+const fileInfo = document.getElementById("fileInfo");
+const fileName = document.getElementById("fileName");
+const fileSize = document.getElementById("fileSize");
+const analyzeBtn = document.getElementById("analyzeBtn");
+const loading = document.getElementById("loading");
+const loadingText = document.getElementById("loadingText");
+const result = document.getElementById("result");
 
-const fileInput = document.getElementById("files");
-const drop = document.getElementById("drop");
+let selectedFile = null;
+let extractedText = "";
 
-fileInput.addEventListener("change", e => {
-    selectedFiles = [...e.target.files];
-    renderFiles();
-});
 
-["dragenter","dragover"].forEach(type=>{
-    drop.addEventListener(type,e=>{
-        e.preventDefault();
-        drop.classList.add("drag");
-    });
-});
+/* File selection */
 
-["dragleave","drop"].forEach(type=>{
-    drop.addEventListener(type,e=>{
-        e.preventDefault();
-        drop.classList.remove("drag");
-    });
-});
+fileInput.addEventListener("change", function(){
 
-drop.addEventListener("drop",e=>{
-    selectedFiles = [...e.dataTransfer.files].filter(f =>
-        /\.(html?|css|txt)$/i.test(f.name)
-    );
-    renderFiles();
-});
-
-function renderFiles(){
-
-    const list = document.getElementById("fileList");
-
-    list.innerHTML = selectedFiles.map(f =>
-        `<div class="file">📄 ${escapeHTML(f.name)}</div>`
-    ).join("");
-}
-
-function clearAll(){
-
-    selectedFiles = [];
-    fileInput.value = "";
-    document.getElementById("fileList").innerHTML = "";
-    document.getElementById("dashboard").style.display = "none";
-}
-
-async function analyze(){
-
-    if(!selectedFiles.length){
-        alert("请先上传文件");
-        return;
+    if(this.files.length){
+        selectFile(this.files[0]);
     }
 
-    let combined = "";
+});
 
-    for(const file of selectedFiles){
 
-        const text = await file.text();
+function selectFile(file){
 
-        if(/\.(html?|htm)$/i.test(file.name)){
-            combined += extractHTMLText(text) + "\n";
-        }else{
-            combined += text + "\n";
+    if(!file.name.toLowerCase().endsWith(".docx")){
+
+        alert("Please upload a .docx Word document.");
+        return;
+
+    }
+
+    if(file.size > 10 * 1024 * 1024){
+
+        alert("The file is larger than 10 MB.");
+        return;
+
+    }
+
+    selectedFile = file;
+
+    fileName.textContent = file.name;
+
+    fileSize.textContent =
+        formatBytes(file.size);
+
+    fileInfo.classList.add("active");
+
+    analyzeBtn.disabled = false;
+
+}
+
+
+/* Drag & Drop */
+
+dropZone.addEventListener("dragover",function(e){
+
+    e.preventDefault();
+
+    dropZone.classList.add("dragover");
+
+});
+
+dropZone.addEventListener("dragleave",function(){
+
+    dropZone.classList.remove("dragover");
+
+});
+
+dropZone.addEventListener("drop",function(e){
+
+    e.preventDefault();
+
+    dropZone.classList.remove("dragover");
+
+    if(e.dataTransfer.files.length){
+
+        selectFile(e.dataTransfer.files[0]);
+
+    }
+
+});
+
+
+function formatBytes(bytes){
+
+    if(bytes < 1024)
+        return bytes + " B";
+
+    if(bytes < 1024 * 1024)
+        return (bytes / 1024).toFixed(1) + " KB";
+
+    return (bytes / 1024 / 1024).toFixed(1) + " MB";
+
+}
+
+
+/* Analyze */
+
+analyzeBtn.addEventListener("click", async function(){
+
+    if(!selectedFile) return;
+
+    loading.classList.add("active");
+    analyzeBtn.disabled = true;
+
+    loadingText.textContent =
+        "Reading Word document...";
+
+    try{
+
+        const arrayBuffer =
+            await selectedFile.arrayBuffer();
+
+        const resultData =
+            await mammoth.extractRawText({
+                arrayBuffer: arrayBuffer
+            });
+
+        extractedText =
+            resultData.value.trim();
+
+        if(!extractedText){
+
+            alert("No readable text was found in the document.");
+
+            loading.classList.remove("active");
+            analyzeBtn.disabled = false;
+
+            return;
+
         }
+
+        loadingText.textContent =
+            "Analyzing linguistic patterns...";
+
+        await delay(900);
+
+        performAnalysis(extractedText);
+
+    }catch(error){
+
+        console.error(error);
+
+        alert("Unable to read this document.");
+
     }
 
-    combined = cleanText(combined);
+    loading.classList.remove("active");
+    analyzeBtn.disabled = false;
 
-    if(!combined.trim()){
-        alert("文件中没有可分析的文本内容");
-        return;
-    }
+});
 
-    const data = calculateMetrics(combined);
 
-    render(data);
+function delay(ms){
 
-    document.getElementById("dashboard").style.display = "block";
+    return new Promise(resolve =>
+        setTimeout(resolve,ms)
+    );
 
-    window.scrollTo({
-        top:document.getElementById("dashboard").offsetTop - 20,
-        behavior:"smooth"
-    });
 }
 
-function extractHTMLText(html){
 
-    const doc = new DOMParser().parseFromString(html,"text/html");
+/* Linguistic estimation */
 
-    doc.querySelectorAll(
-        "script,style,noscript,svg"
-    ).forEach(el=>el.remove());
+function performAnalysis(text){
 
-    return doc.body ?
-        doc.body.innerText :
-        doc.documentElement.innerText;
-}
-
-function cleanText(text){
-
-    return text
+    const words =
+        text
         .replace(/\s+/g," ")
-        .replace(/[ \t]+/g," ")
-        .trim();
-}
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
 
-function calculateMetrics(text){
-
-    const sentences = text
+    const sentences =
+        text
         .split(/[.!?。！？]+/)
         .map(x=>x.trim())
         .filter(Boolean);
 
-    const words = text
-        .match(/[A-Za-zÀ-ÿ0-9\u4e00-\u9fff]+/g) || [];
+    const paragraphs =
+        text
+        .split(/\n+/)
+        .map(x=>x.trim())
+        .filter(Boolean);
 
-    const sentenceLengths = sentences.map(s =>
-        s.replace(/\s/g,"").length
-    );
 
-    const avg = sentenceLengths.length ?
-        sentenceLengths.reduce((a,b)=>a+b,0) /
-        sentenceLengths.length : 0;
+    const wordCount =
+        words.length;
 
-    let variance = 0;
+    const sentenceCount =
+        sentences.length;
 
-    if(sentenceLengths.length > 1){
-        variance =
-            sentenceLengths.reduce(
-                (sum,x)=>sum + Math.pow(x-avg,2),0
-            ) / sentenceLengths.length;
-    }
+    const paragraphCount =
+        paragraphs.length;
 
-    const deviation = Math.sqrt(variance);
 
     /*
-      这些指标只是语言统计特征，
-      并不是 AI 来源证明。
+       These are linguistic indicators,
+       not a real AI classifier.
     */
 
-    const consistency = clamp(
-        100 - (deviation / Math.max(avg,1) * 100)
+    let sentenceLengths =
+        sentences.map(
+            s => s.split(/\s+/).length
+        );
+
+    let uniformity =
+        calculateUniformity(sentenceLengths);
+
+
+    let repetition =
+        calculateRepetition(words);
+
+
+    let predictability =
+        calculatePredictability(
+            sentences,
+            wordCount
+        );
+
+
+    let structure =
+        calculateStructure(
+            paragraphs,
+            sentences
+        );
+
+
+    /*
+       Combine indicators.
+
+       This is deliberately an estimate rather
+       than a fabricated "guaranteed detector".
+    */
+
+    let aiProbability =
+        Math.round(
+            uniformity * .25 +
+            repetition * .20 +
+            predictability * .30 +
+            structure * .25
+        );
+
+
+    aiProbability =
+        Math.max(
+            3,
+            Math.min(
+                97,
+                aiProbability
+            )
+        );
+
+
+    updateResults({
+        aiProbability,
+        uniformity,
+        repetition,
+        predictability,
+        structure,
+        wordCount,
+        sentenceCount,
+        paragraphCount
+    });
+
+}
+
+
+function calculateUniformity(lengths){
+
+    if(lengths.length < 2)
+        return 20;
+
+    const avg =
+        lengths.reduce(
+            (a,b)=>a+b,
+            0
+        ) / lengths.length;
+
+    const variance =
+        lengths.reduce(
+            (sum,x)=>
+                sum + Math.pow(x-avg,2),
+            0
+        ) / lengths.length;
+
+    const deviation =
+        Math.sqrt(variance);
+
+    /*
+       More variation = lower uniformity
+    */
+
+    return Math.round(
+        Math.max(
+            5,
+            Math.min(
+                95,
+                100 - deviation * 5
+            )
+        )
     );
 
-    const freq = {};
+}
 
-    words.forEach(w=>{
-        const key = w.toLowerCase();
-        freq[key] = (freq[key] || 0) + 1;
+
+function calculateRepetition(words){
+
+    if(words.length < 10)
+        return 15;
+
+    const frequency = {};
+
+    words.forEach(word=>{
+
+        const clean =
+            word
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}]/gu,"");
+
+        if(clean.length > 3){
+
+            frequency[clean] =
+                (frequency[clean] || 0) + 1;
+
+        }
+
     });
 
     const repeated =
-        words.length ?
-        Object.values(freq).filter(v=>v>2).length /
-        Math.max(Object.keys(freq).length,1) * 100
-        : 0;
+        Object.values(frequency)
+        .filter(x=>x >= 3)
+        .length;
 
-    const vocabularyRisk = clamp(repeated);
-
-    const formulaPatterns = [
-        "in conclusion",
-        "overall",
-        "firstly",
-        "secondly",
-        "thirdly",
-        "therefore",
-        "moreover",
-        "in addition",
-        "on the other hand",
-        "it is important to",
-        "this essay will",
-        "in my opinion",
-        "总而言之",
-        "首先",
-        "其次",
-        "最后",
-        "综上所述",
-        "此外",
-        "因此"
-    ];
-
-    let patternHits = 0;
-
-    formulaPatterns.forEach(p=>{
-        if(text.toLowerCase().includes(p.toLowerCase())){
-            patternHits++;
-        }
-    });
-
-    const templateRisk =
-        clamp(patternHits / Math.max(
-            formulaPatterns.length,1
-        ) * 100);
-
-    const sentenceRegularity =
-        clamp(100 - consistency);
-
-    const overall = Math.round(
-        sentenceRegularity * .25 +
-        vocabularyRisk * .20 +
-        consistency * .20 +
-        templateRisk * .20 +
-        (words.length > 0 ? 25 : 0)
+    return Math.round(
+        Math.min(
+            95,
+            repeated /
+            Math.max(
+                1,
+                Object.keys(frequency).length
+            ) * 100 * 2
+        )
     );
 
-    const risk = clamp(overall);
-
-    const fragments = sentences
-        .filter(s =>
-            s.length > Math.max(avg * 1.7,80) ||
-            formulaPatterns.some(p =>
-                s.toLowerCase().includes(p.toLowerCase())
-            )
-        )
-        .slice(0,8);
-
-    return {
-        chars:text.replace(/\s/g,"").length,
-        words:words.length,
-        sentences:sentences.length,
-        paragraphs:Math.max(1,Math.round(sentences.length/3)),
-        sentenceRegularity:Math.round(sentenceRegularity),
-        vocabularyRisk:Math.round(vocabularyRisk),
-        consistency:Math.round(consistency),
-        templateRisk:Math.round(templateRisk),
-        overall:risk,
-        fragments
-    };
 }
 
-function render(d){
 
-    setText("chars",formatNumber(d.chars));
-    setText("words",formatNumber(d.words));
-    setText("sentences",formatNumber(d.sentences));
-    setText("paragraphs",formatNumber(d.paragraphs));
+function calculatePredictability(
+    sentences,
+    wordCount
+){
 
-    setMetric("m1","b1",d.sentenceRegularity);
-    setMetric("m2","b2",d.vocabularyRisk);
-    setMetric("m3","b3",d.consistency);
-    setMetric("m4","b4",d.templateRisk);
-    setMetric("m5","b5",d.overall);
+    if(sentences.length < 3)
+        return 20;
 
-    document.getElementById("score").textContent = d.overall;
+    const connectors = [
+        "first",
+        "second",
+        "third",
+        "therefore",
+        "however",
+        "moreover",
+        "finally",
+        "in conclusion",
+        "firstly",
+        "secondly",
+        "overall",
+        "because",
+        "therefore"
+    ];
 
-    document.getElementById("scoreCircle")
-        .style.setProperty("--score",d.overall);
+    let count = 0;
 
-    const badge = document.getElementById("badge");
+    const lower =
+        sentences
+        .join(" ")
+        .toLowerCase();
 
-    badge.className = "badge";
+    connectors.forEach(word=>{
 
-    if(d.overall < 35){
+        if(lower.includes(word))
+            count++;
 
-        badge.classList.add("low");
-        badge.textContent = "低风险";
+    });
 
-        document.getElementById("description").textContent =
-            "当前文本呈现出的统计与模板化特征较低。";
+    const regularity =
+        sentences.length > 0
+        ? count / sentences.length
+        : 0;
 
-    }else if(d.overall < 65){
+    return Math.round(
+        Math.min(
+            95,
+            20 + regularity * 100
+        )
+    );
 
-        badge.classList.add("medium");
-        badge.textContent = "中风险";
+}
 
-        document.getElementById("description").textContent =
-            "检测到部分规律性语言特征，建议人工检查相关段落。";
+
+function calculateStructure(
+    paragraphs,
+    sentences
+){
+
+    if(paragraphs.length < 2)
+        return 30;
+
+    const lengths =
+        paragraphs.map(
+            p => p.split(/\s+/).length
+        );
+
+    const avg =
+        lengths.reduce(
+            (a,b)=>a+b,
+            0
+        ) / lengths.length;
+
+    const variance =
+        lengths.reduce(
+            (s,x)=>
+                s + Math.pow(x-avg,2),
+            0
+        ) / lengths.length;
+
+    const deviation =
+        Math.sqrt(variance);
+
+    return Math.round(
+        Math.max(
+            5,
+            Math.min(
+                95,
+                100 - deviation * 2
+            )
+        )
+    );
+
+}
+
+
+/* Update UI */
+
+function updateResults(data){
+
+    result.classList.add("active");
+
+    document.getElementById("score")
+        .textContent =
+        data.aiProbability + "%";
+
+
+    const angle =
+        data.aiProbability / 100 * 360;
+
+    document.getElementById("scoreRing")
+        .style.setProperty(
+            "--score-angle",
+            angle + "deg"
+        );
+
+
+    let title;
+    let description;
+
+    if(data.aiProbability < 25){
+
+        title = "Low AI Probability";
+
+        description =
+            "The document shows relatively varied linguistic patterns.";
+
+    }else if(data.aiProbability < 55){
+
+        title = "Mixed Characteristics";
+
+        description =
+            "Some patterns may resemble AI-assisted writing.";
 
     }else{
 
-        badge.classList.add("high");
-        badge.textContent = "较高风险";
+        title = "Higher AI Probability";
 
-        document.getElementById("description").textContent =
-            "文本具有较明显的规律性或模板化特征，需要进一步人工判断。";
+        description =
+            "Several regular linguistic patterns were detected.";
+
     }
 
-    renderFragments(d.fragments);
-}
 
-function renderFragments(items){
+    document.getElementById("scoreTitle")
+        .textContent = title;
 
-    const box = document.getElementById("fragments");
+    document.getElementById("scoreDescription")
+        .textContent = description;
 
-    document.getElementById("fragmentCount")
-        .textContent = `${items.length} 个片段`;
 
-    if(!items.length){
+    setMetric(
+        "uniformity",
+        data.uniformity
+    );
 
-        box.className = "empty";
-        box.textContent = "暂无需要关注的文本片段";
-        return;
-    }
+    setMetric(
+        "repetition",
+        data.repetition
+    );
 
-    box.className = "";
+    setMetric(
+        "predictability",
+        data.predictability
+    );
 
-    box.innerHTML = `
-        <table>
-            <thead>
-                <tr>
-                    <th>风险</th>
-                    <th>类型</th>
-                    <th>文本片段</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${items.map((text,i)=>`
-                    <tr>
-                        <td>
-                            <span class="risk-dot ${
-                                i < 2 ? "red" :
-                                i < 5 ? "yellow" : "green"
-                            }"></span>
-                            ${i < 2 ? "关注" : "提示"}
-                        </td>
-                        <td>语言特征</td>
-                        <td>${escapeHTML(text)}</td>
-                    </tr>
-                `).join("")}
-            </tbody>
-        </table>
-    `;
-}
+    setMetric(
+        "structure",
+        data.structure
+    );
 
-function setMetric(label,bar,value){
 
-    document.getElementById(label).textContent =
-        value + "%";
+    document.getElementById("wordCount")
+        .textContent =
+        data.wordCount.toLocaleString();
+
+    document.getElementById("sentenceCount")
+        .textContent =
+        data.sentenceCount.toLocaleString();
+
+    document.getElementById("paragraphCount")
+        .textContent =
+        data.paragraphCount.toLocaleString();
+
+
+    document.getElementById("textPreview")
+        .textContent =
+        extractedText;
+
 
     setTimeout(()=>{
-        document.getElementById(bar)
-            .style.width = value + "%";
+
+        result.scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+        });
+
     },100);
+
 }
 
-function setText(id,value){
-    document.getElementById(id).textContent=value;
-}
 
-function formatNumber(n){
-    return n.toLocaleString("zh-CN");
-}
+function setMetric(name,value){
 
-function clamp(n){
-    return Math.max(0,Math.min(100,n));
-}
+    document.getElementById(
+        name + "Value"
+    ).textContent =
+        value + "%";
 
-function escapeHTML(str){
+    document.getElementById(
+        name + "Bar"
+    ).style.width =
+        value + "%";
 
-    return str
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;")
-        .replace(/"/g,"&quot;")
-        .replace(/'/g,"&#039;");
 }
 
 </script>
