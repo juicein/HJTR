@@ -2,125 +2,465 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI 文章检测器</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>AI Writing Risk Analyzer</title>
 
 <style>
-:root {
-  --primary: #0a84ff;
-  --bg: #f5f7fb;
-  --card: #ffffff;
-  --text: #1c1c1e;
-  --subtext: #6e6e73;
-  --radius: 16px;
-  --shadow: 0 20px 40px rgba(0,0,0,.08);
+:root{
+    --bg:#f4f7fb;
+    --card:rgba(255,255,255,.78);
+    --text:#172033;
+    --muted:#697386;
+    --border:rgba(20,35,60,.09);
+    --primary:#246bfd;
+    --primary2:#5b8cff;
+    --danger:#e85d75;
+    --warning:#e6a23c;
+    --success:#20a878;
+    --shadow:0 18px 50px rgba(31,52,90,.10);
 }
 
-* {
-  box-sizing: border-box;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
-               "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+*{
+    box-sizing:border-box;
 }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
+body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",
+    "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:
+        radial-gradient(circle at 10% 0%,rgba(36,107,253,.12),transparent 30%),
+        radial-gradient(circle at 90% 10%,rgba(91,140,255,.10),transparent 28%),
+        var(--bg);
+    color:var(--text);
+    min-height:100vh;
 }
 
-.container {
-  max-width: 900px;
-  margin: 60px auto;
-  padding: 0 20px;
+button,input{
+    font:inherit;
 }
 
-.header {
-  text-align: center;
-  margin-bottom: 40px;
+.container{
+    width:min(1180px,calc(100% - 32px));
+    margin:auto;
 }
 
-.header h1 {
-  font-size: 32px;
-  font-weight: 700;
+header{
+    padding:34px 0 22px;
 }
 
-.header p {
-  color: var(--subtext);
-  font-size: 16px;
+.brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
 }
 
-.card {
-  background: var(--card);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 28px;
+.logo{
+    width:46px;
+    height:46px;
+    border-radius:14px;
+    display:grid;
+    place-items:center;
+    color:white;
+    font-weight:800;
+    font-size:19px;
+    background:linear-gradient(135deg,var(--primary),var(--primary2));
+    box-shadow:0 10px 25px rgba(36,107,253,.25);
 }
 
-textarea {
-  width: 100%;
-  height: 220px;
-  resize: none;
-  border-radius: 12px;
-  border: 1px solid #e5e5ea;
-  padding: 16px;
-  font-size: 15px;
-  line-height: 1.6;
+h1{
+    margin:0;
+    font-size:27px;
+    letter-spacing:-.5px;
 }
 
-textarea:focus {
-  outline: none;
-  border-color: var(--primary);
+.subtitle{
+    margin:5px 0 0;
+    color:var(--muted);
+    font-size:14px;
 }
 
-button {
-  margin-top: 20px;
-  background: linear-gradient(135deg, #0a84ff, #5ac8fa);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 22px;
-  font-size: 16px;
-  cursor: pointer;
+.panel{
+    background:var(--card);
+    backdrop-filter:blur(25px);
+    -webkit-backdrop-filter:blur(25px);
+    border:1px solid var(--border);
+    border-radius:24px;
+    box-shadow:var(--shadow);
 }
 
-button:hover {
-  opacity: .9;
+.upload{
+    padding:28px;
+    margin-bottom:18px;
 }
 
-.result {
-  margin-top: 30px;
-  display: none;
+.drop{
+    min-height:190px;
+    border:1.5px dashed rgba(36,107,253,.35);
+    border-radius:20px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    cursor:pointer;
+    transition:.2s;
+    background:rgba(36,107,253,.035);
 }
 
-.ai-rate {
-  font-size: 40px;
-  font-weight: 700;
-  color: var(--primary);
+.drop:hover,
+.drop.drag{
+    background:rgba(36,107,253,.08);
+    border-color:var(--primary);
+    transform:translateY(-1px);
 }
 
-.label {
-  color: var(--subtext);
-  margin-top: 6px;
+.upload-icon{
+    width:58px;
+    height:58px;
+    border-radius:18px;
+    display:grid;
+    place-items:center;
+    background:rgba(36,107,253,.10);
+    color:var(--primary);
+    font-size:27px;
+    margin-bottom:12px;
 }
 
-.keywords {
-  margin-top: 20px;
+.drop strong{
+    font-size:17px;
 }
 
-.keyword {
-  display: inline-block;
-  background: #eef4ff;
-  color: #0a84ff;
-  padding: 6px 12px;
-  border-radius: 20px;
-  margin: 6px 6px 0 0;
-  font-size: 13px;
+.drop span{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:7px;
 }
-.footer {
-  text-align: center;
-  margin-top: 40px;
-  color: var(--subtext);
-  font-size: 13px;
+
+input[type=file]{
+    display:none;
+}
+
+.files{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:15px;
+}
+
+.file{
+    padding:8px 12px;
+    border-radius:10px;
+    background:rgba(36,107,253,.08);
+    color:var(--primary);
+    font-size:13px;
+}
+
+.actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:16px;
+}
+
+.btn{
+    border:0;
+    padding:11px 18px;
+    border-radius:12px;
+    cursor:pointer;
+    transition:.2s;
+    font-weight:600;
+}
+
+.btn.primary{
+    background:var(--primary);
+    color:white;
+    box-shadow:0 8px 20px rgba(36,107,253,.22);
+}
+
+.btn.secondary{
+    background:rgba(20,35,60,.06);
+    color:var(--text);
+}
+
+.btn:hover{
+    transform:translateY(-1px);
+}
+
+.dashboard{
+    display:none;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1.05fr 1.95fr;
+    gap:18px;
+}
+
+.score-card{
+    padding:28px;
+}
+
+.score-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.score-title h2{
+    margin:0;
+    font-size:18px;
+}
+
+.badge{
+    padding:6px 10px;
+    border-radius:9px;
+    font-size:12px;
+    font-weight:700;
+}
+
+.badge.low{
+    color:#087a58;
+    background:rgba(32,168,120,.11);
+}
+
+.badge.medium{
+    color:#a06a12;
+    background:rgba(230,162,60,.13);
+}
+
+.badge.high{
+    color:#bd3c56;
+    background:rgba(232,93,117,.12);
+}
+
+.score{
+    width:190px;
+    height:190px;
+    border-radius:50%;
+    margin:15px auto 22px;
+    display:grid;
+    place-items:center;
+    position:relative;
+    background:
+        conic-gradient(
+            var(--primary) calc(var(--score) * 1%),
+            rgba(36,107,253,.09) 0
+        );
+}
+
+.score::after{
+    content:"";
+    position:absolute;
+    inset:13px;
+    border-radius:50%;
+    background:var(--card);
+}
+
+.score-content{
+    position:relative;
+    z-index:2;
+    text-align:center;
+}
+
+.score-number{
+    font-size:43px;
+    font-weight:800;
+    letter-spacing:-2px;
+}
+
+.score-unit{
+    font-size:12px;
+    color:var(--muted);
+}
+
+.description{
+    color:var(--muted);
+    text-align:center;
+    line-height:1.7;
+    font-size:13px;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-top:22px;
+}
+
+.stat{
+    padding:15px;
+    border-radius:15px;
+    background:rgba(20,35,60,.045);
+}
+
+.stat label{
+    display:block;
+    color:var(--muted);
+    font-size:12px;
+    margin-bottom:5px;
+}
+
+.stat strong{
+    font-size:19px;
+}
+
+.analysis{
+    padding:28px;
+}
+
+.section-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:20px;
+}
+
+.section-head h2{
+    margin:0;
+    font-size:18px;
+}
+
+.section-head span{
+    color:var(--muted);
+    font-size:12px;
+}
+
+.metric{
+    margin-bottom:20px;
+}
+
+.metric-top{
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:8px;
+    font-size:13px;
+}
+
+.metric-top span:last-child{
+    font-weight:700;
+}
+
+.bar{
+    height:8px;
+    background:rgba(20,35,60,.07);
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.bar i{
+    display:block;
+    height:100%;
+    width:0;
+    background:linear-gradient(90deg,var(--primary),var(--primary2));
+    border-radius:inherit;
+    transition:1s ease;
+}
+
+.notice{
+    margin-top:20px;
+    padding:15px 16px;
+    border-radius:15px;
+    background:rgba(36,107,253,.055);
+    color:#536078;
+    font-size:12px;
+    line-height:1.65;
+}
+
+.results{
+    margin-top:18px;
+}
+
+.results-card{
+    padding:28px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th,td{
+    text-align:left;
+    padding:13px 10px;
+    border-bottom:1px solid var(--border);
+    font-size:13px;
+}
+
+th{
+    color:var(--muted);
+    font-weight:600;
+}
+
+.risk-dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    margin-right:7px;
+}
+
+.green{background:var(--success)}
+.yellow{background:var(--warning)}
+.red{background:var(--danger)}
+
+.empty{
+    color:var(--muted);
+    text-align:center;
+    padding:28px;
+}
+
+footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:11px;
+    padding:25px 0 35px;
+}
+
+@media(max-width:850px){
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    .upload,
+    .score-card,
+    .analysis,
+    .results-card{
+        padding:21px;
+    }
+
+    h1{
+        font-size:23px;
+    }
+}
+
+@media(max-width:520px){
+    .container{
+        width:min(100% - 20px,1180px);
+    }
+
+    header{
+        padding-top:22px;
+    }
+
+    .drop{
+        min-height:170px;
+    }
+
+    .actions{
+        flex-direction:column;
+    }
+
+    .btn{
+        width:100%;
+    }
+
+    th:nth-child(2),
+    td:nth-child(2){
+        display:none;
+    }
 }
 </style>
 </head>
@@ -128,70 +468,521 @@ button:hover {
 <body>
 
 <div class="container">
-  <div class="header">
-    <h1>AI 文章检测器</h1>
-    <p>检测文本中 AI 生成内容的可能性，并提取关键词</p>
-  </div>
 
-  <div class="card">
-    <textarea id="textInput" placeholder="请粘贴需要检测的文章内容..."></textarea>
-    <button onclick="analyze()">开始检测</button>
-
-    <div class="result" id="result">
-      <div class="ai-rate" id="rate">--%</div>
-      <div class="label">AI 生成概率</div>
-
-      <div class="keywords" id="keywords"></div>
+<header>
+    <div class="brand">
+        <div class="logo">AI</div>
+        <div>
+            <h1>AI Writing Risk Analyzer</h1>
+            <div class="subtitle">
+                Professional local text analysis · HTML / CSS / TXT
+            </div>
+        </div>
     </div>
-  </div>
+</header>
 
-  <div class="footer">
-    © AI Content Analyzer · Demo Version
-  </div>
+<section class="panel upload">
+
+    <label class="drop" id="drop">
+        <div class="upload-icon">↑</div>
+        <strong>上传 HTML / CSS / TXT 文件</strong>
+        <span>支持多个文件 · 文件仅在当前浏览器中分析</span>
+        <input id="files" type="file" multiple accept=".html,.htm,.css,.txt">
+    </label>
+
+    <div class="files" id="fileList"></div>
+
+    <div class="actions">
+        <button class="btn secondary" onclick="clearAll()">清除</button>
+        <button class="btn primary" onclick="analyze()">开始分析</button>
+    </div>
+
+</section>
+
+<section class="dashboard" id="dashboard">
+
+<div class="grid">
+
+    <div class="panel score-card">
+
+        <div class="score-title">
+            <h2>综合风险指数</h2>
+            <span id="badge" class="badge low">低风险</span>
+        </div>
+
+        <div class="score" id="scoreCircle" style="--score:0">
+            <div class="score-content">
+                <div class="score-number" id="score">0</div>
+                <div class="score-unit">RISK INDEX</div>
+            </div>
+        </div>
+
+        <div class="description" id="description">
+            等待分析
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <label>字符数</label>
+                <strong id="chars">0</strong>
+            </div>
+
+            <div class="stat">
+                <label>单词数</label>
+                <strong id="words">0</strong>
+            </div>
+
+            <div class="stat">
+                <label>句子数</label>
+                <strong id="sentences">0</strong>
+            </div>
+
+            <div class="stat">
+                <label>段落数</label>
+                <strong id="paragraphs">0</strong>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="panel analysis">
+
+        <div class="section-head">
+            <h2>文本特征分析</h2>
+            <span>Local Analysis</span>
+        </div>
+
+        <div class="metric">
+            <div class="metric-top">
+                <span>句式规律性</span>
+                <span id="m1">0%</span>
+            </div>
+            <div class="bar"><i id="b1"></i></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-top">
+                <span>词汇重复程度</span>
+                <span id="m2">0%</span>
+            </div>
+            <div class="bar"><i id="b2"></i></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-top">
+                <span>句子长度一致性</span>
+                <span id="m3">0%</span>
+            </div>
+            <div class="bar"><i id="b3"></i></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-top">
+                <span>模板化表达</span>
+                <span id="m4">0%</span>
+            </div>
+            <div class="bar"><i id="b4"></i></div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-top">
+                <span>整体 AI 风格风险</span>
+                <span id="m5">0%</span>
+            </div>
+            <div class="bar"><i id="b5"></i></div>
+        </div>
+
+        <div class="notice">
+            本页面分析的是文本统计与语言风格特征，并不等同于真实的
+            AI 来源判定。AI 检测器可能产生误判，因此结果应作为辅助参考。
+        </div>
+
+    </div>
+
+</div>
+
+<div class="panel results-card results">
+
+    <div class="section-head">
+        <h2>可疑文本片段</h2>
+        <span id="fragmentCount">0 个片段</span>
+    </div>
+
+    <div id="fragments" class="empty">
+        暂无需要关注的文本片段
+    </div>
+
+</div>
+
+</section>
+
+<footer>
+    AI Writing Risk Analyzer · Browser-side analysis · No file upload
+</footer>
+
 </div>
 
 <script>
-function analyze() {
-  const text = document.getElementById("textInput").value.trim();
-  if (!text) return;
 
-  // ===== AI 率计算（模拟）=====
-  const lengthScore = Math.min(text.length / 500, 1);
-  const sentenceCount = text.split(/[。！？.!?]/).length;
-  const repetition = (text.match(/的|了|是|在/g) || []).length / text.length;
+let selectedFiles = [];
 
-  let rawScore = (lengthScore * 0.4 + sentenceCount * 0.01 + repetition * 5);
+const fileInput = document.getElementById("files");
+const drop = document.getElementById("drop");
 
-  // 强制限定在 80–95%
-  let aiRate = Math.floor(70+ (rawScore % 1) * 15);
-  if (aiRate > 100) aiRate = 99.15;
+fileInput.addEventListener("change", e => {
+    selectedFiles = [...e.target.files];
+    renderFiles();
+});
 
-  document.getElementById("rate").innerText = aiRate + "%";
-  document.getElementById("result").style.display = "block";
+["dragenter","dragover"].forEach(type=>{
+    drop.addEventListener(type,e=>{
+        e.preventDefault();
+        drop.classList.add("drag");
+    });
+});
 
-  // ===== 关键词检测 =====
-  const words = text
-    .replace(/[^\u4e00-\u9fa5a-zA-Z0-9]/g, " ")
-    .split(/\s+/)
-    .filter(w => w.length > 1);
+["dragleave","drop"].forEach(type=>{
+    drop.addEventListener(type,e=>{
+        e.preventDefault();
+        drop.classList.remove("drag");
+    });
+});
 
-  const freq = {};
-  words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+drop.addEventListener("drop",e=>{
+    selectedFiles = [...e.dataTransfer.files].filter(f =>
+        /\.(html?|css|txt)$/i.test(f.name)
+    );
+    renderFiles();
+});
 
-  const topWords = Object.entries(freq)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(w => w[0]);
+function renderFiles(){
 
-  const kwBox = document.getElementById("keywords");
-  kwBox.innerHTML = "<div class='label'>检测关键词</div>";
-  topWords.forEach(w => {
-    const span = document.createElement("span");
-    span.className = "keyword";
-    span.innerText = w;
-    kwBox.appendChild(span);
-  });
+    const list = document.getElementById("fileList");
+
+    list.innerHTML = selectedFiles.map(f =>
+        `<div class="file">📄 ${escapeHTML(f.name)}</div>`
+    ).join("");
 }
+
+function clearAll(){
+
+    selectedFiles = [];
+    fileInput.value = "";
+    document.getElementById("fileList").innerHTML = "";
+    document.getElementById("dashboard").style.display = "none";
+}
+
+async function analyze(){
+
+    if(!selectedFiles.length){
+        alert("请先上传文件");
+        return;
+    }
+
+    let combined = "";
+
+    for(const file of selectedFiles){
+
+        const text = await file.text();
+
+        if(/\.(html?|htm)$/i.test(file.name)){
+            combined += extractHTMLText(text) + "\n";
+        }else{
+            combined += text + "\n";
+        }
+    }
+
+    combined = cleanText(combined);
+
+    if(!combined.trim()){
+        alert("文件中没有可分析的文本内容");
+        return;
+    }
+
+    const data = calculateMetrics(combined);
+
+    render(data);
+
+    document.getElementById("dashboard").style.display = "block";
+
+    window.scrollTo({
+        top:document.getElementById("dashboard").offsetTop - 20,
+        behavior:"smooth"
+    });
+}
+
+function extractHTMLText(html){
+
+    const doc = new DOMParser().parseFromString(html,"text/html");
+
+    doc.querySelectorAll(
+        "script,style,noscript,svg"
+    ).forEach(el=>el.remove());
+
+    return doc.body ?
+        doc.body.innerText :
+        doc.documentElement.innerText;
+}
+
+function cleanText(text){
+
+    return text
+        .replace(/\s+/g," ")
+        .replace(/[ \t]+/g," ")
+        .trim();
+}
+
+function calculateMetrics(text){
+
+    const sentences = text
+        .split(/[.!?。！？]+/)
+        .map(x=>x.trim())
+        .filter(Boolean);
+
+    const words = text
+        .match(/[A-Za-zÀ-ÿ0-9\u4e00-\u9fff]+/g) || [];
+
+    const sentenceLengths = sentences.map(s =>
+        s.replace(/\s/g,"").length
+    );
+
+    const avg = sentenceLengths.length ?
+        sentenceLengths.reduce((a,b)=>a+b,0) /
+        sentenceLengths.length : 0;
+
+    let variance = 0;
+
+    if(sentenceLengths.length > 1){
+        variance =
+            sentenceLengths.reduce(
+                (sum,x)=>sum + Math.pow(x-avg,2),0
+            ) / sentenceLengths.length;
+    }
+
+    const deviation = Math.sqrt(variance);
+
+    /*
+      这些指标只是语言统计特征，
+      并不是 AI 来源证明。
+    */
+
+    const consistency = clamp(
+        100 - (deviation / Math.max(avg,1) * 100)
+    );
+
+    const freq = {};
+
+    words.forEach(w=>{
+        const key = w.toLowerCase();
+        freq[key] = (freq[key] || 0) + 1;
+    });
+
+    const repeated =
+        words.length ?
+        Object.values(freq).filter(v=>v>2).length /
+        Math.max(Object.keys(freq).length,1) * 100
+        : 0;
+
+    const vocabularyRisk = clamp(repeated);
+
+    const formulaPatterns = [
+        "in conclusion",
+        "overall",
+        "firstly",
+        "secondly",
+        "thirdly",
+        "therefore",
+        "moreover",
+        "in addition",
+        "on the other hand",
+        "it is important to",
+        "this essay will",
+        "in my opinion",
+        "总而言之",
+        "首先",
+        "其次",
+        "最后",
+        "综上所述",
+        "此外",
+        "因此"
+    ];
+
+    let patternHits = 0;
+
+    formulaPatterns.forEach(p=>{
+        if(text.toLowerCase().includes(p.toLowerCase())){
+            patternHits++;
+        }
+    });
+
+    const templateRisk =
+        clamp(patternHits / Math.max(
+            formulaPatterns.length,1
+        ) * 100);
+
+    const sentenceRegularity =
+        clamp(100 - consistency);
+
+    const overall = Math.round(
+        sentenceRegularity * .25 +
+        vocabularyRisk * .20 +
+        consistency * .20 +
+        templateRisk * .20 +
+        (words.length > 0 ? 25 : 0)
+    );
+
+    const risk = clamp(overall);
+
+    const fragments = sentences
+        .filter(s =>
+            s.length > Math.max(avg * 1.7,80) ||
+            formulaPatterns.some(p =>
+                s.toLowerCase().includes(p.toLowerCase())
+            )
+        )
+        .slice(0,8);
+
+    return {
+        chars:text.replace(/\s/g,"").length,
+        words:words.length,
+        sentences:sentences.length,
+        paragraphs:Math.max(1,Math.round(sentences.length/3)),
+        sentenceRegularity:Math.round(sentenceRegularity),
+        vocabularyRisk:Math.round(vocabularyRisk),
+        consistency:Math.round(consistency),
+        templateRisk:Math.round(templateRisk),
+        overall:risk,
+        fragments
+    };
+}
+
+function render(d){
+
+    setText("chars",formatNumber(d.chars));
+    setText("words",formatNumber(d.words));
+    setText("sentences",formatNumber(d.sentences));
+    setText("paragraphs",formatNumber(d.paragraphs));
+
+    setMetric("m1","b1",d.sentenceRegularity);
+    setMetric("m2","b2",d.vocabularyRisk);
+    setMetric("m3","b3",d.consistency);
+    setMetric("m4","b4",d.templateRisk);
+    setMetric("m5","b5",d.overall);
+
+    document.getElementById("score").textContent = d.overall;
+
+    document.getElementById("scoreCircle")
+        .style.setProperty("--score",d.overall);
+
+    const badge = document.getElementById("badge");
+
+    badge.className = "badge";
+
+    if(d.overall < 35){
+
+        badge.classList.add("low");
+        badge.textContent = "低风险";
+
+        document.getElementById("description").textContent =
+            "当前文本呈现出的统计与模板化特征较低。";
+
+    }else if(d.overall < 65){
+
+        badge.classList.add("medium");
+        badge.textContent = "中风险";
+
+        document.getElementById("description").textContent =
+            "检测到部分规律性语言特征，建议人工检查相关段落。";
+
+    }else{
+
+        badge.classList.add("high");
+        badge.textContent = "较高风险";
+
+        document.getElementById("description").textContent =
+            "文本具有较明显的规律性或模板化特征，需要进一步人工判断。";
+    }
+
+    renderFragments(d.fragments);
+}
+
+function renderFragments(items){
+
+    const box = document.getElementById("fragments");
+
+    document.getElementById("fragmentCount")
+        .textContent = `${items.length} 个片段`;
+
+    if(!items.length){
+
+        box.className = "empty";
+        box.textContent = "暂无需要关注的文本片段";
+        return;
+    }
+
+    box.className = "";
+
+    box.innerHTML = `
+        <table>
+            <thead>
+                <tr>
+                    <th>风险</th>
+                    <th>类型</th>
+                    <th>文本片段</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map((text,i)=>`
+                    <tr>
+                        <td>
+                            <span class="risk-dot ${
+                                i < 2 ? "red" :
+                                i < 5 ? "yellow" : "green"
+                            }"></span>
+                            ${i < 2 ? "关注" : "提示"}
+                        </td>
+                        <td>语言特征</td>
+                        <td>${escapeHTML(text)}</td>
+                    </tr>
+                `).join("")}
+            </tbody>
+        </table>
+    `;
+}
+
+function setMetric(label,bar,value){
+
+    document.getElementById(label).textContent =
+        value + "%";
+
+    setTimeout(()=>{
+        document.getElementById(bar)
+            .style.width = value + "%";
+    },100);
+}
+
+function setText(id,value){
+    document.getElementById(id).textContent=value;
+}
+
+function formatNumber(n){
+    return n.toLocaleString("zh-CN");
+}
+
+function clamp(n){
+    return Math.max(0,Math.min(100,n));
+}
+
+function escapeHTML(str){
+
+    return str
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;")
+        .replace(/'/g,"&#039;");
+}
+
 </script>
 
 </body>
