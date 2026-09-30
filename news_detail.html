@@ -4,157 +4,949 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>加载中...</title>
-
-<!-- ===== Open Graph（QQ / Safari Reader 预读）===== -->
+<!-- =====================================================
+     Open Graph
+===================================================== -->
 <meta property="og:type" content="article">
 <meta property="og:title" content="加载中...">
 <meta property="og:description" content="正在加载新闻...">
 <meta property="og:image" content="">
 <meta property="og:url" content="">
-<!-- =============================================== -->
-
-<!-- ===== Safari / Apple Reader 友好 ===== -->
+<!-- =====================================================
+     Safari / Apple Reader
+===================================================== -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="新闻">
 <meta name="theme-color" content="#ffffff">
 <meta name="format-detection" content="telephone=no">
-<!-- =================================== -->
-
+<!-- =====================================================
+     Material Symbols
+===================================================== -->
 <link rel="stylesheet"
- href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined">
+<!-- =====================================================
+     网站原有 CSS
+===================================================== -->
 <link rel="stylesheet" href="assets/style.css">
-
+<!-- =====================================================
+     Markdown
+     marked.js：Markdown → HTML
+===================================================== -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- =====================================================
+     代码高亮
+     highlight.js
+===================================================== -->
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/xml.min.js"></script>
 <style>
+/* =====================================================
+   页面主体
+===================================================== */
 .detail-page {
-  max-width: 800px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 32px 24px 80px;
   animation: fadeUp 0.4s ease-out;
 }
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
+/* =====================================================
+   文章布局
+===================================================== */
+.article-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 800px) 220px;
+  gap: 50px;
+  align-items: start;
+}
+/* =====================================================
+   文章
+===================================================== */
+article {
+  min-width: 0;
+}
+#d-title {
+  font-size: 2.2rem;
+  line-height: 1.35;
+  margin-bottom: 16px;
+}
+/* =====================================================
+   文章图片
+===================================================== */
 .d-img {
   width: 100%;
+  max-height: 500px;
+  object-fit: cover;
   border-radius: 20px;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
   display: none;
 }
+/* =====================================================
+   Meta
+===================================================== */
 .d-meta {
   color: var(--md-sys-color-outline);
-  margin-bottom: 20px;
+  margin-bottom: 28px;
   font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .d-tag {
   background: var(--md-sys-color-primary-container);
   color: var(--md-sys-color-on-primary-container);
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 8px;
   font-weight: bold;
-  margin-right: 10px;
 }
-article section p {
+/* =====================================================
+   Markdown 正文
+===================================================== */
+#d-content {
+  font-size: 1.08rem;
   line-height: 1.9;
+  overflow-wrap: break-word;
+}
+#d-content p {
+  margin: 0 0 1.25em;
+}
+#d-content h1,
+#d-content h2,
+#d-content h3,
+#d-content h4 {
+  line-height: 1.4;
+  margin-top: 1.8em;
+  margin-bottom: 0.7em;
+}
+#d-content h1 {
+  font-size: 1.8rem;
+}
+#d-content h2 {
+  font-size: 1.5rem;
+  scroll-margin-top: 90px;
+}
+#d-content h3 {
+  font-size: 1.25rem;
+  scroll-margin-top: 90px;
+}
+#d-content h4 {
   font-size: 1.1rem;
-  margin-bottom: 1em;
+  scroll-margin-top: 90px;
+}
+/* =====================================================
+   Markdown 加粗 / 斜体
+===================================================== */
+#d-content strong {
+  font-weight: 700;
+}
+#d-content em {
+  font-style: italic;
+}
+/* =====================================================
+   Markdown 链接
+===================================================== */
+#d-content a {
+  color: var(--md-sys-color-primary);
+  text-decoration: none;
+}
+#d-content a:hover {
+  text-decoration: underline;
+}
+/* =====================================================
+   Markdown 图片
+===================================================== */
+#d-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  display: block;
+  margin: 25px auto;
+}
+/* =====================================================
+   Markdown 列表
+===================================================== */
+#d-content ul,
+#d-content ol {
+  margin: 1em 0 1.5em;
+  padding-left: 2em;
+}
+#d-content li {
+  margin-bottom: 0.45em;
+}
+/* =====================================================
+   Markdown 引用
+===================================================== */
+#d-content blockquote {
+  margin: 25px 0;
+  padding: 12px 20px;
+  border-left: 4px solid var(--md-sys-color-primary);
+  background: rgba(127, 127, 127, 0.08);
+  border-radius: 0 12px 12px 0;
+}
+#d-content blockquote p:last-child {
+  margin-bottom: 0;
+}
+/* =====================================================
+   Markdown 分割线
+===================================================== */
+#d-content hr {
+  border: 0;
+  border-top: 1px solid rgba(127,127,127,0.25);
+  margin: 35px 0;
+}
+/* =====================================================
+   Markdown 表格
+===================================================== */
+#d-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 25px 0;
+  display: block;
+  overflow-x: auto;
+}
+#d-content th,
+#d-content td {
+  padding: 10px 14px;
+  border: 1px solid rgba(127,127,127,0.25);
+  text-align: left;
+}
+#d-content th {
+  font-weight: bold;
+  background: rgba(127,127,127,0.08);
+}
+/* =====================================================
+   行内代码
+===================================================== */
+#d-content code:not(pre code) {
+  background: rgba(127,127,127,0.12);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 0.9em;
+}
+/* =====================================================
+   代码块
+===================================================== */
+.code-wrapper {
+  position: relative;
+  margin: 25px 0;
+}
+#d-content pre {
+  position: relative;
+  margin: 0;
+  padding: 20px;
+  overflow-x: auto;
+  border-radius: 14px;
+  background: #f6f8fa;
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+#d-content pre code {
+  font-family:
+    "SFMono-Regular",
+    Consolas,
+    "Liberation Mono",
+    Menlo,
+    monospace;
+}
+/* =====================================================
+   Copy Code 按钮
+===================================================== */
+.copy-code-btn {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 12px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.9);
+  color: #555;
+  transition: 0.2s;
+}
+.copy-code-btn:hover {
+  background: white;
+  transform: translateY(-1px);
+}
+/* =====================================================
+   右侧目录
+===================================================== */
+.article-toc {
+  position: sticky;
+  top: 90px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 16px 0;
+}
+.toc-title {
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: var(--md-sys-color-outline);
+}
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.toc-list li {
+  margin: 0;
+}
+.toc-list a {
+  display: block;
+  padding: 6px 10px;
+  border-left: 2px solid transparent;
+  color: var(--md-sys-color-outline);
+  text-decoration: none;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  transition: 0.2s;
+}
+.toc-list a:hover {
+  color: var(--md-sys-color-primary);
+}
+.toc-list a.active {
+  color: var(--md-sys-color-primary);
+  border-left-color: var(--md-sys-color-primary);
+  font-weight: bold;
+  background: rgba(127,127,127,0.06);
+}
+.toc-level-3 {
+  padding-left: 14px !important;
+}
+.toc-level-4 {
+  padding-left: 28px !important;
+}
+/* =====================================================
+   查看原文
+===================================================== */
+#d-link {
+  display: none;
+  margin-top: 35px;
+  text-decoration: none;
+}
+/* =====================================================
+   手机端
+===================================================== */
+@media (max-width: 900px) {
+  .detail-page {
+    padding: 20px 16px 60px;
+  }
+  .article-layout {
+    display: block;
+  }
+  .article-toc {
+    display: none;
+  }
+  #d-title {
+    font-size: 1.8rem;
+  }
+  #d-content {
+    font-size: 1rem;
+  }
+  #d-content pre {
+    font-size: 0.82rem;
+    border-radius: 10px;
+  }
+  .d-img {
+    border-radius: 14px;
+  }
+}
+/* =====================================================
+   深色模式
+===================================================== */
+@media (prefers-color-scheme: dark) {
+  #d-content pre {
+    background: #161b22;
+  }
+  .copy-code-btn {
+    background: #21262d;
+    color: #ddd;
+  }
+  #d-content blockquote {
+    background: rgba(255,255,255,0.05);
+  }
 }
 </style>
 </head>
-
 <body>
-
+<!-- =====================================================
+     顶部导航
+===================================================== -->
 <header class="top-app-bar">
-<button class="icon-btn" onclick="history.back()">
-  <span class="material-symbols-outlined">arrow_back</span>
-</button>
-<div style="flex:1;text-align:center;font-weight:bold;">详情</div>
-<button class="icon-btn" id="share-btn">
-  <span class="material-symbols-outlined">share</span>
-</button>
+  <button
+    class="icon-btn"
+    onclick="history.back()"
+    aria-label="返回">
+    <span class="material-symbols-outlined">
+      arrow_back
+    </span>
+  </button>
+  <div
+    style="flex:1;text-align:center;font-weight:bold;">
+    详情
+  </div>
+  <button
+    class="icon-btn"
+    id="share-btn"
+    aria-label="分享">
+    <span class="material-symbols-outlined">
+      share
+    </span>
+  </button>
 </header>
-
+<!-- =====================================================
+     主体
+===================================================== -->
 <main class="detail-page">
-
-<!-- ===== Safari Reader 识别核心 ===== -->
-<article id="article">
-
-<h1 id="d-title">加载中...</h1>
-
-<div class="d-meta">
-  <span id="d-loc" class="d-tag"></span>
-  <span id="d-date"></span> &nbsp;
-  <span id="d-auth"></span>
-</div>
-
-<img id="d-img" class="d-img" alt="文章配图">
-
-<section id="d-content"></section>
-
-<a id="d-link" href="#" target="_blank"
- class="icon-btn method-close"
- style="display:none;margin-top:30px;text-align:center;">
-查看原文
-</a>
-
-</article>
-<!-- ================================ -->
-
+  <div class="article-layout">
+    <!-- =================================================
+         文章
+    ================================================== -->
+    <article id="article">
+      <h1 id="d-title">
+        加载中...
+      </h1>
+      <div class="d-meta">
+        <span
+          id="d-loc"
+          class="d-tag">
+        </span>
+        <span id="d-date"></span>
+        <span>·</span>
+        <span id="d-auth"></span>
+      </div>
+      <img
+        id="d-img"
+        class="d-img"
+        alt="文章配图">
+      <!-- ===============================================
+           Safari Reader 识别核心
+      ================================================ -->
+      <section id="d-content">
+        <p>正在加载文章...</p>
+      </section>
+      <!-- ===============================================
+           原文链接
+      ================================================ -->
+      <a
+        id="d-link"
+        href="#"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="icon-btn method-close"
+        style="text-align:center;">
+        查看原文
+      </a>
+    </article>
+    <!-- =================================================
+         右侧目录
+    ================================================== -->
+    <aside
+      id="article-toc"
+      class="article-toc">
+      <div class="toc-title">
+        目录
+      </div>
+      <ul
+        id="toc-list"
+        class="toc-list">
+      </ul>
+    </aside>
+  </div>
 </main>
-
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-
-const id = parseInt(new URLSearchParams(location.search).get('id'));
-
-try {
-  const res = await fetch('news_content.json');
-  const data = await res.json();
-  const news = data.find((_, i) => i + 1 === id);
-  if (!news) throw 0;
-
-  document.title = news.title;
-  d('d-title').innerText = news.title;
-  d('d-loc').innerText = news.location;
-  d('d-date').innerText = news.date;
-  d('d-auth').innerText = news.author;
-
-  // 👉 正文转为段落（Safari 听取效果更自然）
-  d('d-content').innerHTML =
-    news.content.split(/\n+/).map(p => `<p>${p}</p>`).join('');
-
-  if (news.image) {
-    d('d-img').src = news.image;
-    d('d-img').style.display = 'block';
+/* =====================================================
+   页面初始化
+===================================================== */
+document.addEventListener(
+  'DOMContentLoaded',
+  async () => {
+  /* ===================================================
+     获取文章 ID
+  =================================================== */
+  const id =
+    parseInt(
+      new URLSearchParams(
+        location.search
+      ).get('id')
+    );
+  try {
+    /* =================================================
+       读取 JSON
+    ================================================= */
+    const res =
+      await fetch('news_content.json');
+    if (!res.ok) {
+      throw new Error(
+        '无法读取 news_content.json'
+      );
+    }
+    const data =
+      await res.json();
+    /* =================================================
+       根据数组位置找到文章
+       保持你原来的逻辑：
+       id=1 → 第一篇
+       id=2 → 第二篇
+    ================================================= */
+    const news =
+      data.find(
+        (_, i) => i + 1 === id
+      );
+    if (!news) {
+      throw new Error(
+        '文章不存在'
+      );
+    }
+    /* =================================================
+       基础信息
+    ================================================= */
+    document.title =
+      news.title || '文章';
+    d('d-title').innerText =
+      news.title || '无标题';
+    d('d-loc').innerText =
+      news.location || '';
+    d('d-date').innerText =
+      news.date || '';
+    d('d-auth').innerText =
+      news.author || '';
+    /* =================================================
+       主图
+    ================================================= */
+    if (news.image) {
+      const img =
+        d('d-img');
+      img.src =
+        news.image;
+      img.style.display =
+        'block';
+      img.alt =
+        news.title || '文章配图';
+    }
+    /* =================================================
+       Markdown 配置
+    ================================================= */
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+      headerIds: true,
+      mangle: false
+    });
+    /* =================================================
+       Markdown → HTML
+       这里就是最重要的修改
+    ================================================= */
+    const content =
+      news.content || '';
+    d('d-content').innerHTML =
+      marked.parse(content);
+    /* =================================================
+       代码高亮
+    ================================================= */
+    document
+      .querySelectorAll(
+        '#d-content pre code'
+      )
+      .forEach(
+        code => {
+          /*
+           * highlight.js 自动识别语言
+           */
+          try {
+            hljs.highlightElement(
+              code
+            );
+          } catch (e) {
+            console.warn(
+              '代码高亮失败',
+              e
+            );
+          }
+        }
+      );
+    /* =================================================
+       添加 Copy Code 按钮
+    ================================================= */
+    document
+      .querySelectorAll(
+        '#d-content pre'
+      )
+      .forEach(
+        pre => {
+          const wrapper =
+            document.createElement(
+              'div'
+            );
+          wrapper.className =
+            'code-wrapper';
+          pre.parentNode.insertBefore(
+            wrapper,
+            pre
+          );
+          wrapper.appendChild(
+            pre
+          );
+          const button =
+            document.createElement(
+              'button'
+            );
+          button.className =
+            'copy-code-btn';
+          button.innerText =
+            'Copy';
+          button.onclick =
+            async () => {
+              const code =
+                pre.querySelector(
+                  'code'
+                );
+              if (!code) return;
+              try {
+                await navigator.clipboard
+                  .writeText(
+                    code.innerText
+                  );
+                button.innerText =
+                  'Copied!';
+                setTimeout(
+                  () => {
+                    button.innerText =
+                      'Copy';
+                  },
+                  1500
+                );
+              } catch {
+                button.innerText =
+                  'Failed';
+              }
+            };
+          wrapper.appendChild(
+            button
+          );
+        }
+      );
+    /* =================================================
+       自动生成目录
+    ================================================= */
+    generateTOC();
+    /* =================================================
+       原文链接
+    ================================================= */
+    if (news.link) {
+      const link =
+        d('d-link');
+      link.href =
+        news.link;
+      link.style.display =
+        'block';
+    }
+    /* =================================================
+       Open Graph
+    ================================================= */
+    setOG(
+      'og:title',
+      news.title
+    );
+    setOG(
+      'og:description',
+      getDescription(
+        content
+      )
+    );
+    if (news.image) {
+      setOG(
+        'og:image',
+        news.image
+      );
+    }
+    setOG(
+      'og:url',
+      location.href
+    );
+  } catch (error) {
+    console.error(
+      error
+    );
+    d('d-title').innerText =
+      '加载失败';
+    d('d-content').innerHTML =
+      '<p>文章加载失败，请稍后再试。</p>';
   }
-
-  if (news.link) {
-    d('d-link').href = news.link;
-    d('d-link').style.display = 'block';
-  }
-
-  setOG('og:title', news.title);
-  setOG('og:description', news.content.slice(0, 80) + '…');
-  if (news.image) setOG('og:image', news.image);
-  setOG('og:url', location.href);
-
-} catch {
-  d('d-title').innerText = '加载失败';
-}
-
-d('share-btn').onclick = () => {
-  navigator.share
-    ? navigator.share({ title: document.title, url: location.href })
-    : (navigator.clipboard.writeText(location.href), alert('链接已复制'));
-};
-
-function d(id){ return document.getElementById(id); }
-function setOG(p,v){
-  const m=document.querySelector(`meta[property="${p}"]`);
-  if(m) m.content=v;
-}
+  /* ===================================================
+     分享
+  =================================================== */
+  d('share-btn').onclick =
+    async () => {
+    if (
+      navigator.share
+    ) {
+      try {
+        await navigator.share({
+          title:
+            document.title,
+          url:
+            location.href
+        });
+      } catch {
+        /*
+         * 用户取消分享
+         * 不需要处理
+         */
+      }
+    } else {
+      try {
+        await navigator.clipboard
+          .writeText(
+            location.href
+          );
+        alert(
+          '链接已复制'
+        );
+      } catch {
+        alert(
+          '复制失败'
+        );
+      }
+    }
+  };
 });
+/* =====================================================
+   自动生成文章目录
+===================================================== */
+function generateTOC() {
+  const content =
+    d('d-content');
+  const toc =
+    d('toc-list');
+  if (!content || !toc) {
+    return;
+  }
+  const headings =
+    content.querySelectorAll(
+      'h2, h3, h4'
+    );
+  toc.innerHTML =
+    '';
+  if (
+    headings.length === 0
+  ) {
+    d('article-toc')
+      .style.display =
+      'none';
+    return;
+  }
+  headings.forEach(
+    (heading, index) => {
+      /* ===============================================
+         自动生成 ID
+      ============================================== */
+      let id =
+        heading.id;
+      if (!id) {
+        id =
+          slugify(
+            heading.innerText
+          );
+        /*
+         * 防止重复 ID
+         */
+        if (
+          document.getElementById(id)
+        ) {
+          id =
+            id +
+            '-' +
+            index;
+        }
+        heading.id =
+          id;
+      }
+      /* ===============================================
+         目录项目
+      ============================================== */
+      const li =
+        document.createElement(
+          'li'
+        );
+      const a =
+        document.createElement(
+          'a'
+        );
+      a.href =
+        '#' + id;
+      a.innerText =
+        heading.innerText;
+      a.className =
+        'toc-level-' +
+        heading.tagName
+          .substring(1);
+      /* ===============================================
+         点击目录
+      ============================================== */
+      a.addEventListener(
+        'click',
+        event => {
+          event.preventDefault();
+          heading.scrollIntoView({
+            behavior:
+              'smooth',
+            block:
+              'start'
+          });
+          history.replaceState(
+            null,
+            '',
+            '#' + id
+          );
+        }
+      );
+      li.appendChild(
+        a
+      );
+      toc.appendChild(
+        li
+      );
+    }
+  );
+  /* ===================================================
+     滚动监听
+  =================================================== */
+  const links =
+    toc.querySelectorAll(
+      'a'
+    );
+  const observer =
+    new IntersectionObserver(
+      entries => {
+        entries.forEach(
+          entry => {
+            if (
+              entry.isIntersecting
+            ) {
+              links.forEach(
+                link => {
+                  link.classList
+                    .remove(
+                      'active'
+                    );
+                }
+              );
+              const active =
+                toc.querySelector(
+                  `a[href="#${entry.target.id}"]`
+                );
+              if (active) {
+                active.classList
+                  .add(
+                    'active'
+                  );
+              }
+            }
+          }
+        );
+      },
+      {
+        rootMargin:
+          '-100px 0px -70% 0px',
+        threshold:
+          0
+      }
+    );
+  headings.forEach(
+    heading => {
+      observer.observe(
+        heading
+      );
+    }
+  );
+}
+/* =====================================================
+   Markdown 标题生成 URL ID
+===================================================== */
+function slugify(text) {
+  return text
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(
+      /\s+/g,
+      '-'
+    )
+    .replace(
+      /[^\w\u4e00-\u9fa5-]/g,
+      ''
+    )
+    .replace(
+      /--+/g,
+      '-'
+    );
+}
+/* =====================================================
+   自动生成 OG description
+===================================================== */
+function getDescription(
+  text
+) {
+  return text
+    .replace(
+      /[#>*_`~\[\]]/g,
+      ''
+    )
+    .replace(
+      /\s+/g,
+      ' '
+    )
+    .trim()
+    .slice(
+      0,
+      100
+    ) +
+    '…';
+}
+/* =====================================================
+   获取 DOM
+===================================================== */
+function d(id) {
+  return document.getElementById(
+    id
+  );
+}
+/* =====================================================
+   设置 Open Graph
+===================================================== */
+function setOG(
+  property,
+  value
+) {
+  const meta =
+    document.querySelector(
+      `meta[property="${property}"]`
+    );
+  if (meta) {
+    meta.setAttribute(
+      'content',
+      value || ''
+    );
+  }
+}
 </script>
-
 </body>
 </html>
