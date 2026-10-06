@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>BYD Sustainability Presentation Teleprompter</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #111;
+        color: #f5f5f5;
+        font-family: Arial, Helvetica, sans-serif;
+        overflow: hidden;
+    }
+
+    /* Main teleprompter */
+    .teleprompter {
+        height: 100vh;
+        width: 100vw;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Top bar */
+    .topbar {
+        height: 70px;
+        background: #1d1d1d;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 30px;
+        border-bottom: 1px solid #444;
+        flex-shrink: 0;
+    }
+
+    .title {
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    .page {
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    /* Text area */
+    .content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 50px 8vw 120px 8vw;
+        scroll-behavior: smooth;
+    }
+
+    .slide-title {
+        font-size: 38px;
+        font-weight: bold;
+        margin-bottom: 35px;
+        line-height: 1.25;
+    }
+
+    .script {
+        max-width: 1500px;
+        font-size: 42px;
+        line-height: 1.65;
+        white-space: pre-line;
+    }
+
+    .script p {
+        margin: 0 0 30px 0;
+    }
+
+    .script .question {
+        font-weight: bold;
+        margin: 35px 0;
+    }
+
+    .script .important {
+        font-weight: bold;
+    }
+
+    /* Bottom controls */
+    .controls {
+        height: 90px;
+        background: #1d1d1d;
+        border-top: 1px solid #444;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        flex-shrink: 0;
+    }
+
+    button {
+        background: #333;
+        color: white;
+        border: 1px solid #666;
+        border-radius: 10px;
+        padding: 15px 30px;
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #555;
+    }
+
+    .slide-select {
+        font-size: 20px;
+        padding: 12px 20px;
+        background: #333;
+        color: white;
+        border: 1px solid #666;
+        border-radius: 8px;
+    }
+
+    /* Fullscreen */
+    .fullscreen {
+        position: fixed;
+        right: 25px;
+        top: 18px;
+        padding: 10px 18px;
+        font-size: 18px;
+    }
+
+    /* Smaller screen */
+    @media (max-width: 1200px) {
+        .script {
+            font-size: 34px;
+        }
+
+        .slide-title {
+            font-size: 32px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="teleprompter">
+
+    <div class="topbar">
+        <div class="title">BYD Sustainability Management Blueprint</div>
+        <div class="page" id="pageNumber">Slide 1 / 12</div>
+    </div>
+
+    <div class="content" id="content">
+
+        <div class="slide-title" id="slideTitle"></div>
+
+        <div class="script" id="script"></div>
+
+    </div>
+
+    <div class="controls">
+
+        <button onclick="previousSlide()">← Previous</button>
+
+        <select class="slide-select" id="slideSelect" onchange="goToSlide(this.value)">
+        </select>
+
+        <button onclick="nextSlide()">Next →</button>
+
+        <button onclick="toggleFullscreen()">⛶ Fullscreen</button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const slides = [
+
+{
+title: "Slide 1 — Introduction: Why Sustainability Matters to BYD",
+text: `
+Good morning everyone.
+
+Today, I will present a strategic sustainability management blueprint for BYD from the perspective of a Chief Sustainability Officer.
+
+BYD is a major company in the new energy vehicle and battery industry. Its rapid growth has created significant economic value, but it also creates environmental and social responsibilities.
+
+For BYD, sustainability is no longer only about reducing carbon emissions. It also involves employees, suppliers, customers, regulators, communities, and investors.
+
+How can BYD continue global growth while creating value for people, planet and profit?
+
+My proposal will use four main course frameworks: stakeholder engagement, business ethics, corporate social responsibility, and integrated sustainability management.
+
+The main argument is that sustainability should not be treated as an additional activity. It should become part of BYD’s core business strategy and governance.
+`
+},
+
+{
+title: "Slide 2 — Stakeholder Theory and Stakeholder Map",
+text: `
+First, I will identify BYD’s key stakeholders.
+
+According to stakeholder theory, a company should not focus only on shareholders. It should consider groups that can affect, or are affected by, the company’s decisions.
+
+For BYD, the primary stakeholders include investors, employees, customers and suppliers.
+
+Investors care about long-term financial performance and ESG risks.
+
+Employees care about safety, fair treatment and career development.
+
+Customers care about product quality, safety, affordability and sustainability.
+
+Suppliers need stable business relationships but must also meet responsible sourcing standards.
+
+There are also important secondary stakeholders, including governments, regulators, NGOs, local communities and industry partners.
+
+The important point is that BYD’s sustainability performance cannot be separated from its value chain.
+
+For example, a supplier’s labour problem can become BYD’s reputational problem.
+
+Therefore, BYD needs to manage sustainability across the whole stakeholder network rather than only inside its own factories.
+`
+},
+
+{
+title: "Slide 3 — Stakeholder Salience and Engagement Strategy",
+text: `
+Next, I apply the Mitchell-Agle-Wood stakeholder salience model.
+
+This model evaluates stakeholders according to three attributes: power, legitimacy and urgency.
+
+Customers, employees, suppliers, investors and regulators should receive high priority because they have different combinations of these three attributes.
+
+For example, regulators have high power, high legitimacy and high urgency because they can directly influence BYD’s operations.
+
+Employees have strong legitimacy and can also have high urgency when issues such as safety or working conditions appear.
+
+However, stakeholder management should not simply mean giving information to stakeholders.
+
+My recommendation is to move from passive disclosure to active engagement.
+
+The process should be:
+
+Listen, discuss, co-create, measure and report.
+
+BYD could establish regular supplier ESG dialogues, employee feedback mechanisms, customer sustainability feedback and community consultations.
+
+This creates a two-way relationship.
+
+The goal is not to satisfy every stakeholder equally. Instead, BYD should identify conflicting interests and make transparent decisions based on materiality, risk and long-term value.
+`
+},
+
+{
+title: "Slide 4 — Business Ethics: The Key Ethical Dilemma",
+text: `
+The second part focuses on business ethics.
+
+For BYD, one important ethical dilemma is the conflict between fast global expansion and responsible supply-chain management.
+
+Global expansion creates strong pressure to control cost, increase production speed and work with different local suppliers.
+
+However, suppliers can create risks related to labour rights, working conditions, environmental compliance and human rights.
+
+This creates a difficult question:
+
+Should BYD prioritize short-term cost and speed when a supplier creates potential human-rights risks?
+
+My answer is that human rights should be treated as a non-negotiable business condition.
+
+This does not mean that BYD should immediately terminate every supplier with a problem.
+
+A more realistic approach is risk-based management.
+
+Low-risk problems can receive corrective action and training.
+
+High-risk or repeated violations should lead to stronger action, including suspension or termination.
+
+This approach balances business continuity with ethical responsibility.
+
+The key principle is that cost efficiency cannot become an excuse for serious human-rights violations.
+`
+},
+
+{
+title: "Slide 5 — Ethical Decision-Making and Governance",
+text: `
+To analyze this dilemma, I apply three ethical theories.
+
+First, utilitarianism asks which decision creates the greatest overall benefit.
+
+Responsible supply-chain management can protect workers, customers, investors and BYD’s long-term reputation.
+
+Second, deontological ethics focuses on duties and rights.
+
+From this perspective, basic human rights should be respected even when doing so increases short-term costs.
+
+Third, virtue ethics asks what a responsible company should be like.
+
+BYD should demonstrate integrity, fairness, accountability and courage.
+
+Based on these theories, I propose a five-step ethical governance system:
+
+Supplier Code → Risk Screening → Independent Audit → Corrective Action → Public Reporting.
+
+BYD should also strengthen whistleblowing protection and anti-retaliation mechanisms.
+
+Another important issue is greenwashing.
+
+Sustainability claims should be supported by measurable evidence.
+
+Therefore, environmental communication should be reviewed before public release.
+
+This turns business ethics from a statement of values into an actual management system.
+`
+},
+
+{
+title: "Slide 6 — Carroll’s CSR Pyramid",
+text: `
+The third section is corporate social responsibility.
+
+I use Carroll’s CSR Pyramid to evaluate BYD’s responsibilities.
+
+The first level is economic responsibility.
+
+BYD needs profitable growth, innovation and competitive products because economic sustainability is the foundation of other responsibilities.
+
+The second level is legal responsibility.
+
+BYD must comply with labour, environmental, product safety and other regulations in different markets.
+
+The third level is ethical responsibility.
+
+This includes human rights, responsible sourcing, employee safety and honest sustainability communication.
+
+The fourth level is philanthropic responsibility, such as education, community development and support for social programs.
+
+However, there is an important critical point.
+
+CSR should not only mean giving money back to society.
+
+For a company like BYD, the more important question is whether responsibility is integrated into daily business decisions.
+
+Therefore, BYD should move from traditional CSR toward strategic CSR and shared value creation.
+`
+},
+
+{
+title: "Slide 7 — From CSR to Creating Shared Value",
+text: `
+This leads to Porter’s concept of Creating Shared Value, or CSV.
+
+Traditional CSR often means that a company makes profits first and then gives something back to society.
+
+CSV is different.
+
+The company creates economic value while solving social or environmental problems through its core business.
+
+BYD has several opportunities to apply this model.
+
+First, clean mobility can provide affordable new-energy transportation while supporting environmental goals.
+
+Second, battery and energy-storage innovation can create new markets while supporting the energy transition.
+
+Third, employee training can develop skills for electric vehicles and smart manufacturing while improving workforce capability.
+
+Fourth, responsible supply-chain management can reduce social risks while improving business resilience.
+
+Therefore, sustainability can become a source of innovation and competitiveness.
+
+The strategic shift is:
+
+from “CSR as social contribution” to “sustainability as business value creation.”
+
+This is more sustainable in the long term because social value and economic value reinforce each other.
+`
+},
+
+{
+title: "Slide 8 — Integrated Sustainability Management: 3P Model",
+text: `
+Now I move from strategy to implementation.
+
+The three-pillar model is People, Planet and Profit.
+
+For People, BYD should focus on employee safety, human rights, skills development and equal opportunities.
+
+For Planet, the priorities should include carbon reduction, renewable energy, energy efficiency and battery lifecycle management.
+
+For Profit, BYD needs sustainable innovation, operational efficiency, market access and lower ESG risks.
+
+These three areas should not be treated as separate goals.
+
+For example, employee training increases skills and productivity.
+
+Energy efficiency can reduce environmental impact and operating costs.
+
+Responsible sourcing can increase supplier costs in the short term, but it can reduce legal and reputational risks in the long term.
+
+Therefore, the principle is:
+
+People and Planet are not simply costs to Profit. They protect long-term Profit.
+
+This is the core idea of integrated sustainability management.
+`
+},
+
+{
+title: "Slide 9 — ESG and UN SDG Alignment",
+text: `
+The next step is to translate the 3P model into ESG performance.
+
+For the environmental dimension, BYD should monitor carbon emissions, energy consumption, renewable energy, waste and battery recycling.
+
+For the social dimension, the key areas are employee safety, human rights, supplier standards, skills development and community relations.
+
+For governance, the focus should be business ethics, anti-corruption, whistleblowing, board oversight and transparent reporting.
+
+These objectives can also be connected with the UN Sustainable Development Goals.
+
+For example:
+
+SDG 7 supports clean energy.
+
+SDG 8 supports decent work and economic growth.
+
+SDG 9 supports innovation and infrastructure.
+
+SDG 12 supports responsible production.
+
+SDG 13 supports climate action.
+
+The important point is that SDGs should not only appear in a sustainability report.
+
+They should be connected to actual KPIs, management responsibilities and investment decisions.
+`
+},
+
+{
+title: "Slide 10 — Sustainability KPI Dashboard",
+text: `
+To make the strategy measurable, I propose a sustainability KPI dashboard.
+
+For the environmental dimension, BYD could set a proposed target of reducing operational carbon intensity by 50 percent from a defined baseline by 2030.
+
+Key manufacturing sites should also have renewable-energy transition plans.
+
+For the supply chain, major battery materials should be covered by traceability controls.
+
+For People, the target should be 100 percent ESG and human-rights training for employees, with high-risk suppliers receiving ESG assessment.
+
+For governance, high-risk suppliers should be covered by corrective-action monitoring.
+
+BYD should also maintain a protected whistleblowing system and introduce independent assurance of key ESG information.
+
+These numbers are proposed management targets, not claims that BYD has already achieved them.
+
+This distinction is important because credible sustainability management requires measurable and verifiable evidence.
+
+The purpose of KPIs is to turn sustainability from a general commitment into management accountability.
+`
+},
+
+{
+title: "Slide 11 — Governance, Leadership and Implementation Roadmap",
+text: `
+The final part of implementation is governance.
+
+Sustainability cannot be the responsibility of only one sustainability department.
+
+I propose a structure starting with the Board of Directors, followed by board-level sustainability oversight and a CSO or sustainability committee.
+
+Business units, procurement, HR, compliance and R&D should then be responsible for implementation.
+
+The roadmap has three stages.
+
+From 2026 to 2027, BYD should build the system.
+
+This includes stakeholder assessment, ESG governance, supplier screening and a unified KPI system.
+
+From 2028 to 2029, BYD should integrate sustainability into business operations.
+
+ESG performance should be connected with management evaluation, supplier decisions and investment planning.
+
+By 2030, BYD should scale the system across major markets and publish independently assured sustainability results.
+
+The key leadership principle is:
+
+Sustainability must be owned by the business, not only by the sustainability department.
+
+This creates accountability from the boardroom to the supply chain.
+`
+},
+
+{
+title: "Slide 12 — Conclusion and Board Action",
+text: `
+To conclude, my proposal is to move BYD from growth-oriented sustainability to integrated responsible growth.
+
+The strategy has three priorities.
+
+First, protect people through human-rights protection, employee safety and responsible suppliers.
+
+Second, protect the planet through carbon reduction, renewable energy and circular battery management.
+
+Third, protect long-term value through ethical governance, stakeholder trust and sustainable innovation.
+
+There is a real trade-off.
+
+Some sustainability measures may increase short-term costs and reduce operational flexibility.
+
+However, ignoring these issues can create larger long-term risks, including regulatory risk, supply-chain disruption and reputational damage.
+
+Therefore, I recommend that the Board approve the integrated sustainability roadmap and make ESG performance part of core business governance.
+
+My final message is:
+
+BYD should not only build the future of mobility. It should build that future responsibly.
+
+Thank you.
+`
+}
+
+];
+
+let currentSlide = 0;
+
+const slideTitle = document.getElementById("slideTitle");
+const script = document.getElementById("script");
+const pageNumber = document.getElementById("pageNumber");
+const content = document.getElementById("content");
+const slideSelect = document.getElementById("slideSelect");
+
+
+/* Create slide selector */
+slides.forEach((slide, index) => {
+
+    const option = document.createElement("option");
+
+    option.value = index;
+
+    option.textContent = `Slide ${index + 1}`;
+
+    slideSelect.appendChild(option);
+
+});
+
+
+/* Load slide */
+function loadSlide(index) {
+
+    currentSlide = index;
+
+    slideTitle.textContent = slides[index].title;
+
+    script.innerHTML = slides[index].text
+        .trim()
+        .split("\n\n")
+        .map(paragraph => {
+
+            if (
+                paragraph.includes("?") ||
+                paragraph.startsWith("Listen, discuss") ||
+                paragraph.startsWith("Supplier Code") ||
+                paragraph.startsWith("from “CSR") ||
+                paragraph.startsWith("People and Planet") ||
+                paragraph.startsWith("Sustainability must") ||
+                paragraph.startsWith("BYD should")
+            ) {
+
+                return `<p class="question">${paragraph}</p>`;
+
+            }
+
+            return `<p>${paragraph}</p>`;
+
+        })
+        .join("");
+
+    pageNumber.textContent =
+        `Slide ${index + 1} / ${slides.length}`;
+
+    slideSelect.value = index;
+
+    content.scrollTop = 0;
+}
+
+
+/* Next slide */
+function nextSlide() {
+
+    if (currentSlide < slides.length - 1) {
+
+        loadSlide(currentSlide + 1);
+
+    }
+
+}
+
+
+/* Previous slide */
+function previousSlide() {
+
+    if (currentSlide > 0) {
+
+        loadSlide(currentSlide - 1);
+
+    }
+
+}
+
+
+/* Jump to slide */
+function goToSlide(index) {
+
+    loadSlide(parseInt(index));
+
+}
+
+
+/* Keyboard controls */
+document.addEventListener("keydown", function(event) {
+
+    if (event.key === "ArrowRight" ||
+        event.key === "PageDown" ||
+        event.key === " ") {
+
+        event.preventDefault();
+
+        nextSlide();
+
+    }
+
+    if (event.key === "ArrowLeft" ||
+        event.key === "PageUp") {
+
+        event.preventDefault();
+
+        previousSlide();
+
+    }
+
+    /* Home = first slide */
+    if (event.key === "Home") {
+
+        loadSlide(0);
+
+    }
+
+    /* End = last slide */
+    if (event.key === "End") {
+
+        loadSlide(slides.length - 1);
+
+    }
+
+});
+
+
+/* Fullscreen */
+function toggleFullscreen() {
+
+    if (!document.fullscreenElement) {
+
+        document.documentElement.requestFullscreen();
+
+    } else {
+
+        document.exitFullscreen();
+
+    }
+
+}
+
+
+/* Start */
+loadSlide(0);
+
+</script>
+
+</body>
+</html>
